@@ -14,9 +14,12 @@ newtype Dag n = Dag
   { upSets :: Arr n (Set n) -- map each node to its upward closure
   } deriving Show
 
+upSet  :: Ord n => Dag n -> n -> Set n
+upSet (Dag dag) n = fromMaybe mempty (findArr n dag)
+
 downSet :: Ord n => Dag n -> n -> Set n
 downSet (Dag dag) n =
-  foldMapArr (\ (x, xup) -> if inSet n xup then singleton n else mempty) dag
+  foldMapArr (\ (x, xup) -> if inSet n xup then singleton x else mempty) dag
 
 invertDag :: Ord n => Dag n -> Dag n
 invertDag (Dag dag) =
