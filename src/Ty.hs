@@ -18,6 +18,8 @@ import Data.Void
 import Data.Monoid
 import Data.Maybe
 
+import Debug.Trace
+
 import BigArray
 import Dag
 
@@ -76,11 +78,11 @@ instance Hnf Tim where
   hnf (TiV u) = tivH u where
     tivH u = do
       st <- get
-      let g = tiDef st
-      case findArr u g of  -- BigArray needs monadic update
+      case findArr u (tiDef st) of  -- BigArray needs monadic update
         Nothing -> return (TiV u)
         Just t -> do
           t' <- hnf t
+          g <- gets tiDef
           put (st {tiDef = insertArr (u, t') g})
           return t'
   hnf t       = return t
@@ -89,11 +91,11 @@ instance Hnf Typ where
   hnf (TyV u) = tyvH u where
     tyvH x = do
       st <- get
-      let g = tyDef st
-      case findArr x g of
+      case findArr x (tyDef st) of
         Nothing -> return (TyV x)
         Just t -> do
           t' <- hnf t
+          g <- gets tyDef
           put (st {tyDef = insertArr (x, t') g})
           return t'
   hnf t       = return t
@@ -116,6 +118,7 @@ data TyErr
   | CableLoop             -- there's a spatial loop!
   | DecDef String String  -- declaration and definition names mismatch!
   | DuplicateWire String  -- same name used for two wires!
+  | LongPats              -- too many patterns for the types!
   | ShortPats             -- not enough patterns for the expressions!
   | Don'tKnow String      -- don't know what that component is!
   | DefLoop               -- circular definition!
@@ -211,17 +214,23 @@ tyO bad t = do
     Bit u -> Bit <$> hnf u
     Cable ts -> Cable <$> traverse (tyO bad) ts
 
-defineWire :: String -> TyM Typ
-defineWire x = do
+defineWire :: Maybe Typ -> String -> TyM Typ
+defineWire mt x = do
   st <- get
   let g = wiCxt st
   case findArr x g of
     Just (False, ty) -> do
       put (st {wiCxt = insertArr (x, (True, ty)) g})
-      return ty
+      case mt of
+        Nothing -> return ty
+        Just ty' -> do
+          tyLe (ty, ty')
+          return ty'
     Just (True, _)   -> tyErr (DuplicateWire x)
     Nothing -> do
-      ty <- tyF
+      ty <- case mt of
+        Just ty -> return ty
+        _       -> tyF
       put (st {wiCxt = insertArr (x, (True, ty)) g})
       return ty
 
@@ -242,7 +251,7 @@ useWire x = do
 ------------------------------------------------------------------------------
 
 tyLe :: (Typ, Typ) -> TyM ()
-tyLe st = hnf st >>= \ st -> case st of
+tyLe st = hnf st >>= \ st -> case trace (show st) st of
   (Bit u,    Bit v)     -> tiLe (u, v)
   (Cable ss, Cable ts)
     | length ss == length ts -> foldMap tyLe (zip ss ts)
@@ -292,7 +301,7 @@ tyLe st = hnf st >>= \ st -> case st of
 ------------------------------------------------------------------------------
 
 tiLe :: (Tim, Tim) -> TyM ()
-tiLe st = hnf st >>= \ st -> case st of
+tiLe st = hnf st >>= \ st -> case trace (show st) st of
   (T0, _)  -> return ()
   (_, T1)  -> return ()
   (T1, T0) -> tyErr TiLoop
@@ -318,14 +327,14 @@ tiLe st = hnf st >>= \ st -> case st of
 ------------------------------------------------------------------------------
 
 instance (Show t, Show x) => Show (Ty t x) where
-  show (TyV x)    = show x
+  show (TyV x)    = "?" ++ show x
   show (Bit t)    = show t ++ "-Bit"
   show (Cable ts) = "[" ++ intercalate ", " (fmap show ts) ++ "]"
 
 instance Show u => Show (Ti u) where
   show T0      = "0"
   show T1      = "1"
-  show (TiV u) = show u
+  show (TiV u) = ":" ++ show u
 
 instance Monad (Ty t) where
   return = TyV

@@ -16,10 +16,10 @@ newtype Dag n = Dag
   } deriving Show
 
 upSet  :: Ord n => Dag n -> n -> Set n
-upSet (Dag dag) n = fromMaybe mempty (findArr n dag)
+upSet (Dag dag) n = fromMaybe (singleton n) (findArr n dag)
 
 downSet :: Ord n => Dag n -> n -> Set n
-downSet (Dag dag) n =
+downSet (Dag dag) n = singleton n <>
   foldMapArr (\ (x, xup) -> if inSet n xup then singleton x else mempty) dag
 
 invertDag :: Ord n => Dag n -> Dag n
@@ -63,7 +63,7 @@ edge (x, y) (Dag dag) = case findArr y dag of
 
 upDelete :: Ord n => n -> Dag n -> (Set n, Dag n)
 upDelete n (Dag dag) = case findArr n dag of
-  Nothing -> (mempty, Dag dag)
+  Nothing -> (singleton n, Dag dag)
   Just nup -> (nup, rawDelete nup (Dag dag))
 
 downDelete :: Ord n => n -> Dag n -> (Set n, Dag n)
