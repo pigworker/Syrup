@@ -22,6 +22,8 @@ import Debug.Trace
 
 import BigArray
 import Dag
+import Va
+import Syn
 
 
 ------------------------------------------------------------------------------
@@ -44,14 +46,20 @@ type Tim = Ti TiNom
 
 data Compo = Compo
   { memTys :: [Ty1]
-  , inpTys :: [Ty2]
+  , inpTys :: [Ty1]
   , oupTys :: [Ty2]
-  } deriving Show
+  , stage0 :: [Va] -- memory
+           -> [Va] -- stage 0 outputs
+  , stage1 :: [Va] -- memory, stage0 outputs, stage1 inputs
+           -> [Va] -- new memory, stage1 outputs
+  }
+instance Show Compo where
+  show _ = "<component>"
 
-stanTy1 :: Ty1 -> Typ
-stanTy1 (TyV x)    = absurd x
-stanTy1 (Bit ())   = Bit T0
-stanTy1 (Cable ts) = Cable (fmap stanTy1 ts)
+stanTy1 :: Tim -> Ty1 -> Typ
+stanTy1 u (TyV x)    = absurd x
+stanTy1 u (Bit ())   = Bit u
+stanTy1 u (Cable ts) = Cable (fmap (stanTy1 u) ts)
 
 stanTy2 :: Tim -> Ty2 -> Typ
 stanTy2 v (TyV x)       = absurd x
@@ -77,26 +85,26 @@ class Hnf t where
 instance Hnf Tim where
   hnf (TiV u) = tivH u where
     tivH u = do
-      st <- get
-      case findArr u (tiDef st) of  -- BigArray needs monadic update
+      g <- gets tiDef
+      case findArr u g of  -- BigArray needs monadic update
         Nothing -> return (TiV u)
         Just t -> do
           t' <- hnf t
-          g <- gets tiDef
-          put (st {tiDef = insertArr (u, t') g})
+          st <- get
+          put (st {tiDef = insertArr (u, t') (tiDef st)})
           return t'
   hnf t       = return t
 
 instance Hnf Typ where
   hnf (TyV u) = tyvH u where
     tyvH x = do
-      st <- get
-      case findArr x (tyDef st) of
+      g <- gets tyDef
+      case findArr x g of
         Nothing -> return (TyV x)
         Just t -> do
           t' <- hnf t
-          g <- gets tyDef
-          put (st {tyDef = insertArr (x, t') g})
+          st <- get
+          put (st {tyDef = insertArr (x, t') (tyDef st)})
           return t'
   hnf t       = return t
 
@@ -142,6 +150,10 @@ data TySt = TySt
   , wiCxt :: Cxt            -- per wire defined? type?
   , wiNew :: Integer        -- supply of fresh wire names
   , coEnv :: CoEnv          -- known components
+  , memTy :: [Ty1]          -- memory found so far
+  , memIn :: [Pat]          -- memory input patterns
+  , memOu :: [Pat]          -- memory output patterns
+  , sched :: [Task]         -- scheduled tasks so far
   } deriving Show
 
 type Cxt = Arr String (Bool, Typ)
@@ -151,6 +163,24 @@ type CoEnv = Arr String Compo
 type TiNom = Integer
 
 type TyNom = Integer
+
+tySt0 :: TySt
+tySt0 = TySt
+  { tiDag = Dag emptyArr
+  , tiNew = 0
+  , tiDef = emptyArr
+  , tyDag = Dag emptyArr
+  , tyNew = 0
+  , tyDef = emptyArr
+  , wiCxt = emptyArr
+  , wiNew = 0
+  , coEnv = emptyArr
+  , memTy = []
+  , memIn = []
+  , memOu = []
+  , sched = []
+  }
+
 
 tiF :: TyM Tim
 tiF = do
@@ -164,7 +194,7 @@ tyF = do
   st <- get
   let u = tyNew st
   put (st {tyNew = u + 1})
-  return (TyV u)
+  trace ("tyF" ++ show u) $ return (TyV u)
 
 wiF :: TyM String
 wiF = do
@@ -172,19 +202,6 @@ wiF = do
   let u = wiNew st
   put (st {wiNew = u + 1})
   return ("|" ++ show u)
-
-tySt0 :: TySt
-tySt0 = TySt
-  { tiDag = Dag emptyArr
-  , tiNew = 0
-  , tiDef = emptyArr
-  , tyDag = Dag emptyArr
-  , tyNew = 0
-  , tyDef = emptyArr
-  , wiCxt = emptyArr
-  , wiNew = 0
-  , coEnv = emptyArr
-  }
 
 tiD :: (TiNom, Tim) -> TyM ()
 tiD (u, t) = do
@@ -216,10 +233,10 @@ tyO bad t = do
 
 defineWire :: Maybe Typ -> String -> TyM Typ
 defineWire mt x = do
-  st <- get
-  let g = wiCxt st
+  g <- gets wiCxt
   case findArr x g of
     Just (False, ty) -> do
+      st <- get
       put (st {wiCxt = insertArr (x, (True, ty)) g})
       case mt of
         Nothing -> return ty
@@ -231,19 +248,25 @@ defineWire mt x = do
       ty <- case mt of
         Just ty -> return ty
         _       -> tyF
+      st <- get
       put (st {wiCxt = insertArr (x, (True, ty)) g})
       return ty
 
 useWire :: String -> TyM Typ
-useWire x = do
-  st <- get
-  let g = wiCxt st
+useWire x = trace ("useWire " ++ x) $ do
+  g <- gets wiCxt
   case findArr x g of
-    Just (_, ty) -> return ty
+    Just (_, ty) -> trace "already" $ return ty
     Nothing -> do
       ty <- tyF
+      st <- get
       put (st {wiCxt = insertArr (x, (False, ty)) g})
-      return ty
+      trace ("fresh" ++ show ty) $ return ty
+
+schedule :: Task -> TyM ()
+schedule ta = do
+  st <- get
+  put (st {sched = ta : sched st})
 
 
 ------------------------------------------------------------------------------

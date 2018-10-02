@@ -9,6 +9,8 @@
 
 module Syn where
 
+import BigArray
+
 data Exp
   = Var String
   | App String [Exp]
@@ -34,6 +36,9 @@ data TY
   | CABLE [TY]
   deriving Show
 
-data Dec t = Dec (String,[t]) [t]
-  deriving (Show, Functor, Foldable, Traversable)
+data DEC = DEC (String,[TY]) [TY]
+  deriving Show
 
+support :: Pat -> Set String
+support (PVar x)  = singleton x
+support (PCab ps) = foldMap support ps

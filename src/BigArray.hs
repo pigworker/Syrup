@@ -217,3 +217,6 @@ rightmostArr (Arr t) = go t where
 intersectSet :: Ord x => Set x -> Set x -> Set x
 intersectSet xs =
   foldMapArr (\ (y, ()) -> if inSet y xs then singleton y else mempty)
+
+subSet :: Ord x => Set x -> Set x -> Bool
+subSet xs ys = getAll (foldMapSet (All . (`inSet` ys)) xs)
