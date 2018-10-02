@@ -52,7 +52,6 @@ chkExp (t : ts) (Var x) = do
   s <- useWire x
   tyLe (s, t)
   return ts
-chkExp [] (Var _) = tyErr ShortPats
 chkExp ts (App f es) = do
   st <- get
   f <- case findArr f (coEnv st) of
@@ -64,6 +63,18 @@ chkExp ts (App f es) = do
   let ss = map (stanTy2 u) (oupTys f)
   chkExps rs es
   yield ss ts
+chkExp (t : ts) (Cab es) = do
+  ss <- case t of
+    Cable ss -> return ss
+    Bit _ -> tyErr BitCable
+    TyV x -> do
+      ss <- traverse (const tyF) es
+      tyLe (Cable ss, TyV x)
+      return ss
+  chkExps ss es
+  return ts
+chkExp [] _ = tyErr ShortPats
+
 
 
 yield :: [Typ] -> [Typ] -> TyM [Typ]
