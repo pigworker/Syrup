@@ -7,6 +7,7 @@
 module Dag where
 
 import Data.Maybe
+import Data.Monoid
 
 import BigArray
 
@@ -69,3 +70,49 @@ downDelete :: Ord n => n -> Dag n -> (Set n, Dag n)
 downDelete n dag =
   let ndn = downSet dag n
   in  (ndn, rawDelete ndn dag)
+
+data DagComponents n = DagComponents
+  { nextComponent   :: Integer              -- larger than any mentioned
+  , knownComponents :: Arr Integer (Set n)  -- which things are in a component
+  , whichComponent  :: Arr n Integer        -- which component a thing is in
+  } deriving Show
+
+growComponents :: Ord n => Set n -> DagComponents n -> DagComponents n
+growComponents xs (DagComponents n k w) =
+  case foldMapSet (\ x -> maybe [] (:[]) (findArr x w)) xs of
+    [] -> DagComponents
+      { nextComponent = n + 1
+      , knownComponents = insertArr (n, xs) k
+      , whichComponent = appEndo
+          (foldMapSet (\ x -> Endo $ insertArr (x, n)) xs) w
+      }
+    [i] -> DagComponents
+      { nextComponent = n
+      , knownComponents = k <> single (i, xs)
+      , whichComponent = appEndo
+          (foldMapSet (\ x -> Endo $ insertArr (x, i)) xs) w
+      }
+    i : js ->
+      let blob = xs <> foldMap (\ j -> fromMaybe mempty (findArr j k)) js
+          k' = foldr deleteArr k js
+      in  DagComponents
+            { nextComponent = n
+            , knownComponents = insertArr (i, blob) k'
+            , whichComponent = appEndo
+                (foldMapSet (\ x -> Endo $ insertArr (x, i)) blob) w
+            }
+
+dagComponents :: Ord n => Dag n -> DagComponents n
+dagComponents (Dag dag) =
+  appEndo (foldMapArr (Endo . growComponents . snd) dag)
+  (DagComponents 0 emptyArr emptyArr)
+
+dagClosure :: Ord n => n -> Dag n -> Set n
+dagClosure n dag = case findArr n w of
+    Just c -> case findArr c k of
+      Just s -> s
+  where
+    DagComponents {knownComponents = k, whichComponent = w} =
+      dagComponents dag
+
+          

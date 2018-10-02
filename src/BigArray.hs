@@ -1,4 +1,5 @@
-{-# LANGUAGE DataKinds, GADTs, KindSignatures, StandaloneDeriving, RankNTypes #-}
+{-# LANGUAGE DataKinds, GADTs, KindSignatures, StandaloneDeriving, RankNTypes,
+    TypeSynonymInstances #-}
 
 module BigArray where
 
@@ -174,6 +175,9 @@ travArr f (Arr t) = Arr <$> travT23 f t
 
 foldMapArr :: Monoid x => ((k, v) -> x) -> Arr k v -> x
 foldMapArr f = getConst . travArr (Const . f)
+
+foldMapSet :: Monoid y => (x -> y) -> Set x -> y
+foldMapSet f = foldMapArr (f . fst)
 
 instance (Ord k, Semigroup v) => Semigroup (Arr k v) where (<>) = mappend
 instance (Ord k, Semigroup v) => Monoid (Arr k v) where
