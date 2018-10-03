@@ -21,7 +21,6 @@ import Data.Maybe
 import Debug.Trace
 
 import BigArray
-import Dag
 import Va
 import Syn
 
@@ -37,12 +36,10 @@ data Ty t x
   deriving (Foldable, Traversable)
 
 type Ty1 = Ty () Void
-type Ty2 = Ty (Ti Void) Void
-type Typ = Ty (Ti TiNom) TyNom
+type Ty2 = Ty Ti Void
+type Typ = Ty () TyNom
 
-data Ti u = T0 | T1 | TiV u
-
-type Tim = Ti TiNom
+data Ti = T0 | T1 deriving Show
 
 data Compo = Compo
   { memTys :: [Ty1]
@@ -56,16 +53,10 @@ data Compo = Compo
 instance Show Compo where
   show _ = "<component>"
 
-stanTy1 :: Tim -> Ty1 -> Typ
-stanTy1 u (TyV x)    = absurd x
-stanTy1 u (Bit ())   = Bit u
-stanTy1 u (Cable ts) = Cable (fmap (stanTy1 u) ts)
-
-stanTy2 :: Tim -> Ty2 -> Typ
-stanTy2 v (TyV x)       = absurd x
-stanTy2 v (Bit (TiV u)) = absurd u
-stanTy2 v (Bit T1)      = Bit v
-stanTy2 v (Bit T0)      = Bit T0
+stanTy :: Ty t Void -> Typ
+stanTy (TyV x)    = absurd x
+stanTy (Bit _)    = Bit ()
+stanTy (Cable ts) = Cable (fmap stanTy ts)
 
 
 ------------------------------------------------------------------------------
@@ -81,19 +72,6 @@ newtype TyM x = TyM {tyM :: TySt -> Either TyErr (x, TySt)}
 
 class Hnf t where
   hnf :: t -> TyM t
-
-instance Hnf Tim where
-  hnf (TiV u) = tivH u where
-    tivH u = do
-      g <- gets tiDef
-      case findArr u g of  -- BigArray needs monadic update
-        Nothing -> return (TiV u)
-        Just t -> do
-          t' <- hnf t
-          st <- get
-          put (st {tiDef = insertArr (u, t') (tiDef st)})
-          return t'
-  hnf t       = return t
 
 instance Hnf Typ where
   hnf (TyV u) = tyvH u where
@@ -120,8 +98,7 @@ instance Hnf t => Hnf [t] where
 ------------------------------------------------------------------------------
 
 data TyErr
-  = TiLoop                -- there's a timeloop!
-  | CableWidth            -- cable widths have mismatched!
+  = CableWidth            -- cable widths have mismatched!
   | BitCable              -- a bit has been connected to a cable!
   | CableLoop             -- there's a spatial loop!
   | DecDef String String  -- declaration and definition names mismatch!
@@ -141,11 +118,7 @@ tyErr = TyM . const . Left
 ------------------------------------------------------------------------------
 
 data TySt = TySt
-  { tiDag :: Dag TiNom      -- dag of timing constraints
-  , tiNew :: Integer        -- supply of fresh time variables
-  , tiDef :: Arr TiNom Tim  -- store of time definitions
-  , tyDag :: Dag TyNom      -- dag of subtyping constraints
-  , tyNew :: Integer        -- supply of fresh type variables
+  { tyNew :: Integer        -- supply of fresh type variables
   , tyDef :: Arr TyNom Typ  -- store of type definitions
   , wiCxt :: Cxt            -- per wire defined? type?
   , wiNew :: Integer        -- supply of fresh wire names
@@ -160,17 +133,11 @@ type Cxt = Arr String (Bool, Typ)
 
 type CoEnv = Arr String Compo
 
-type TiNom = Integer
-
 type TyNom = Integer
 
 tySt0 :: TySt
 tySt0 = TySt
-  { tiDag = Dag emptyArr
-  , tiNew = 0
-  , tiDef = emptyArr
-  , tyDag = Dag emptyArr
-  , tyNew = 0
+  { tyNew = 0
   , tyDef = emptyArr
   , wiCxt = emptyArr
   , wiNew = 0
@@ -180,14 +147,6 @@ tySt0 = TySt
   , memOu = []
   , sched = []
   }
-
-
-tiF :: TyM Tim
-tiF = do
-  st <- get
-  let u = tiNew st
-  put (st {tiNew = u + 1})
-  return (TiV u)
 
 tyF :: TyM Typ
 tyF = do
@@ -203,22 +162,9 @@ wiF = do
   put (st {wiNew = u + 1})
   return ("|" ++ show u)
 
-tiD :: (TiNom, Tim) -> TyM ()
-tiD (u, t) = do
-  t <- tiO u t
-  st <- get
-  put (st {tiDef = insertArr (u, t) (tiDef st)})
-
-tiO :: TiNom -> Tim -> TyM Tim
-tiO u t = do
-  t <- hnf t
-  case t of
-    TiV v | u == v -> tyErr DefLoop
-    _ -> return t
-
 tyD :: (TyNom, Typ) -> TyM ()
 tyD (x, t) = do
-  t <- tyO (x ==) t  -- is this check strong enough?
+  t <- tyO (x ==) t
   st <- get
   put (st {tyDef = insertArr (x, t) (tyDef st)})
 
@@ -226,9 +172,9 @@ tyO :: (TyNom -> Bool) -> Typ -> TyM Typ
 tyO bad t = do
   t <- hnf t
   case t of
-    TyV y | bad y     -> tyErr DefLoop
+    TyV y | bad y     -> tyErr CableLoop
           | otherwise -> return t
-    Bit u -> Bit <$> hnf u
+    Bit _ -> pure (Bit ())
     Cable ts -> Cable <$> traverse (tyO bad) ts
 
 defineWire :: Maybe Typ -> String -> TyM Typ
@@ -241,7 +187,7 @@ defineWire mt x = do
       case mt of
         Nothing -> return ty
         Just ty' -> do
-          tyLe (ty, ty')
+          tyEq (ty, ty')
           return ty'
     Just (True, _)   -> tyErr (DuplicateWire x)
     Nothing -> do
@@ -270,79 +216,19 @@ schedule ta = do
 
 
 ------------------------------------------------------------------------------
--- subtyping
+-- unification
 ------------------------------------------------------------------------------
 
-tyLe :: (Typ, Typ) -> TyM ()
-tyLe st = hnf st >>= \ st -> case trace (show st) st of
-  (Bit u,    Bit v)     -> tiLe (u, v)
+tyEq :: (Typ, Typ) -> TyM ()
+tyEq st = hnf st >>= \ st -> case trace (show st) st of
+  (Bit _,    Bit _)    -> return ()
   (Cable ss, Cable ts)
-    | length ss == length ts -> foldMap tyLe (zip ss ts)
+    | length ss == length ts -> foldMap tyEq (zip ss ts)
     | otherwise -> tyErr CableWidth
   (Bit _,    Cable _)  -> tyErr BitCable
   (Cable _,  Bit _)    -> tyErr BitCable
-  (TyV x,    TyV y) | x == y -> return ()
-                    | otherwise -> do
-    st <- get
-    let (xys, tyd) = edge (x, y) (tyDag st)
-    put (st {tyDag = tyd})
-    foldMapSet (\ x -> tyD (x, TyV y)) xys
-  (TyV x,    Bit v)    -> do
-    u <- tiF
-    tiLe (u, v)
-    tyLet (x, Bit u)
-  (Bit u,    TyV y)    -> do
-    v <- tiF
-    tiLe (u, v)
-    tyLet (y, Bit v)
-  (TyV x,    Cable ts) -> do
-    xc <- gets (dagClosure x . tyDag)
-    ts <- traverse (tyO (`inSet` xc)) ts
-    ss <- traverse (const tyF) ts
-    tyLe (Cable ss, Cable ts)
-    tyLet (x, Cable ss)
-  (Cable ss, TyV y) -> do
-    yc <- gets (dagClosure y . tyDag)
-    ss <- traverse (tyO (`inSet` yc)) ss
-    ts <- traverse (const tyF) ss
-    tyLe (Cable ss, Cable ts)
-    tyLet (y, Cable ts)
-  where
-    tyLet (x, t) = do
-      tyD (x, t)
-      st <- get
-      let tyd = tyDag st
-      let xup = deleteArr x (upSet tyd x)
-      let xdn = deleteArr x (downSet tyd x)
-      put (st {tyDag = rawDelete (singleton x) tyd})
-      foldMapSet (\ y -> tyLe (t, TyV y)) xup
-      foldMapSet (\ w -> tyLe (TyV w, t)) xdn
-
-
-------------------------------------------------------------------------------
--- subtiming
-------------------------------------------------------------------------------
-
-tiLe :: (Tim, Tim) -> TyM ()
-tiLe st = hnf st >>= \ st -> case trace (show st) st of
-  (T0, _)  -> return ()
-  (_, T1)  -> return ()
-  (T1, T0) -> tyErr TiLoop
-  (T1, TiV u) -> do
-    st <- get
-    let (u1s, tid) = upDelete u (tiDag st)
-    put (st {tiDag = tid})
-    foldMapSet (\ u -> tiD (u, T1)) u1s
-  (TiV u, T0) -> do
-    st <- get
-    let (u0s, tid) = downDelete u (tiDag st)
-    put (st {tiDag = tid})
-    foldMapSet (\ u -> tiD (u, T0)) u0s
-  (TiV u, TiV v) -> do
-    st <- get
-    let (uvs, tid) = edge (u, v) (tiDag st)
-    put (st {tiDag = tid})
-    foldMapSet (\ u -> tiD (u, TiV v)) uvs
+  (TyV x,    t)        -> tyD (x, t)
+  (t,        TyV y)    -> tyD (y, t)
 
 
 ------------------------------------------------------------------------------
@@ -353,11 +239,6 @@ instance (Show t, Show x) => Show (Ty t x) where
   show (TyV x)    = "?" ++ show x
   show (Bit t)    = show t ++ "-Bit"
   show (Cable ts) = "[" ++ intercalate ", " (fmap show ts) ++ "]"
-
-instance Show u => Show (Ti u) where
-  show T0      = "0"
-  show T1      = "1"
-  show (TiV u) = ":" ++ show u
 
 instance Monad (Ty t) where
   return = TyV
@@ -396,36 +277,3 @@ instance MonadState TySt TyM where
   put s = TyM $ \ _ -> Right ((), s)
 
 
-
-
-------------------------------------------------------------------------------
--- experiments
-------------------------------------------------------------------------------
-
-expt1 :: TyM ()  -- should succeed, propagating
-expt1 = do
-  a <- tyF
-  b <- tyF
-  c <- tyF
-  u <- tiF
-  tyLe (a, b)
-  tyLe (a, c)
-  tyLe (b, Bit u)
-
-expt2 :: TyM ()
-expt2 = do
-  a <- tyF
-  b <- tyF
-  c <- tyF
-  d <- tyF
-  e <- tyF
-  tyLe (a, b)
-  tyLe (a, c)
-  tyLe (b, Cable [d, e])
-
-expt3 :: TyM () -- should fail but it DOESN'T!
-expt3 = do
-  a <- tyF
-  b <- tyF
-  tyLe (a, b)
-  tyLe (b, Cable [a])

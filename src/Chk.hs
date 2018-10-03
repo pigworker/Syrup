@@ -47,14 +47,14 @@ guts :: Dec -> Def -> TyM ([Pat], ([Pat], [Pat]))
 guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   | f /= g = tyErr (DecDef f g)
   | otherwise = do
-  let ss' = map (stanTy1 T1) ss
-  let ts' = map (stanTy2 T1) ts
+  let ss' = map stanTy ss
+  let ts' = map stanTy ts
   decPats ss' ps
   qs <- chkExps ts' es
   st <- get
   True <- trace ("preq: " ++ show st) $ return True
   foldMap chkEqn eqs
-  (qs', (qs0, qs1)) <- foldMap (stage T1) ts
+  (qs', (qs0, qs1)) <- foldMap stage ts
   solders qs' qs
   return (ps, (qs0, qs1))
 
@@ -112,39 +112,38 @@ chkExp :: [Typ] -> Exp -> TyM ([Pat], [Typ])
 chkExp (t : ts) (Var x) = do
   s <- useWire x
   True <- trace (x ++ " : " ++ show s) $ return True
-  tyLe (s, t)
+  tyEq (s, t)
   return ([PVar x], ts)
 chkExp ts e@(App f es) = do
   env <- trace (show (ts, e)) $ gets coEnv
   f <- case findArr f env of
     Nothing -> tyErr (Don'tKnow f)
     Just f  -> return f
-  u <- tiF  -- when f runs
   let mTy  = memTys f
   mIn <- for mTy $ \ ty -> do
     w <- wiF
-    defineWire (Just (stanTy1 T0 ty)) w
+    defineWire (Just (stanTy ty)) w
     return (PVar w)
   mOu <- for mTy $ \ ty -> do
     w <- wiF
-    defineWire (Just (stanTy1 T1 ty)) w
+    defineWire (Just (stanTy ty)) w
     return (PVar w)
   st <- get
   put (st { memTy = memTy st ++ mTy
           , memIn = memIn st ++ mIn
           , memOu = memOu st ++ mOu } )
-  ps <- chkExps (map (stanTy1 u) (inpTys f)) es
-  (qs, (qs0, qs1)) <- foldMap (stage u) (oupTys f)
+  ps <- chkExps (map stanTy (inpTys f)) es
+  (qs, (qs0, qs1)) <- foldMap stage (oupTys f)
   schedule (qs0 :<- (stage0 f, mIn))
   schedule ((mOu ++ qs1) :<- (stage1 f, mIn ++ ps))
-  (,) qs <$> yield (map (stanTy2 u) (oupTys f)) ts
+  (,) qs <$> yield (map stanTy (oupTys f)) ts
 chkExp (t : ts) (Cab es) = do
   ss <- case t of
     Cable ss -> return ss
     Bit _ -> tyErr BitCable
     TyV x -> do
       ss <- traverse (const tyF) es
-      tyLe (Cable ss, TyV x)
+      tyEq (Cable ss, TyV x)
       return ss
   ps <- chkExps ss es
   return ([PCab ps], ts)
@@ -153,19 +152,15 @@ chkExp [] _ = tyErr ShortPats
 yield :: [Typ] -> [Typ] -> TyM [Typ]
 yield [] ts       = return ts
 yield (s : ss) [] = tyErr ShortPats
-yield (s : ss) (t : ts) = tyLe (s, t) >> yield ss ts
+yield (s : ss) (t : ts) = tyEq (s, t) >> yield ss ts
 
-stage :: Tim -> Ty2 -> TyM ([Pat], ([Pat], [Pat]))
-stage u (Bit T0) = do
+stage :: Ty2 -> TyM ([Pat], ([Pat], [Pat]))
+stage (Bit t) = do
   w <- wiF
-  defineWire (Just (Bit T0)) w
-  return ([PVar w], ([PVar w], []))
-stage u (Bit T1) = do
-  w <- wiF
-  defineWire (Just (Bit u)) w
-  return ([PVar w], ([], [PVar w]))
-stage u (Cable ts) = do
-  (qs, (qs0, qs1)) <- foldMap (stage u) ts
+  defineWire (Just (Bit ())) w
+  return ([PVar w], case t of {T0 -> ([PVar w], []); T1 -> ([], [PVar w])})
+stage (Cable ts) = do
+  (qs, (qs0, qs1)) <- foldMap stage ts
   return ([PCab qs], ([PCab qs0], [PCab qs1]))
 
 
