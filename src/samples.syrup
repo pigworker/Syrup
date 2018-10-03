@@ -1,0 +1,36 @@
+!<Bit> -> <Bit>
+!X = Z where
+  Z = nand(X, X)
+
+<Bit> & <Bit> -> <Bit>
+X & Y = B where
+  A = nand(X, Y)
+  Z = !A
+
+<Bit> | <Bit> -> <Bit>
+X | Y = B where
+  A, B = !X, !Y
+  Z = nand(A, B)
+
+xor(<Bit>, <Bit>) -> <Bit>
+xor(X, Y) = Z where
+  A, B = X | Y, X & Y
+  C = !B
+  Z = A & C
+
+hadd(<Bit>, <Bit>) -> <Bit>, <Bit>
+hadd(X1, Y1) = C2, S1 where
+  C2 = X1 & Y1
+  S1 = xor(X1, Y1)
+
+fadd(<Bit>, <Bit>, <Bit>) -> <Bit>, <Bit>
+fadd(X1, Y1, C1) = C2, Z1 where
+  D2, D1 = hadd(X1, Y1)
+  E2, Z1 = hadd(D1, C1)
+  C2 = xor(D2, E2)
+
+jkff(<Bit>, <Bit>) -> @<Bit>
+jkff(J, K) = Q where
+  Q = dff(D)
+  D = J & !Q | !K & Q
+

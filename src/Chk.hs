@@ -4,6 +4,8 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+module Chk where
+
 import Data.Void
 import Data.Traversable
 import Control.Monad.State
@@ -206,6 +208,14 @@ myCoEnv = foldr insertArr emptyArr
       , oupTys = [Bit T0]
       , stage0 = \ [q] -> [q]
       , stage1 = \ [_, d] -> [d]
+      }
+    )
+  , ("zero", Compo
+      { memTys = []
+      , inpTys = []
+      , oupTys = [Bit T0]
+      , stage0 = \ _ -> [B0]
+      , stage1 = \ _ -> []
       }
     )
   ]

@@ -11,6 +11,11 @@ module Syn where
 
 import BigArray
 
+data Source
+  = Declaration DEC
+  | Definition Def
+  deriving Show
+
 data Exp
   = Var String
   | App String [Exp]

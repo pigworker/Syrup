@@ -6,11 +6,11 @@ import Data.Char
 
 import Bwd
 
-lexFile :: String -> [[Token]]
+lexFile :: String -> [(String, [Token])]
 lexFile = fmap tokens . dentLines
 
-tokens :: String -> [Token]
-tokens = findBrackets B0 . raw
+tokens :: String -> (String, [Token])
+tokens r = (r, findBrackets B0 (raw r))
 
 data Token
   = Spc Int      -- never two adjacent
@@ -51,27 +51,35 @@ unix ('\n' : '\r' : s) = '\n' : unix s
 unix ('\r' : s)        = '\n' : unix s
 unix (c : s)           = c : unix s
 
+myLines :: String -> [String]
+myLines ('-' : '-' : s) = myLines (dropWhile (/= '\n') s)
+myLines ('\n' : s) = "" : myLines s
+myLines (c : s) = case myLines s of
+  []      -> [[c]]
+  s : ss  -> (c : s) : ss
+myLines [] = []
+
 dentLines :: String -> [String]
-dentLines = dentify B0 . lines . unix where
+dentLines = dentify B0 . myLines . unix where
   dentify lz [] = dump lz []
   dentify lz (l : ls) = case l of
     c : _ | not (isSpace c) -> dump lz (dentify (B0 :< l) ls)
     _ -> dentify (lz :< l) ls
   dump B0 ls = ls
-  dump lz ls = concat lz : ls
+  dump lz ls = concat (fmap (++ "\n") lz) : ls
 
 raw :: String -> [Token]
 raw "" = []
-raw (c : s) | elem c " \t" = spaces 1 s
+raw (c : s) | elem c " \t\n" = spaces 1 s
 raw (c : s) | elem c solos = Sym [c] : raw s
 raw (c : s) | isAlphaNumU c = alphanum (B0 :< c) s
 raw (c : s) = symbol (B0 :< c) s
 
 solos :: String
-solos = ",;()[]{}"
+solos = ",;!()[]{}"
 
 spaces :: Int -> String -> [Token]
-spaces i (c : s) | elem c " \t" = spaces (i + 1) s
+spaces i (c : s) | elem c " \t\n" = spaces (i + 1) s
 spaces i s = Spc i : raw s
 
 alphanum :: Bwd Char -> String -> [Token]
