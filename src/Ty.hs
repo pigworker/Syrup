@@ -50,7 +50,7 @@ data Compo = Compo
   , oupTys :: [Ty2]
   , stage0 :: [Va] -- memory
            -> [Va] -- stage 0 outputs
-  , stage1 :: [Va] -- memory, stage0 outputs, stage1 inputs
+  , stage1 :: [Va] -- memory, stage1 inputs
            -> [Va] -- new memory, stage1 outputs
   }
 instance Show Compo where

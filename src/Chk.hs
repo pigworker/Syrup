@@ -31,7 +31,7 @@ mkComponent env dec def =
             ((ta0, k1), tar) =
               glom ([], foldMap support mI) (sched st)
             ((ta1, k2), tat) =
-              glom ([], foldMap support (mI ++ qs0 ++ ps)) (sched st)
+              glom ([], foldMap support (mI ++ ps)) (sched st)
         in  case (tat, foldMap support qs0 `subSet` k1,
                        foldMap support (mO ++ qs1) `subSet` k2) of
               ([], True, True) -> Right . (,) g $ Compo
@@ -39,7 +39,7 @@ mkComponent env dec def =
                 , inpTys = ss
                 , oupTys = ts
                 , stage0 = plan (Plan mI ta0 qs0)
-                , stage1 = plan (Plan (mI ++ qs0 ++ ps) ta1 (mO ++ qs1))
+                , stage1 = plan (Plan (mI ++ ps) ta1 (mO ++ qs1))
                 }
               x -> trace (show x) $ Left DefLoop
 
@@ -130,13 +130,13 @@ chkExp ts e@(App f es) = do
     defineWire (Just (stanTy1 T1 ty)) w
     return (PVar w)
   st <- get
-  put (st { memTy = mTy ++ memTy st
-          , memIn = mIn ++ memIn st
-          , memOu = mOu ++ memOu st } )
+  put (st { memTy = memTy st ++ mTy
+          , memIn = memIn st ++ mIn
+          , memOu = memOu st ++ mOu } )
   ps <- chkExps (map (stanTy1 u) (inpTys f)) es
   (qs, (qs0, qs1)) <- foldMap (stage u) (oupTys f)
   schedule (qs0 :<- (stage0 f, mIn))
-  schedule ((mOu ++ qs1) :<- (stage1 f, mIn ++ qs0 ++ ps))
+  schedule ((mOu ++ qs1) :<- (stage1 f, mIn ++ ps))
   (,) qs <$> yield (map (stanTy2 u) (oupTys f)) ts
 chkExp (t : ts) (Cab es) = do
   ss <- case t of
@@ -210,7 +210,7 @@ myCoEnv = foldr insertArr emptyArr
       , inpTys = [Bit ()]
       , oupTys = [Bit T0]
       , stage0 = \ [q] -> [q]
-      , stage1 = \ [_, _, d] -> [d]
+      , stage1 = \ [_, d] -> [d]
       }
     )
   ]
