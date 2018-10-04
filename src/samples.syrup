@@ -8,7 +8,7 @@ X & Y = Z where
   Z = !A
 
 <Bit> | <Bit> -> <Bit>
-X | Y = B where
+X | Y = Z where
   A, B = !X, !Y
   Z = nand(A, B)
 
@@ -34,5 +34,10 @@ jkff(J, K) = Q where
   Q = dff(D)
   D = J & !Q | !K & Q
 
+experiment not
+experiment and
+experiment or
 experiment xor
+experiment hadd
+experiment fadd
 experiment jkff
