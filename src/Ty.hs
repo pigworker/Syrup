@@ -18,8 +18,6 @@ import Data.Void
 import Data.Monoid
 import Data.Maybe
 
-import Debug.Trace
-
 import BigArray
 import Va
 import Syn
@@ -153,7 +151,7 @@ tyF = do
   st <- get
   let u = tyNew st
   put (st {tyNew = u + 1})
-  trace ("tyF" ++ show u) $ return (TyV u)
+  return (TyV u)
 
 wiF :: TyM String
 wiF = do
@@ -199,15 +197,15 @@ defineWire mt x = do
       return ty
 
 useWire :: String -> TyM Typ
-useWire x = trace ("useWire " ++ x) $ do
+useWire x = do
   g <- gets wiCxt
   case findArr x g of
-    Just (_, ty) -> trace "already" $ return ty
+    Just (_, ty) -> return ty
     Nothing -> do
       ty <- tyF
       st <- get
       put (st {wiCxt = insertArr (x, (False, ty)) g})
-      trace ("fresh" ++ show ty) $ return ty
+      return ty
 
 schedule :: Task -> TyM ()
 schedule ta = do
@@ -220,7 +218,7 @@ schedule ta = do
 ------------------------------------------------------------------------------
 
 tyEq :: (Typ, Typ) -> TyM ()
-tyEq st = hnf st >>= \ st -> case trace (show st) st of
+tyEq st = hnf st >>= \ st -> case st of
   (Bit _,    Bit _)    -> return ()
   (Cable ss, Cable ts)
     | length ss == length ts -> foldMap tyEq (zip ss ts)

@@ -10,8 +10,6 @@ import Data.Void
 import Data.Traversable
 import Control.Monad.State
 
-import Debug.Trace
-
 import Va
 import Ty
 import Syn
@@ -27,7 +25,7 @@ mkComponent env dec def =
   case cookDec dec of
     dec@(Dec (g, ss) ts) -> case tyM (guts dec def) (tySt0 {coEnv = env}) of
       Left e -> Left e
-      Right ((ps, (qs0, qs1)), st) -> trace (show (ps, sched st, qs0, qs1)) $
+      Right ((ps, (qs0, qs1)), st) ->
         let mI  = memIn st
             mO  = memOu st
             ((ta0, k1), tar) =
@@ -43,7 +41,7 @@ mkComponent env dec def =
                 , stage0 = plan (Plan mI ta0 qs0)
                 , stage1 = plan (Plan (mI ++ ps) ta1 (mO ++ qs1))
                 }
-              x -> trace (show x) $ Left DefLoop
+              x -> Left DefLoop
 
 guts :: Dec -> Def -> TyM ([Pat], ([Pat], [Pat]))
 guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
@@ -54,7 +52,6 @@ guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   decPats ss' ps
   qs <- chkExps ts' es
   st <- get
-  True <- trace ("preq: " ++ show st) $ return True
   foldMap chkEqn eqs
   (qs', (qs0, qs1)) <- foldMap stage ts
   solders qs' qs
@@ -81,7 +78,7 @@ decPat _ (PCab _) = tyErr BitCable
 ------------------------------------------------------------------------------
 
 chkEqn :: Eqn -> TyM ()
-chkEqn eqn@(qs :=: es) = trace (show eqn) $ do
+chkEqn eqn@(qs :=: es) = do
   ts <- traverse defPat qs
   ps <- chkExps ts es
   solders qs ps
@@ -113,11 +110,11 @@ solder q p = schedule ([q] :<- (id, [p]))
 chkExp :: [Typ] -> Exp -> TyM ([Pat], [Typ])
 chkExp (t : ts) (Var x) = do
   s <- useWire x
-  True <- trace (x ++ " : " ++ show s) $ return True
+  True <- return True
   tyEq (s, t)
   return ([PVar x], ts)
 chkExp ts e@(App f es) = do
-  env <- trace (show (ts, e)) $ gets coEnv
+  env <- gets coEnv
   f <- case findArr f env of
     Nothing -> tyErr (Don'tKnow f)
     Just f  -> return f
