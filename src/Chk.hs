@@ -401,3 +401,10 @@ myCoEnv = foldr insertArr emptyArr
        ]]
     ]
   ,"jkff(j,k) = q where  q = dff(d)  d = j & !q | q & !k")
+
+(_, _, env5) = mkComponent env4
+  (DEC ("ndnff", [BIT]) [OLD BIT], "ndnff(<Bit>) -> @<Bit>") $ Just
+  (Def ("ndnff", [PVar "d"]) [App "not" [Var "q"]]
+    [[PVar "q"] :=: [App "dff" [App "not" [Var "d"]]]
+    ]
+  ,"ndnff(d) = !q where  q = dff(!d)")

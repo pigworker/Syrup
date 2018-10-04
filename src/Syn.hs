@@ -52,7 +52,7 @@ data EXPT
 
 data Va
   = V0 | V1 | VQ | VC [Va]
-  deriving Eq
+  deriving (Eq, Ord)
 
 instance Show Va where
   show V0 = "0"

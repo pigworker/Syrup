@@ -33,7 +33,7 @@ data Ty t x
   = TyV x
   | Bit t
   | Cable [Ty t x]
-  deriving (Foldable, Traversable)
+  deriving (Eq, Foldable, Traversable)
 
 type Ty1 = Ty () Void
 type Ty2 = Ty Ti Void

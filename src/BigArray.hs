@@ -6,6 +6,7 @@ module BigArray where
 import Data.Monoid
 import Control.Applicative
 import Data.Functor.Identity
+import Data.Traversable
 
 data Nat = Ze | Su Nat
 
@@ -138,11 +139,11 @@ data Arr (k :: *)(v :: *) where
   Arr :: T23 n k v -> Arr k v
 deriving instance (Show k, Show v) => Show (Arr k v)
 
-instance Functor (Arr k) where
-  fmap f (Arr t) = Arr (fmap f t)
-
 emptyArr :: Arr k v
 emptyArr = Arr Leaf
+
+sizeArr :: Arr k v -> Int
+sizeArr = getSum . foldMapArr (const (Sum 1))
 
 insertArr :: Ord k => (k, v) -> Arr k v -> Arr k v
 insertArr iv (Arr lu) = case insert23 iv lu of
@@ -224,4 +225,14 @@ subSet xs ys = getAll (foldMapSet (All . (`inSet` ys)) xs)
 diffSet :: Ord x => Set x -> Set x -> Set x
 diffSet xs ys =
   foldMapSet (\ x -> if x `inSet` ys then mempty else singleton x) xs
-  
+
+setElt :: Set x -> Maybe x
+setElt (Arr Leaf) = Nothing
+setElt (Arr (Node2 _ (k, _) _)) = Just k
+setElt (Arr (Node3 _ (k, _) _ _ _)) = Just k
+
+instance Traversable (Arr k) where
+  traverse f = travArr (f . snd)
+
+instance Foldable (Arr k) where foldMap = foldMapDefault
+instance Functor (Arr k) where fmap = fmapDefault
