@@ -262,15 +262,17 @@ pEqn = pClue (SEEKING "an equation") $
 
 pEXPT :: Par EXPT
 pEXPT = pTokIs (Id "experiment") *> pSpc *>
-  (    Tabulate <$> pVar
+  pClue (SEEKING "an experiment")
+  (    Tabulate <$> pVar <* pSpc <* pEOI
   <|>  Simulate <$> pVar <* pSpc <*> pMem <* pSpc <*>
          pBrk Round (SEEKING "a sequence of test inputs")
            (pSep (pTokIs (Sym ";")) pVas)
-  )
+        <* pSpc <* pEOI
+  ) 
 
 pMem :: Par [Va]
-pMem = pure []
-   <|> id <$> pBrk Curly (SEEKING "the initial memory contents") pVas
+pMem = id <$> pBrk Curly (SEEKING "the initial memory contents") pVas
+   <|> pure []
 
 pVas :: Par [Va]
 pVas = (:) <$> pVa <* pSpc <*> pVas <|> pure []
