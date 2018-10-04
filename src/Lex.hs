@@ -22,6 +22,11 @@ data Token
   | BadClose Bracket
   deriving Eq
 
+tokSize :: Token -> Int
+tokSize (Bracket _ ts) = 2 + sum (map tokSize ts)
+tokSize (BadOpen _ ts) = 1 + sum (map tokSize ts)
+tokSize _ = 1
+
 instance Show Token where
   show (Spc n) = replicate n ' '
   show (Id x)  = x

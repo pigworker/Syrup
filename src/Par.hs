@@ -64,12 +64,15 @@ instance Monoid ParErr where
         GT -> e1
         _  -> e2   -- ORLY?
     where
-      measure B0 tz1 = length tz1
-      measure (g :< BRACKET _ tz _) tz1 = length tz1 + 1 + measure g tz
-      measure (g :< _) tz = measure g tz
       perplexity B0 = 0
       perplexity (g :< SEEKING _) = 1 + perplexity g
       perplexity (g :< _) = perplexity g
+
+measure B0 tz1 = sum (fmap tokSize tz1)
+measure (g :< BRACKET _ tz _) tz1 =
+  sum (fmap tokSize tz1) + 1 + measure g tz
+measure (g :< _) tz = measure g tz
+
 
 data ParClue
   = SOURCE String
@@ -155,9 +158,18 @@ pBrk b c p = do
     t : _ -> pYelp (WantedBrk b t)
     [] -> pYelp UnexpectedEnd
 
+pAll :: Par x -> Par [x]
+pAll p = pSpc *> ((:) <$> p <*> pAll p <|> [] <$ pEOI)
+
+pAllSep :: Par () -> Par x -> Par [x]
+pAllSep s p = (:) <$> p <* pSpc <*> pRest <|> [] <$ pSpc <* pEOI where
+  pRest = (:) <$ s <* pSpc <*> p <* pSpc <*> pRest <|> [] <$ pEOI
+
 pSep :: Par () -> Par x -> Par [x]
-pSep s p = id
-  <$> ((:) <$> p <*> many (id <$ pSpc <* s <* pSpc <*> p) <|> pure [])
+pSep s p = ((:) <$> p <*> many (id <$ pSpc <* s <* pSpc <*> p) <|> pure [])
+
+pSep1 :: Par () -> Par x -> Par [x]
+pSep1 s p = (:) <$> p <*> many (id <$ pSpc <* s <* pSpc <*> p)
 
 pPeek :: ([Token] -> Bool) -> Par ()
 pPeek ah = do
@@ -180,8 +192,7 @@ pDEC :: Par DEC
 pDEC = pClue (SEEKING "a declaration") $ DEC
   <$ pPeek (elem (Sym "->"))
   <*> pLhs "type" pTY <* pSpc <* pTokIs (Sym "->") <* pSpc
-  <*> pClue (SEEKING "list of output types") (pSep (pTokIs (Sym ",")) pTY)
-  <* pSpc <* pEOI
+  <*> pClue (SEEKING "list of output types") (pAllSep (pTokIs (Sym ",")) pTY)
 
 pDef :: Par Def
 pDef = pClue (SEEKING "a definition") $ Def
@@ -208,14 +219,14 @@ pTY = pClue (SEEKING "a type") $
   <|> OLD BIT <$ pTokIs (Sym "@<") <* pTokIs (Id "Bit") <* pTokIs (Sym ">")
   <|> OLD <$ pTokIs (Sym "@") <* pSpc <*> pTY
   <|> CABLE <$> pBrk Square  (SEEKING "cable contents")
-                  (pSep (pTokIs (Sym ",")) pTY)
+                  (pAllSep (pTokIs (Sym ",")) pTY)
   <|> pYelp AARGH
 
 pPat :: Par Pat
 pPat = pClue (SEEKING "a pattern") $
   PVar <$> pVar
   <|> PCab <$> pBrk Square (SEEKING "cable contents")
-         (pSep (pTokIs (Sym ",")) pPat)
+         (pAllSep (pTokIs (Sym ",")) pPat)
   <|> pYelp AARGH
 
 pExp :: Par Exp
@@ -227,13 +238,18 @@ pExpPrec prec = pWee >>= pMore prec
 pWee :: Par Exp
 pWee = pClue (SEEKING "an expression") $
       (pVar >>= \ f -> App f <$ pSpc <*> pBrk Round
-        (SEEKING $ "input for " ++ f) (pSep (pTokIs (Sym ",")) pExp))
-  <|> Var <$> pVar
+        (SEEKING $ "input for " ++ f) (pAllSep (pTokIs (Sym ",")) pExp))
+  <|> Var <$> pVar <* pPeek notApp
   <|> Cab <$> pBrk Square (SEEKING "cable contents")
                  (pSep (pTokIs (Sym ",")) pExp)
   <|> (App "not" . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
   <|> pBrk Round (SEEKING "an expression in parentheses") pExp
   <|> pYelp AARGH
+
+notApp :: [Token] -> Bool
+notApp (Spc _ : ts) = notApp ts
+notApp (Bracket Round _ : _) = False
+notApp _ = True
 
 pMore :: Int -> Exp -> Par Exp
 pMore prec e = ( pSpc *> (
@@ -246,14 +262,14 @@ pMore prec e = ( pSpc *> (
 
 
 pEqns :: Par [Eqn]
-pEqns = [] <$ pEOI <|>
-  id <$ pTokIs (Id "where") <* pSpc <*>
-  many (pEqn <* pSpc) <* pEOI
+pEqns = 
+  id <$ pTokIs (Id "where") <* pSpc <*> pAll pEqn
+  <|> [] <$ pEOI
 
 pEqn :: Par Eqn
 pEqn = pClue (SEEKING "an equation") $
-  (:=:) <$> pSep (pTokIs (Sym ",")) pPat <* pSpc <* pTokIs (Sym "=") <* pSpc
-        <*> pSep (pTokIs (Sym ",")) pExp
+  (:=:) <$> pSep1 (pTokIs (Sym ",")) pPat <* pSpc <* pTokIs (Sym "=") <* pSpc
+        <*> pClue (SEEKING "some expressions") (pSep1 (pTokIs (Sym ",")) pExp)
 
 
 ------------------------------------------------------------------------------
@@ -266,7 +282,7 @@ pEXPT = pTokIs (Id "experiment") *> pSpc *>
   (    Tabulate <$> pVar <* pSpc <* pEOI
   <|>  Simulate <$> pVar <* pSpc <*> pMem <* pSpc <*>
          pBrk Round (SEEKING "a sequence of test inputs")
-           (pSep (pTokIs (Sym ";")) pVas)
+           (pAllSep (pTokIs (Sym ";")) pVas)
         <* pSpc <* pEOI
   ) 
 
