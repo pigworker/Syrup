@@ -3,7 +3,7 @@
   Z = nand(X, X)
 
 <Bit> & <Bit> -> <Bit>
-X & Y = B where
+X & Y = Z where
   A = nand(X, Y)
   Z = !A
 
@@ -34,3 +34,5 @@ jkff(J, K) = Q where
   Q = dff(D)
   D = J & !Q | !K & Q
 
+experiment xor
+experiment jkff

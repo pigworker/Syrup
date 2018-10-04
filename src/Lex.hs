@@ -76,7 +76,7 @@ raw (c : s) | isAlphaNumU c = alphanum (B0 :< c) s
 raw (c : s) = symbol (B0 :< c) s
 
 solos :: String
-solos = ",;!()[]{}"
+solos = ",;!01()[]{}"
 
 spaces :: Int -> String -> [Token]
 spaces i (c : s) | elem c " \t\n" = spaces (i + 1) s

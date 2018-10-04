@@ -220,3 +220,8 @@ intersectSet xs =
 
 subSet :: Ord x => Set x -> Set x -> Bool
 subSet xs ys = getAll (foldMapSet (All . (`inSet` ys)) xs)
+
+diffSet :: Ord x => Set x -> Set x -> Set x
+diffSet xs ys =
+  foldMapSet (\ x -> if x `inSet` ys then mempty else singleton x) xs
+  

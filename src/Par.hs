@@ -8,6 +8,7 @@
 
 module Par where
 
+import Data.Monoid
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
@@ -58,9 +59,17 @@ instance Monoid ParErr where
   mappend Mystery e = e
   mappend e Mystery = e
   mappend e1@(Explanation tc1 (tz1, _) _) e2@(Explanation tc2 (tz2, _) _) =
-    case compare (length tc1, length tz1) (length tc2, length tz2) of
-      GT -> e1
-      _  -> e2   -- ORLY?
+      case compare (measure tc1 tz1, perplexity tc2)
+                   (measure tc2 tz2, perplexity tc1) of
+        GT -> e1
+        _  -> e2   -- ORLY?
+    where
+      measure B0 tz1 = length tz1
+      measure (g :< BRACKET _ tz _) tz1 = length tz1 + 1 + measure g tz
+      measure (g :< _) tz = measure g tz
+      perplexity B0 = 0
+      perplexity (g :< SEEKING _) = 1 + perplexity g
+      perplexity (g :< _) = perplexity g
 
 data ParClue
   = SOURCE String
@@ -130,15 +139,15 @@ pEOI = do
     [] -> return ()
     _  -> pYelp ExpectedEnd
   
-pBrk :: Bracket -> Par x -> Par x
-pBrk b p = do
+pBrk :: Bracket -> ParClue -> Par x -> Par x
+pBrk b c p = do
   tz <- gets toksEaten
   ts <- gets toksAhead
   case ts of
     t@(Bracket b' us) : ts | b == b' -> do
       st <- get
       put (st {toksEaten = B0, toksAhead = us})
-      x <- pClue (BRACKET b tz ts) $ do
+      x <- pClue (BRACKET b tz ts) . pClue c $ do
         id <$ pSpc <*> p <* pSpc <* pEOI
       st <- get
       put (st {toksEaten = tz :< t, toksAhead = ts})
@@ -162,46 +171,52 @@ pPeek ah = do
 
 pSource :: Par Source
 pSource = pClue (SEEKING "Syrup source code") $
-  Declaration <$> pDEC <|> Definition <$> pDef
+      Declaration <$> pDEC
+  <|> Definition <$> pDef
+  <|> Experiment <$> pEXPT
+  <|> pYelp AARGH
 
 pDEC :: Par DEC
-pDEC = pClue (SEEKING "declaration") $ DEC
+pDEC = pClue (SEEKING "a declaration") $ DEC
   <$ pPeek (elem (Sym "->"))
   <*> pLhs "type" pTY <* pSpc <* pTokIs (Sym "->") <* pSpc
   <*> pClue (SEEKING "list of output types") (pSep (pTokIs (Sym ",")) pTY)
   <* pSpc <* pEOI
 
 pDef :: Par Def
-pDef = pClue (SEEKING "definition") $ Def
+pDef = pClue (SEEKING "a definition") $ Def
   <$ pPeek (elem (Sym "="))
   <*> pLhs "pattern" pPat <* pSpc <* pTokIs (Sym "=") <* pSpc
   <*> pClue (SEEKING "list of outputs") (pSep (pTokIs (Sym ",")) pExp)
   <* pSpc <*> pEqns
 
 pLhs :: String -> Par x -> Par (String, [x])
-pLhs s p = pClue (SEEKING "component template") $
+pLhs s p = pClue (SEEKING "a component template") $
       (,) "not" <$ pTokIs (Sym "!") <* pSpc <*> ((:[]) <$> p)
   <|> (,) "and" <$>
         ((:) <$> p <* pSpc <* pTokIs (Sym "&") <* pSpc <*> ((:[]) <$> p))
   <|> (,) "or" <$>
         ((:) <$> p <* pSpc <* pTokIs (Sym "|") <* pSpc <*> ((:[]) <$> p))
   <|> (,) <$> pVar <* pSpc
-          <*> pBrk Round
-            (pClue (SEEKING $ "list of input " ++ s ++ "s") $
-             pSep (pTokIs (Sym ",")) p)
+          <*> pBrk Round (SEEKING $ "list of input " ++ s ++ "s")
+             (  pSep (pTokIs (Sym ",")) p)
   <|> pYelp AARGH 
 
 pTY :: Par TY
-pTY = pClue (SEEKING "type") $
+pTY = pClue (SEEKING "a type") $
       BIT <$ pTokIs (Sym "<") <* pTokIs (Id "Bit") <* pTokIs (Sym ">")
   <|> OLD BIT <$ pTokIs (Sym "@<") <* pTokIs (Id "Bit") <* pTokIs (Sym ">")
   <|> OLD <$ pTokIs (Sym "@") <* pSpc <*> pTY
-  <|> CABLE <$> pBrk Square (pSep (pTokIs (Sym ",")) pTY)
+  <|> CABLE <$> pBrk Square  (SEEKING "cable contents")
+                  (pSep (pTokIs (Sym ",")) pTY)
   <|> pYelp AARGH
 
 pPat :: Par Pat
-pPat = pClue (SEEKING "pattern") $
-  PVar <$> pVar <|> PCab <$> pBrk Square (pSep (pTokIs (Sym ",")) pPat)
+pPat = pClue (SEEKING "a pattern") $
+  PVar <$> pVar
+  <|> PCab <$> pBrk Square (SEEKING "cable contents")
+         (pSep (pTokIs (Sym ",")) pPat)
+  <|> pYelp AARGH
 
 pExp :: Par Exp
 pExp = pExpPrec 0
@@ -210,14 +225,15 @@ pExpPrec :: Int -> Par Exp
 pExpPrec prec = pWee >>= pMore prec
 
 pWee :: Par Exp
-pWee = pClue (SEEKING "expression") $
+pWee = pClue (SEEKING "an expression") $
       (pVar >>= \ f -> App f <$ pSpc <*> pBrk Round
-        (pClue (SEEKING $ "input for " ++ f) $
-         pSep (pTokIs (Sym ",")) pExp))
+        (SEEKING $ "input for " ++ f) (pSep (pTokIs (Sym ",")) pExp))
   <|> Var <$> pVar
-  <|> Cab <$> pBrk Square (pSep (pTokIs (Sym ",")) pExp)
-  <|> (App "!" . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
-  <|> pBrk Round pExp
+  <|> Cab <$> pBrk Square (SEEKING "cable contents")
+                 (pSep (pTokIs (Sym ",")) pExp)
+  <|> (App "not" . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
+  <|> pBrk Round (SEEKING "an expression in parentheses") pExp
+  <|> pYelp AARGH
 
 pMore :: Int -> Exp -> Par Exp
 pMore prec e = ( pSpc *> (
@@ -235,22 +251,46 @@ pEqns = [] <$ pEOI <|>
   many (pEqn <* pSpc) <* pEOI
 
 pEqn :: Par Eqn
-pEqn = pClue (SEEKING "equation") $
+pEqn = pClue (SEEKING "an equation") $
   (:=:) <$> pSep (pTokIs (Sym ",")) pPat <* pSpc <* pTokIs (Sym "=") <* pSpc
         <*> pSep (pTokIs (Sym ",")) pExp
+
+
+------------------------------------------------------------------------------
+-- parsing experiments
+------------------------------------------------------------------------------
+
+pEXPT :: Par EXPT
+pEXPT = pTokIs (Id "experiment") *> pSpc *>
+  (    Tabulate <$> pVar
+  <|>  Simulate <$> pVar <* pSpc <*> pMem <* pSpc <*>
+         pBrk Round (SEEKING "a sequence of test inputs")
+           (pSep (pTokIs (Sym ";")) pVas)
+  )
+
+pMem :: Par [Va]
+pMem = pure []
+   <|> id <$> pBrk Curly (SEEKING "the initial memory contents") pVas
+
+pVas :: Par [Va]
+pVas = (:) <$> pVa <* pSpc <*> pVas <|> pure []
+
+pVa :: Par Va
+pVa = V0 <$ pTokIs (Sym "0") <|> V1 <$ pTokIs (Sym "1")
+  <|> VC <$> pBrk Square (SEEKING "a cable of test inputs") pVas
 
 
 ------------------------------------------------------------------------------
 -- the top level
 ------------------------------------------------------------------------------
 
-syrupFile :: String -> [Either ParErr Source]
+syrupFile :: String -> [Either [String] (Source, String)]
 syrupFile = map syrupSource . lexFile
 
-syrupSource :: (String, [Token]) -> Either ParErr Source
+syrupSource :: (String, [Token]) -> Either [String] (Source, String)
 syrupSource (s, ts) = case par pSource en st of
-    Left e -> Left e
-    Right (x, _) -> Right x
+    Left e -> Left (syntaxError e)
+    Right (x, _) -> Right (x, s)
   where
     en = ParEn
       { keywords = syrupKeywords
@@ -262,7 +302,57 @@ syrupSource (s, ts) = case par pSource en st of
       }
 
 syrupKeywords = foldMap singleton
-  ["where"]
+  ["where", "experiment"]
+
+
+------------------------------------------------------------------------------
+-- syntax errors
+------------------------------------------------------------------------------
+
+syntaxError :: ParErr -> [String]
+syntaxError Mystery =
+  ["Something is wrong but I can't quite put my finger on it."]
+syntaxError (Explanation cz tzs y) = concat
+  [ preamble, [""]
+  , ["I got stuck here: "]
+  , ["  " ++ whereWasI cz (cur tzs " {HERE} ") ]
+  , seeking cz
+  , ["At that point, " ++ yelp y]
+  ]
+  where
+    getSrc (SOURCE src) = Last (Just (lines src))
+    getSrc _ = Last Nothing
+    preamble = case foldMap getSrc cz of
+      (Last (Just ls)) ->
+        "I was trying to make sense of the following code:" : "" : ls
+      _ ->
+        ["I can't remember what you wrote."]
+    cur (tz, ts) m = foldMap show tz ++ m ++ foldMap show ts
+    whereWasI B0 w = w
+    whereWasI _ w | length w >= 40 = "... " ++ w ++ " ..."
+    whereWasI (cz :< BRACKET b tz ts) w =
+      whereWasI cz (cur (tz, ts) (o ++ w ++ c)) where (o, c) = brackets b
+    whereWasI (cz :< _) w = whereWasI cz w
+    seeking B0 = ["I wish I knew what I was looking for."]
+    seeking (cz :< SEEKING x) = ["I was looking for " ++ x ++ "."]
+    seeking (cz :< _) = seeking cz
+    yelp AARGH = "I didn't know where to begin."
+    yelp UnexpectedEnd = "I ran out of input when I needed more."
+    yelp ExpectedEnd =
+      "it made sense, but then I found stuff I didn't expect."
+    yelp (WantedGot w g) = concat
+      ["I was hoping for ", show w, " but I found ", show g
+      ," which perplexed me."]
+    yelp (WantedBrk b t) = concat
+      ["I was hoping for ", o, "..", c, " but I found ", show t
+      ," which vexed me."] where (o, c) = brackets b
+    yelp (WantedIdGotKeyword k) = concat
+      ["I was hoping for a variable, but you used ", k
+      ," which is a keyword. Sorry."]
+    yelp (WantedIdSymbolic t) = concat
+      ["I was hoping for a variable, but I found ", show t
+      ," which doesn't look like a variable."]
+      
 
 
 ------------------------------------------------------------------------------

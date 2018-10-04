@@ -11,6 +11,7 @@
 module Ty where
 
 import Control.Monad
+import Control.Monad.Reader
 import Control.Monad.State
 import Control.Arrow
 import Data.List
@@ -21,6 +22,7 @@ import Data.Maybe
 import BigArray
 import Va
 import Syn
+import Bwd
 
 
 ------------------------------------------------------------------------------
@@ -40,7 +42,8 @@ type Typ = Ty () TyNom
 data Ti = T0 | T1 deriving Show
 
 data Compo = Compo
-  { memTys :: [Ty1]
+  { monick :: String
+  , memTys :: [Ty1]
   , inpTys :: [Ty1]
   , oupTys :: [Ty2]
   , stage0 :: [Va] -- memory
@@ -56,39 +59,41 @@ stanTy (TyV x)    = absurd x
 stanTy (Bit _)    = Bit ()
 stanTy (Cable ts) = Cable (fmap stanTy ts)
 
+splitTy2 :: Ty2 -> ([Ty1], [Ty1])
+splitTy2 (Bit T0)   = ([Bit ()], [])
+splitTy2 (Bit T1)   = ([], [Bit ()])
+splitTy2 (Cable ts) = ([Cable ts0], [Cable ts1]) where
+  (ts0, ts1) = foldMap splitTy2 ts
+
 
 ------------------------------------------------------------------------------
 -- monad
 ------------------------------------------------------------------------------
 
-newtype TyM x = TyM {tyM :: TySt -> Either TyErr (x, TySt)}
+newtype TyM x = TyM
+  {tyM :: Bwd TyClue                  -- what are we in the middle of?
+       -> TySt                        -- tracking type variables and tasks
+       -> Either (Bwd TyClue, TyErr)  -- failure: context and error
+                 (x, TySt)            -- success: output and updated state
+  }
 
 
 ------------------------------------------------------------------------------
--- head normalisation
+-- clues
 ------------------------------------------------------------------------------
 
-class Hnf t where
-  hnf :: t -> TyM t
+data TyClueF t
+  = TySOURCE String String      -- declaration, definition
+  | TyWIRE String t t           -- wire, got, want
+  | TyAPP Compo [Exp]           -- component, args
+  | TyCAB [Exp] [t]             -- innards, types
+  | TyEXP Exp [t]               -- expression must produce prefix of required
+  | TyINPUTS [t] [Pat]          -- check input patterns against types
+  | TyOUTPUTS [t] [Exp]         -- check output expressions against types
+  | TyEQN Eqn                   -- check an equation
+  deriving (Show, Functor, Foldable, Traversable)
 
-instance Hnf Typ where
-  hnf (TyV u) = tyvH u where
-    tyvH x = do
-      g <- gets tyDef
-      case findArr x g of
-        Nothing -> return (TyV x)
-        Just t -> do
-          t' <- hnf t
-          st <- get
-          put (st {tyDef = insertArr (x, t') (tyDef st)})
-          return t'
-  hnf t       = return t
-
-instance (Hnf s, Hnf t) => Hnf (s, t) where
-  hnf (s, t) = (,) <$> hnf s <*> hnf t
-
-instance Hnf t => Hnf [t] where
-  hnf = traverse hnf
+type TyClue = TyClueF Typ
 
 
 ------------------------------------------------------------------------------
@@ -104,11 +109,18 @@ data TyErr
   | LongPats              -- too many patterns for the types!
   | ShortPats             -- not enough patterns for the expressions!
   | Don'tKnow String      -- don't know what that component is!
-  | DefLoop               -- circular definition!
+  | Stage0 (Set String)   -- couldn't compute from memory!
+  | Stage1 (Set String)   -- couldn't compute from memory and inputs!
+  | Junk                  -- spurious extra stuff!
+  | BUGSolderMismatch     -- soldering fails to match up properly (my fault)
   deriving Show
 
 tyErr :: TyErr -> TyM x
-tyErr = TyM . const . Left
+tyErr e = do
+    g <- ask
+    g <- traverse (traverse norm) g
+    bail (g, e)
+  where bail x = TyM $ \ _ _ -> Left x
 
 
 ------------------------------------------------------------------------------
@@ -214,6 +226,38 @@ schedule ta = do
 
 
 ------------------------------------------------------------------------------
+-- head normalisation
+------------------------------------------------------------------------------
+
+class Hnf t where
+  hnf :: t -> TyM t
+
+instance Hnf Typ where
+  hnf (TyV u) = tyvH u where
+    tyvH x = do
+      g <- gets tyDef
+      case findArr x g of
+        Nothing -> return (TyV x)
+        Just t -> do
+          t' <- hnf t
+          st <- get
+          put (st {tyDef = insertArr (x, t') (tyDef st)})
+          return t'
+  hnf t       = return t
+
+instance (Hnf s, Hnf t) => Hnf (s, t) where
+  hnf (s, t) = (,) <$> hnf s <*> hnf t
+
+instance Hnf t => Hnf [t] where
+  hnf = traverse hnf
+
+norm :: Typ -> TyM Typ
+norm t = hnf t >>= \ t -> case t of
+  Cable ts -> Cable <$> traverse norm ts
+  _ -> return t
+
+
+------------------------------------------------------------------------------
 -- unification
 ------------------------------------------------------------------------------
 
@@ -230,12 +274,21 @@ tyEq st = hnf st >>= \ st -> case st of
 
 
 ------------------------------------------------------------------------------
+-- stubbing
+------------------------------------------------------------------------------
+
+stub :: Ty1 -> Va
+stub (Bit _) = VQ
+stub (Cable ts) = VC (fmap stub ts)
+
+
+------------------------------------------------------------------------------
 -- boring instances
 ------------------------------------------------------------------------------
 
-instance (Show t, Show x) => Show (Ty t x) where
+instance Show x => Show (Ty t x) where
   show (TyV x)    = "?" ++ show x
-  show (Bit t)    = show t ++ "-Bit"
+  show (Bit t)    = "<Bit>"
   show (Cable ts) = "[" ++ intercalate ", " (fmap show ts) ++ "]"
 
 instance Monad (Ty t) where
@@ -252,10 +305,10 @@ instance Functor (Ty t) where
   fmap = ap . return
 
 instance Monad TyM where
-  return x = TyM $ \ s -> Right (x, s)
-  TyM af >>= k = TyM $ \ s -> case af s of
+  return x = TyM $ \ g s -> Right (x, s)
+  TyM af >>= k = TyM $ \ g s -> case af g s of
     Left e -> Left e
-    Right (a, s) -> tyM (k a) s
+    Right (a, s) -> tyM (k a) g s
 
 instance Applicative TyM where
   pure = return
@@ -271,7 +324,10 @@ instance Semigroup x => Semigroup (TyM x) where
   mx <> my = (<>) <$> mx <*> my
 
 instance MonadState TySt TyM where
-  get = TyM $ \ s -> Right (s, s)
-  put s = TyM $ \ _ -> Right ((), s)
+  get = TyM $ \ g s -> Right (s, s)
+  put s = TyM $ \ g _ -> Right ((), s)
 
+instance MonadReader (Bwd TyClue) TyM where
+  ask = TyM $ \ g s -> Right (g, s)
+  local f a = TyM $ tyM a . f
 

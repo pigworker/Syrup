@@ -16,14 +16,17 @@ import Syn
 -- values
 ------------------------------------------------------------------------------
 
+{- had to move to Syn.hs
 data Va
-  = B0 | B1 | Bun [Va]
+  = V0 | V1 | VQ | VC [Va]
   deriving Eq
 
 instance Show Va where
-  show B0 = "0"
-  show B1 = "1"
-  show (Bun vs) = show vs
+  show V0 = "0"
+  show V1 = "1"
+  show VQ = "?"
+  show (VC vs) = "[" ++ foldMap show vs ++ "]"
+-}
 
 
 ------------------------------------------------------------------------------
@@ -64,7 +67,7 @@ type Env = Arr String Va
 match :: [Pat] -> [Va] -> Env -> Env
 match (PVar x : ps) (v : vs) =
   match ps vs . insertArr (x, v)
-match (PCab ps : qs) (Bun vs : us) =
+match (PCab ps : qs) (VC vs : us) =
   match qs us . match ps vs
 match _ _ = id
 
@@ -77,7 +80,7 @@ pval :: Env -> Pat -> Va
 pval g (PVar x) = case findArr x g of
   Nothing -> error "this isn't supposed to happen, you know"
   Just v  -> v
-pval g (PCab ps) = Bun (fmap (pval g) ps)
+pval g (PCab ps) = VC (fmap (pval g) ps)
 
 
 ------------------------------------------------------------------------------
@@ -97,3 +100,5 @@ glom (tao, known) tas
       (\ (_ :<- (_, ps)) -> foldMap support ps `subSet` known)
       tas
     known' = foldMap (\ (qs :<- _) -> foldMap support qs) ta1
+
+
