@@ -34,11 +34,19 @@ jkff(J, K) = Q where
   Q = dff(D)
   D = J & !Q | !K & Q
 
+adc2([<Bit>,<Bit>],[<Bit>,<Bit>],<Bit>) ->
+  <Bit>,[<Bit>,<Bit>]
+adc2([X2,X1],[Y2,Y1],C1) = C4,[Z2,Z1] where
+  C2,Z1 = fadd(X1,Y1,C1)
+  C4,Z2 = fadd(X2,Y2,C2)
+
 experiment not
 experiment and
 experiment or
 experiment xor
 experiment hadd
+experiment hadd(00;01;10;11)
 experiment fadd
+experiment adc2
 experiment jkff
 experiment jkff{0}(10;00;01;00;11;00;11;00;10;01;00;10;00)
