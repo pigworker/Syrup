@@ -15,11 +15,11 @@ import Syrup.SRC.Ty
 import Syrup.SRC.Chk
 import Syrup.SRC.Expt
 
-grok :: CoEnv -> [Either [String] (Source, String)] -> (CoEnv, [String])
-grok env [] = (env, [])
-grok env (Left ss : src) = (id *** ((ss ++) . ("" :))) (grok env src)
-grok env (Right (Declaration dec@(DEC (f, _) _), s) : src) =
-  (id *** ((drept ++) . (trept ++) . ("" :))) (grok env' src) where
+grokSy :: CoEnv -> [Either [String] (Source, String)] -> (CoEnv, [String])
+grokSy env [] = (env, [])
+grokSy env (Left ss : src) = (id *** ((ss ++) . ("" :))) (grokSy env src)
+grokSy env (Right (Declaration dec@(DEC (f, _) _), s) : src) =
+  (id *** ((drept ++) . (trept ++) . ("" :))) (grokSy env' src) where
     (_, trept, env') = mkComponent env (dec, s) mdef
     (drept, mdef) = case
         [ (def, s)
@@ -33,12 +33,12 @@ grok env (Right (Declaration dec@(DEC (f, _) _), s) : src) =
          ++ intercalate [""] (map (lines . snd) zs) ++ [""]
         , Nothing)
       [] -> (["You haven't defined " ++ f ++ " just now.", ""], Nothing)
-grok env (Right (Experiment expt, _) : src) =
-  (id *** ((experiment env expt ++) . ("" :))) (grok env src)
-grok env (Right (Definition _, _) : src) = grok env src
+grokSy env (Right (Experiment expt, _) : src) =
+  (id *** ((experiment env expt ++) . ("" :))) (grokSy env src)
+grokSy env (Right (Definition _, _) : src) = grokSy env src
 
 syrup :: CoEnv -> String -> (CoEnv, String)
-syrup g = (id *** unlines) . grok g . syrupFile
+syrup g = (id *** unlines) . grokSy g . syrupFile
 
 main :: IO ()
 main = do
