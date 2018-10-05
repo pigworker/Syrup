@@ -334,8 +334,11 @@ yank ts x = foldMap go ts where
 -- experiments
 ------------------------------------------------------------------------------
 
+emptyCoEnv :: CoEnv
+emptyCoEnv = emptyArr
+
 myCoEnv :: CoEnv
-myCoEnv = foldr insertArr emptyArr
+myCoEnv = foldr insertArr emptyCoEnv
   [ ("nand", Compo
       { monick = "nand"
       , memTys = []
