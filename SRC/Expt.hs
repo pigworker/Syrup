@@ -26,11 +26,11 @@ import Syrup.SRC.Va
 
 experiment :: CoEnv -> EXPT -> [String]
 experiment g (Tabulate x) = case findArr x g of
-  Nothing -> ["I don't know what " ++ x ++ "is."]
+  Nothing -> ["I don't know what " ++ x ++ " is."]
   Just c ->  ["Truth table for " ++ x ++ ":"] ++
              displayTab (tabCompo c)
 experiment g (Simulate x m0 iss) = case findArr x g of
-  Nothing -> ["I don't know what " ++ x ++ "is."]
+  Nothing -> ["I don't know what " ++ x ++ " is."]
   Just c ->  ["Simulation for " ++ x ++ ":"] ++
              runCompo c m0 iss
 
