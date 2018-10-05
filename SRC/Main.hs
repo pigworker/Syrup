@@ -4,15 +4,15 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-module Main where
+module Syrup.SRC.Main where
 
 import Data.List
 
-import Syn
-import Par
-import Ty
-import Chk
-import Expt
+import Syrup.SRC.Syn
+import Syrup.SRC.Par
+import Syrup.SRC.Ty
+import Syrup.SRC.Chk
+import Syrup.SRC.Expt
 
 grok :: CoEnv -> [Either [String] (Source, String)] -> [String]
 grok env [] = []

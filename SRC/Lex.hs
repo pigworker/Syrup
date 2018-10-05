@@ -1,10 +1,10 @@
 {-# LANGUAGE PatternGuards #-}
 
-module Lex where
+module Syrup.SRC.Lex where
 
 import Data.Char
 
-import Bwd
+import Syrup.SRC.Bwd
 
 lexFile :: String -> [(String, [Token])]
 lexFile = fmap tokens . dentLines

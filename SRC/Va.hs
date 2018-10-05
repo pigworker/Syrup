@@ -4,12 +4,12 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-module Va where
+module Syrup.SRC.Va where
 
 import Data.List
 
-import BigArray
-import Syn
+import Syrup.SRC.BigArray
+import Syrup.SRC.Syn
 
 
 ------------------------------------------------------------------------------

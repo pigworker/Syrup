@@ -7,11 +7,11 @@
 {-# LANGUAGE
     DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 
-module Syn where
+module Syrup.SRC.Syn where
 
 import Data.List
 
-import BigArray
+import Syrup.SRC.BigArray
 
 data Source
   = Declaration DEC

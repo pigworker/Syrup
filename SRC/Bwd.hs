@@ -1,10 +1,10 @@
 {-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 
-module Bwd where
+module Syrup.SRC.Bwd where
 
 import Control.Arrow
 
-import HalfZip
+import Syrup.SRC.HalfZip
 
 data Bwd x = B0 | Bwd x :< x deriving (Show, Eq, Functor, Foldable, Traversable)
 

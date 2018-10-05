@@ -6,7 +6,7 @@
 
 {-# LANGUAGE PatternGuards #-}
 
-module Expt where
+module Syrup.SRC.Expt where
 
 import Data.List
 import Data.Monoid
@@ -14,10 +14,10 @@ import Control.Monad.Identity
 import Data.Function
 import Control.Arrow
 
-import BigArray
-import Syn
-import Ty
-import Va
+import Syrup.SRC.BigArray
+import Syrup.SRC.Syn
+import Syrup.SRC.Ty
+import Syrup.SRC.Va
 
 
 ------------------------------------------------------------------------------

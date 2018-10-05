@@ -1,4 +1,4 @@
-module HalfZip where
+module Syrup.SRC.HalfZip where
 
 class Functor f => HalfZip f where
   halfZip :: f x -> f y -> Maybe (f (x, y))

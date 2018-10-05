@@ -4,7 +4,7 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-module Chk where
+module Syrup.SRC.Chk where
 
 import Data.Void
 import Data.Char
@@ -16,11 +16,11 @@ import Data.Monoid
 
 import Debug.Trace
 
-import Bwd
-import Va
-import Ty
-import Syn
-import BigArray
+import Syrup.SRC.Bwd
+import Syrup.SRC.Va
+import Syrup.SRC.Ty
+import Syrup.SRC.Syn
+import Syrup.SRC.BigArray
 
 
 ------------------------------------------------------------------------------

@@ -8,7 +8,7 @@
     MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances,
     DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 
-module Ty where
+module Syrup.SRC.Ty where
 
 import Control.Monad
 import Control.Monad.Reader
@@ -19,10 +19,10 @@ import Data.Void
 import Data.Monoid
 import Data.Maybe
 
-import BigArray
-import Va
-import Syn
-import Bwd
+import Syrup.SRC.BigArray
+import Syrup.SRC.Va
+import Syrup.SRC.Syn
+import Syrup.SRC.Bwd
 
 
 ------------------------------------------------------------------------------

@@ -6,7 +6,7 @@
 
 {-# LANGUAGE PatternGuards, MultiParamTypeClasses #-}
 
-module Par where
+module Syrup.SRC.Par where
 
 import Data.Monoid
 import Control.Monad
@@ -14,10 +14,10 @@ import Control.Monad.State
 import Control.Monad.Reader
 import Control.Applicative
 
-import BigArray
-import Bwd
-import Syn
-import Lex
+import Syrup.SRC.BigArray
+import Syrup.SRC.Bwd
+import Syrup.SRC.Syn
+import Syrup.SRC.Lex
 
 
 ------------------------------------------------------------------------------

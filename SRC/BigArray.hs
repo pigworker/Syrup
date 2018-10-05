@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds, GADTs, KindSignatures, StandaloneDeriving, RankNTypes,
     TypeSynonymInstances #-}
 
-module BigArray where
+module Syrup.SRC.BigArray where
 
 import Data.Monoid
 import Control.Applicative
