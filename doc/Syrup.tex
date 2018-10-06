@@ -124,9 +124,140 @@ using) corresponds to a \emph{function} in the program ($\texttt{not}$, $\texttt
 The equations in the program tell us how the components are wired up.
 
 It may seem strange to bring things into existence by telling stories about them
-that we hope are true, but that is the nature of existence.
+that we hope are true, but that is in the nature of existence.
+
+
+\section{Syntax}
+
+\newcommand{\Bit}{\texttt{<Bit>}}
+\newcommand{\cab}[1]{\texttt{[}#1\texttt{]}}
+\newcommand{\pa}[1]{\texttt{(}#1\texttt{)}}
+\newcommand{\NT}[1]{\langle\mathit{#1}\rangle}
+
+Syrup is a formal notation with rules that must be followed if the machine is to make sense of your program.
+
+A \emph{program} is a sequence of \emph{statements} which are written in a file or in a text area of a web browser.
+
+\paragraph{Indentation}~ The first line of a statement must have no whitespace at the beginning: it is anchored to the left. Subsequent lines of the statement must be \emph{indented} by at least one space, to show that they are part of the same statement and not a whole new statement.
+
+\paragraph{Statements}~ These come in three varieties:
+\begin{description}
+\item[declarations] introduce components by naming them and specifying their external connectivity (how many wires come in, how many come out, and what types of signals are carried on those wires) --- as it were, what's `outside the box'
+\item[definitions] explain how components are constructed (the explanation consists of a system of equations which relate components and wires)
+\item[experiments] request data about components in actual use
+\end{description}
+
+The declaration of a component must precede its definition. Each component should have at most one definition. A component with no definition is called a \emph{stub}. Syrup will let you build up new components from old stubs, by way of planning, but experiments involving stubs are likely to prove inconclusive.
+
+\paragraph{Names}~ Components and wires get names. In Syrup, a valid name begins with a letter and is followed by zero or more letters or digits. Some names are not permitted because they are \emph{keywords} and have special meaning in Syrup, e.g., \texttt{where} and \texttt{experiment}.
+
+We use names to tell things apart. Different components must have
+different names: those names are \emph{global}. Within each component, the different wires must have different names. However, the names of the wires are \emph{local} to the definition of a component: they make sense within that one definition, but they are not meaningful outside the definition. In particular, you may use the same name for a wire in the definition of one component as you use in the definition of another. We will call a lot of wires $\texttt{X}$.
+
+\paragraph{Using Components}~ The notation for using a component in a
+declaration or a definition is to give its name, followed by a set of
+parentheses $\texttt{( )}$ containing the component's inputs,
+separated by commas. What are the inputs? In a declaration, we write
+the \emph{signal types} of the inputs. On the left hand side of a
+head equation, we write \emph{patterns} which give names to the
+inputs. On the right hand side of an equation (head or body), we write
+\emph{expressions} which explain how the inputs are to be computed.
+
+\paragraph{Signal Types}~ The simplest signal type is \texttt{<Bit>},
+the type of one-bit signals. We can build more complex signal types
+by collecting signals together in \emph{cables}. A cable type is a
+comma-separated list of zero or more signal types sheathed in square
+brackets the way actual cables wrap bundles of wires in rubber, e.g.,
+\[
+  \cab{\Bit,\Bit,\Bit,\Bit}
+\]
+is a cable containing four one-bit signals (perhaps representing a
+single hexadecimal digit). Cable types allow us to refer to a
+bunch of signals tidily by a single name, thus simplifying more complex
+constructions. The cable type
+\[
+  \cab{\Bit}
+\]
+is not the same thing as
+\[
+  \Bit
+\]
+in that the former has an extra layer of sheathing. Cable types
+can contain smaller cable types, e.g.,
+\[
+  \cab{\cab{\Bit,\Bit},\cab{\Bit,\Bit}}
+\]
+is the type of cables which contain two cables, each of which contains
+two one-bit wires. Meanwhile, the cable type
+\[
+  \cab{}
+\]
+characterizes a layer of rubber sheathing with no signal-bearing
+copper inside.
+
+\[\begin{array}{lrl}
+    \NT{type} & ::= & \Bit \\
+              &   | & \cab{\NT{typeList}} \medskip\\
+    \NT{typeList} & ::= & \\
+              &   | & \NT{types}  \medskip\\
+    \NT{types} & ::= & \NT{type} \\
+               &   | & \NT{type}\texttt{,}\NT{types}
+\end{array} \]
+
+\paragraph{Declarations}~ A declaration looks like
+\[
+  \NT{name}\pa{\NT{typeList}}\texttt{~->~}\NT{typeList}
+\]
+That is, we have the component name, then its input signal types
+listed in parentheses, then an arrow, then the list of output
+signal types.
+
+\paragraph{Definitions}~ A definition looks like
+\[
+  \NT{name}\pa{\NT{patternList}}\texttt{~=~}\NT{expressionList}
+    ~\texttt{where}~\NT{equations}
+  \]
+The \emph{patterns} explain how to analyse and name the inputs.
+The expressions explain how to generate the outputs. The equations
+look like
+\[\begin{array}{lrl}
+    \NT{equations} & ::= &  \\
+              &   | & \NT{patternList}\texttt{~=~}\NT{expressionList}\;\;  \NT{equations}
+\end{array}
+\]
+A definition may omit \texttt{where} if it has zero equations. Each
+equation has patterns which name internal signals, and expressions
+which explain how to compute them.
+
+\paragraph{Patterns}~ The simplest pattern is just a variable, naming
+a signal. A variable can stand for a one-bit signal or the signal
+transmitted on a whole cable. However, we may also write cable
+patterns, allowing us to unsheath the individual signals from inside
+a cable:
+\[\begin{array}{lrl}
+    \NT{pattern} & ::= & \NT{name} \\
+              &   | & \cab{\NT{patternList}} \medskip\\
+    \NT{patternList} & ::= & \\
+              &   | & \NT{patterns}  \medskip\\
+    \NT{patterns} & ::= & \NT{pattern} \\
+               &   | & \NT{pattern}\texttt{,}\NT{patterns}
+  \end{array} \]
+Within any given component, all the names in all the patterns must be
+different from each other.
+
+\paragraph{Expressions}~ The simplest expression is just a variable.
+We also have uses of components, and we have cable expressions, which
+sheathe a bunch of signals generated by a list of expressions.
+\[\begin{array}{lrl}
+    \NT{expression} & ::= & \NT{name} \\
+                    &   | & \cab{\NT{expressionList}} \\
+                    &   | & \NT{name}\pa{\NT{expressionList}}\medskip\\
+    \NT{expressionList} & ::= & \\
+              &   | & \NT{expressions}  \medskip\\
+    \NT{expressions} & ::= & \NT{expression} \\
+               &   | & \NT{expression}\texttt{,}\NT{expressions}
+  \end{array} \]
 
 
 
-  
 \end{document}
