@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage{a4wide}
+\usepackage{alltt}
 
 \begin{document}
 \title{Syrup\\ {\large a programming language for digital circuits}}
@@ -7,4 +8,125 @@
 \maketitle
 
 
+\section{Introduction}
+
+\textbf{Syrup} is a small domain-specific programming language designed
+for digital circuits. It is intended mainly for use in the teaching and
+assessment of the digital logic components of CS106 \emph{Computer Systems
+  and Organisation} and CS111 \emph{Computational Thinking} at the University
+of Strathclyde. By moving from circuit diagrams on paper to circuits
+programmed in Syrup, we hopefully facilitate improved automation of
+feedback.
+
+In previous years, we used an ascii-art circuit language called CVI
+(the Circuit Validation Interpreter, and also 106, of course). Circuits
+looked like diagrams, but drawing ascii art in an ordinary text editor
+is tricky, even if you have picked up the knack. It is time to move on.
+
+
+\section{Overview}
+
+Circuits are made from components. Components are made from other
+components. Syrup is a language for defining new components from existing
+components.
+
+A component should have
+\begin{itemize}
+\item a \textbf{declaration}, which gives it a unique name and specifies its
+  external connectivity
+\item a \textbf{definition}, which explains how it is constructed.
+\end{itemize}
+
+For example, let us build a `not' gate from a `nand' gate.
+
+\begin{alltt}
+not(<Bit>) -> <Bit>
+not(X) = Y where
+  Y = nand(X,X)
+\end{alltt}
+
+This renders in textual form the diagram (which was a nuisance to typeset).
+\[\begin{array}{lccccc}
+    \mathsf{not} && & \hspace*{0.12in}|X & & \vspace*{-0.03in}\\
+               && & | & & \vspace*{-0.03in}\\
+    \cline{3-5}
+       &        & \multicolumn{3}{|c|}{} & \\
+    \cline{2-6}
+    &\multicolumn{5}{|c|}{} \vspace*{-0.05in}\\
+    &\multicolumn{5}{|c|}{\mathsf{nand}}  \\
+    &\multicolumn{5}{|c|}{}\\
+    \cline{2-6}
+    \vspace*{-0.03in}
+    &&& | && \vspace*{-0.03in}\\
+    &&&\hspace*{0.11in} |Y && \\
+\end{array}  \]
+
+The way you \emph{use} a component is
+\[
+  \mathit{name}(\mathit{input}_1,\ldots \mathit{input}_n)
+\]
+e.g., \texttt{nand(X,X)}.
+
+A component declaration names the component and
+explains what \emph{types} of signals we expect
+on each of the input and output wires.
+Left of the \texttt{->} arrow, we give the name and
+input types, made to look like part of a grammar.
+There are
+different types of signals in Syrup, just as in real life
+we use different types of plugs and sockets for your headphones
+and for mains electricity. The simplest type of signal is
+\[
+  \texttt{<Bit>}
+\]
+When we write \texttt{not(<Bit>) ->}\ldots
+We are saying `$\texttt{not(}e\texttt{)}$ makes notational sense,
+whenever $e$ is meaningful as a bit', as well as
+`\texttt{not} has one input and that input is a bit signal'.
+Right of the \texttt{->} arrow, we say what signals come \emph{out}
+of the component. In this case, we also expect a bit.
+
+The declaration tells us nothing about what is \emph{inside} the
+component, but already it tells us how we would plug things together
+with it.
+
+It is the \emph{definition} which tells us how the component computes
+its output from its input. A definition is a system of equations.
+\[
+  \mathit{head}\;\texttt{where}\; \mathit{body}_1\;\ldots \mathit{body}_n
+\]
+The `head' equation deals with the external connectivity of the
+component. Its left hand side, $\texttt{not(X)}$, stands for any use
+of the component, and it names the input, $\texttt{X}$, corresponding
+to the wire labelled $X$ in the diagram, for future reference. Its
+right hand side, $\texttt{Y}$ indicates which signal is the output.
+
+In general, when we write an equation in a Syrup program, its left hand
+side is an act of \emph{naming}, and its right hand side makes \emph{use} of
+named things.
+
+Specifically, the input $\texttt{X}$ has been named in the head equation,
+and the output $\texttt{Y}$ is being used, which means that we rely on the
+`body' equations to tell us what $\texttt{Y}$ is. And that happens: we have a
+body equation for each component inside the circuit, showing how it is wired.
+The equation
+\[
+  \texttt{Y = nand(X,X)}
+\]
+tells us what that $\texttt{Y}$ is, namely the output from a $\texttt{nand}$
+gate, whose inputs are both connected to $\texttt{X}$, the input of the
+circuit.
+
+So, every \emph{wire} in the diagram ($X$, $Y$) corresponds to a \emph{variable}
+in the program ($\texttt{X}$, $\texttt{Y}$), and every \emph{component} in the
+diagram (the $\mathsf{not}$ we are building and the $\mathsf{nand}$ we are
+using) corresponds to a \emph{function} in the program ($\texttt{not}$, $\texttt{nand}$).
+The equations in the program tell us how the components are wired up.
+
+It may seem strange to bring things into existence by telling stories about them
+that we hope are true, but that is the nature of existence.
+
+
+
+  
 \end{document}
