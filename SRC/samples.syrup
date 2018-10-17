@@ -93,4 +93,6 @@ experiment xor = or
 experiment one
 experiment tff2
 experiment tff = guff
+experiment tff{0}(0;1;0)
+experiment guff{00}(0;1;0)
 experiment tff = tff2

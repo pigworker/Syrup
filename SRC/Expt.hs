@@ -282,7 +282,7 @@ data Report
 
 report :: (String, String) -> Report -> [String]
 report (lnom, rnom) (Incompatible (lis, los) (ris, ros)) =
-  [lnom ++ " is not compatible with " ++ rnom
+  [lnom ++ " and " ++ rnom ++ " are incompatible"
   ,concat [lnom, "(", showTyList lis, ") -> ", showTyList los
           ]
   ,concat [rnom, "(", showTyList ris, ") -> ", showTyList ros
