@@ -39,7 +39,7 @@ mkComponent env (dec, decSrc) mdef =
           ( False
           , typeErrorReport e ++ ["", g ++ " has been stubbed out."]
           , insertArr (g, stubOut dec) env)
-        Right ((ps, (qs0, qs1)), st) ->
+        Right ((ps, (qs0, qs1)), st) -> 
           let mI  = memIn st
               mO  = memOu st
               ((ta0, k1), tar) =
@@ -428,3 +428,16 @@ myCoEnv = foldr insertArr emptyCoEnv
     ,[PVar "d"] :=: [App "xor" [Var "t", Var "q"]]
     ]
   ,"tff(t) = q where q = dff(d) d = xor(t,q)")
+
+(_, _, env8) = mkComponent env7
+  (DEC ("one", []) [OLD BIT], "one() -> @<Bit>") $ Just
+  (Def ("one", []) [App "not" [App "zero" []]] []
+  ,"one() = !zero()")
+
+(_, bah, env9) = mkComponent env8
+  (DEC ("tff2", [BIT]) [OLD BIT], "tff2(<Bit>) -> @<Bit>") $ Just
+  (Def ("tff2", [PVar "t"]) [App "xor" [Var "q2",Var "q1"]]
+    [[PVar "q2"] :=: [App "tff" [App "or" [App "not" [Var "t"],Var "q1"]]]
+    ,[PVar "q1"] :=: [App "tff" [App "one" []]]
+    ]
+  ,"tff2(T) = xor(Q2,Q1) where Q2 = tff(!T | Q1) Q1 = tff(one())")

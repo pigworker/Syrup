@@ -230,16 +230,20 @@ whyDiffer :: AbstractCompo
           -> [[Va]]               -- tabulated inputs
           -> (Integer, Integer)   -- should both be distinct but defined
           -> [[Va]]               -- shortest discriminating sequence
-whyDiffer ac ti (x, y) = case (findArr x ac, findArr y ac) of
-  (Just (_, xoss), Just (_, yoss)) ->
-    let blah = zip ti (zip xoss yoss)
-    in  case [is | (is, ((xos, xn), (yos, yn))) <- blah, xos /= yos] of
-          is : _ -> [is]
-          [] ->
-            let gr = [ is : whyDiffer ac ti (xn, yn)
-                     | (is, ((xos, xn), (yos, yn))) <- blah, xn /= yn
-                     ]
-            in  head (sortBy (compare `on` length) gr)
+whyDiffer ac ti xy = head (sortBy (compare `on` length) (go emptyArr xy))
+  where
+    go :: Set (Integer, Integer) -> (Integer, Integer) -> [[[Va]]]
+    go seen xy@(x, y) = case findArr xy seen of
+      Just _ -> []
+      Nothing -> case (findArr x ac, findArr y ac) of
+        (Just (_, xoss), Just (_, yoss)) ->
+          let blah = zip ti (zip xoss yoss)
+          in  case [is | (is, ((xos, xn), (yos, yn))) <- blah, xos /= yos] of
+                is : _ -> [[is]]
+                [] -> [ is : iss
+                      | (is, ((xos, xn), (yos, yn))) <- blah, xn /= yn
+                      , iss <- go (singleton xy <> seen) (xn, yn)
+                      ]
 
 
 ------------------------------------------------------------------------------

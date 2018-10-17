@@ -12,11 +12,20 @@ X | Y = Z where
   A, B = !X, !Y
   Z = nand(A, B)
 
+nor(<Bit>, <Bit>) -> <Bit>
+nor(X,Y) = !(X | Y)
+
 xor(<Bit>, <Bit>) -> <Bit>
 xor(X, Y) = Z where
   A, B = X | Y, X & Y
   C = !B
   Z = A & C
+
+xor1(<Bit>, <Bit>) -> <Bit>
+xor1(X,Y) = !X & Y | X & !Y
+
+xor2(<Bit>, <Bit>) -> <Bit>
+xor2(X,Y) = (X | Y) & !(X & Y)
 
 hadd(<Bit>, <Bit>) -> <Bit>, <Bit>
 hadd(X1, Y1) = C2, S1 where
@@ -49,6 +58,19 @@ tff(T) = Q where Q = dff(xor(T,Q))
 jkt(<Bit>) -> @<Bit>
 jkt(T) = jkff(T,T)
 
+one() -> @<Bit>
+one() = !zero()
+
+guff(<Bit>) -> @<Bit>
+guff(T) = xor(Q2,Q1) where
+  Q2 = tff(!T | Q1)
+  Q1 = tff(one())
+
+tff2(<Bit>) -> @<Bit>
+tff2(T) = xor(Q2,Q1) where
+  Q2 = tff(!T | !xor(Q2,Q1))
+  Q1 = tff(!T | xor(Q2,Q1))
+
 experiment not
 experiment and
 experiment or
@@ -64,3 +86,11 @@ experiment dff = tff
 experiment dff{0}(1;0;0)
 experiment tff{0}(1;0;0)
 experiment tff = jkt
+experiment nand = nor
+experiment nand = nand
+experiment xor1 = xor2
+experiment xor = or
+experiment one
+experiment tff2
+experiment tff = guff
+experiment tff = tff2

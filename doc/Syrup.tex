@@ -641,7 +641,52 @@ independent of history.
 
 
 \paragraph{When are Components the Same?}~
-\emph{This section will appear soon.}
+You can ask if two components are the same by adding the line
+\[
+\texttt{experiment}\; \NT{name}\;\texttt{=}\;\NT{name}
+\]
+giving the names of the components. If the components
+have the same externally observable behaviour, Syrup will
+confirm it --- the exact definitions of the components
+can differ if they respond to inputs in the same way.
+
+For example, we can define $\C{xor}$ in two different ways,
+then check that the two definitions do the same job.
+\begin{verbatim}
+xor1(<Bit>, <Bit>) -> <Bit>
+xor1(X,Y) = !X & Y | X & !Y
+
+xor2(<Bit>, <Bit>) -> <Bit>
+xor2(X,Y) = (X | Y) & !(X & Y)
+
+experiment xor1 = xor2
+\end{verbatim}
+produces the response
+\begin{verbatim}
+xor1 behaves like xor2
+  {} ~ {}
+\end{verbatim}
+The second line of the output tells you how the possible
+internal memory states of the components line up: components with
+no memory have just one state, `empty', so we are being told
+that the two versions of $\C{xor}$ behave the same when both
+their memories are empty (which is all the time). Of course,
+which states of one component line up with which states of the
+other gets much more interesting when they do have memory ---
+we shall see how that works, later.
+
+Meanwhile, if the components have different behaviour, we
+get a report exhibiting a discrepancy:
+\begin{verbatim}
+experiment xor = or
+\end{verbatim}
+produces
+\begin{verbatim}
+xor has a behaviour that or does not match
+  xor(11) = 0 but or(11) = 1
+\end{verbatim}
+pinpointing the difference between \emph{exclusive} and
+\emph{inclusive} `or'.
 
 
 \section{Circuits with Internal Memory}
