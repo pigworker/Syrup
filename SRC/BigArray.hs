@@ -174,6 +174,9 @@ travT23 f (Node3 l x@(j, _) m y@(k, _) r) =
 travArr :: Applicative f => ((k, v) -> f w) -> Arr k v -> f (Arr k w)
 travArr f (Arr t) = Arr <$> travT23 f t
 
+imapArr :: ((k, v) -> w) -> Arr k v -> Arr k w
+imapArr f = runIdentity . travArr (Identity . f)
+
 foldMapArr :: Monoid x => ((k, v) -> x) -> Arr k v -> x
 foldMapArr f = getConst . travArr (Const . f)
 

@@ -40,6 +40,15 @@ adc2([X2,X1],[Y2,Y1],C1) = C4,[Z2,Z1] where
   C2,Z1 = fadd(X1,Y1,C1)
   C4,Z2 = fadd(X2,Y2,C2)
 
+ndnff(<Bit>) -> @<Bit>
+ndnff(D) = !Q where Q = dff(!D)
+
+tff(<Bit>) -> @<Bit>
+tff(T) = Q where Q = dff(xor(T,Q))
+
+jkt(<Bit>) -> @<Bit>
+jkt(T) = jkff(T,T)
+
 experiment not
 experiment and
 experiment or
@@ -50,3 +59,8 @@ experiment fadd
 experiment adc2
 experiment jkff
 experiment jkff{0}(10;00;01;00;11;00;11;00;10;01;00;10;00)
+experiment dff = ndnff
+experiment dff = tff
+experiment dff{0}(1;0;0)
+experiment tff{0}(1;0;0)
+experiment tff = jkt

@@ -48,6 +48,7 @@ data DEC = DEC (String,[TY]) [TY]
 data EXPT
   = Tabulate String
   | Simulate String [Va] [[Va]]
+  | Bisimilarity String String
   deriving Show
 
 data Va

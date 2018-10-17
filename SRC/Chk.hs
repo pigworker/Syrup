@@ -411,3 +411,20 @@ myCoEnv = foldr insertArr emptyCoEnv
     [[PVar "q"] :=: [App "dff" [App "not" [Var "d"]]]
     ]
   ,"ndnff(d) = !q where  q = dff(!d)")
+
+(_, _, env6) = mkComponent env5
+  (DEC ("xor", [BIT,BIT]) [BIT], "xor(<Bit>,<Bit>) -> <Bit>") $ Just
+  (Def ("xor", [PVar "x", PVar "y"])
+       [App "or" [ App "and" [App "not" [Var "x"], Var "y"]
+                 , App "and" [Var "x", App "not" [Var "y"]]
+                 ]]
+       []
+  ,"xor(x,y) = !x & y | x & !y")
+
+(_, _, env7) = mkComponent env6
+  (DEC ("tff", [BIT]) [OLD BIT], "tff(<Bit>) -> @<Bit>") $ Just
+  (Def ("tff", [PVar "t"]) [Var "q"]
+    [[PVar "q"] :=: [App "dff" [Var "d"]]
+    ,[PVar "d"] :=: [App "xor" [Var "t", Var "q"]]
+    ]
+  ,"tff(t) = q where q = dff(d) d = xor(t,q)")

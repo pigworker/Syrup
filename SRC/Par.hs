@@ -284,6 +284,8 @@ pEXPT = pTokIs (Id "experiment") *> pSpc *>
          pBrk Round (SEEKING "a sequence of test inputs")
            (pAllSep (pTokIs (Sym ";")) pVas)
         <* pSpc <* pEOI
+  <|>  Bisimilarity <$> pVar <* pSpc <* pTokIs (Sym "=") <* pSpc
+         <*> pVar <* pSpc <* pEOI
   ) 
 
 pMem :: Par [Va]

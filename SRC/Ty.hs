@@ -39,7 +39,7 @@ type Ty1 = Ty () Void
 type Ty2 = Ty Ti Void
 type Typ = Ty () TyNom
 
-data Ti = T0 | T1 deriving Show
+data Ti = T0 | T1 deriving (Show, Eq)
 
 data Compo = Compo
   { monick :: String
@@ -53,6 +53,11 @@ data Compo = Compo
   }
 instance Show Compo where
   show _ = "<component>"
+
+fogTy :: Ty t Void -> Ty1
+fogTy (TyV x)     = absurd x
+fogTy (Bit _)     = Bit ()
+fogTy (Cable ts)  = Cable (fmap fogTy ts)
 
 stanTy :: Ty t Void -> Typ
 stanTy (TyV x)    = absurd x
@@ -289,7 +294,10 @@ stub (Cable ts) = VC (fmap stub ts)
 instance Show x => Show (Ty t x) where
   show (TyV x)    = "?" ++ show x
   show (Bit t)    = "<Bit>"
-  show (Cable ts) = "[" ++ intercalate ", " (fmap show ts) ++ "]"
+  show (Cable ts) = "[" ++ showTyList ts ++ "]"
+
+showTyList :: Show x => [Ty t x] -> String
+showTyList ts = intercalate ", " (fmap show ts)
 
 instance Monad (Ty t) where
   return = TyV

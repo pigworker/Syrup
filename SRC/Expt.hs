@@ -10,9 +10,12 @@ module Syrup.SRC.Expt where
 
 import Data.List
 import Data.Monoid
+import Data.Traversable
 import Control.Monad.Identity
+import Control.Monad.State
 import Data.Function
 import Control.Arrow
+import Data.Maybe
 
 import Syrup.SRC.BigArray
 import Syrup.SRC.Syn
@@ -33,7 +36,12 @@ experiment g (Simulate x m0 iss) = case findArr x g of
   Nothing -> ["I don't know what " ++ x ++ " is."]
   Just c ->  ["Simulation for " ++ x ++ ":"] ++
              runCompo c m0 iss
-
+experiment g (Bisimilarity l r) = case (findArr l g, findArr r g) of
+  (Nothing, _) -> ["I don't know what " ++ l ++ " is."]
+  (_, Nothing) -> ["I don't know what " ++ r ++ " is."]
+  (Just lc, Just rc) ->
+    report (l, r) (bisimReport lc rc)
+    
 
 ------------------------------------------------------------------------------
 -- running tine sequences
@@ -156,6 +164,12 @@ unstage c (mi, ii) = (mo, oo) where
 -- computing the abstract states of a component
 ------------------------------------------------------------------------------
 
+type AbstractCompo =
+  Arr Integer                 -- an abstract state
+      ( Set [Va]              -- its corresponding memory states (nonempty)
+      , [([Va], Integer)]     -- its output and next state, per input
+      )
+
 partitionSet :: (Ord x, Ord y) => (x -> y) -> Set x -> Arr y (Set x)
 partitionSet f = foldMapSet $ \ x -> single (f x, singleton x)
 
@@ -191,7 +205,7 @@ refinePState f (isv, (_, n)) =
     isv )
   (emptyArr, (emptyArr, n))
 
-abstractStates :: Compo -> Arr Integer (Set [Va], [([Va], Integer)])
+abstractStates :: Compo -> AbstractCompo
 abstractStates c = go start
   where
     inTab = traverse tyVas (inpTys c)
@@ -211,6 +225,286 @@ abstractStates c = go start
         see i = (o, s) where
           (n, o) = unstage c (m, i)
           Just s = findArr n vi
+
+whyDiffer :: AbstractCompo
+          -> [[Va]]               -- tabulated inputs
+          -> (Integer, Integer)   -- should both be distinct but defined
+          -> [[Va]]               -- shortest discriminating sequence
+whyDiffer ac ti (x, y) = case (findArr x ac, findArr y ac) of
+  (Just (_, xoss), Just (_, yoss)) ->
+    let blah = zip ti (zip xoss yoss)
+    in  case [is | (is, ((xos, xn), (yos, yn))) <- blah, xos /= yos] of
+          is : _ -> [is]
+          [] ->
+            let gr = [ is : whyDiffer ac ti (xn, yn)
+                     | (is, ((xos, xn), (yos, yn))) <- blah, xn /= yn
+                     ]
+            in  head (sortBy (compare `on` length) gr)
+
+
+------------------------------------------------------------------------------
+-- computing bisimulations between two components
+------------------------------------------------------------------------------
+
+data Bisim x y = Bisim (Arr x y) (Arr y x) deriving Show
+  -- INVARIANT is that if x maps to y, y maps to x
+
+inBisim :: (Ord x, Ord y) => (x, y) -> Bisim x y -> Bool
+inBisim (x, y) (Bisim x2y _) = case findArr x x2y of
+  Just y' -> y' == y
+  _ -> False
+
+extBisim :: (Ord x, Ord y) => (x, y) -> Bisim x y -> Maybe (Bisim x y)
+extBisim (x, y) b@(Bisim x2y y2x) = case (findArr x x2y, findArr y y2x) of
+  (Nothing, Nothing) ->
+    Just (Bisim (insertArr (x, y) x2y) (insertArr (y, x) y2x))
+  (Just y', _) | y' == y -> Just b
+  _ -> Nothing
+
+data Report
+  = Incompatible ([Ty1], [Ty1]) ([Ty1], [Ty1])
+  | InstantKarma [[Va]] -- input table
+      AbstractCompo   -- one of the following is nonempty
+      [Integer]  -- each of these lefts disputes output with all rights
+      [Integer]  -- each of these rights disputes output with all lefts
+      AbstractCompo
+  | CounterModel
+      AbstractCompo
+      (Either (Integer, Arr Integer [[Va]])
+              (Integer, Arr Integer [[Va]]))
+      AbstractCompo  
+  | Bisimilar AbstractCompo (Bisim Integer Integer) AbstractCompo
+  deriving Show
+
+report :: (String, String) -> Report -> [String]
+report (lnom, rnom) (Incompatible (lis, los) (ris, ros)) =
+  [lnom ++ " is not compatible with " ++ rnom
+  ,concat [lnom, "(", showTyList lis, ") -> ", showTyList los
+          ]
+  ,concat [rnom, "(", showTyList ris, ") -> ", showTyList ros
+          ]
+  ]
+report (lnom, rnom) (InstantKarma ins ml (l : _) ru mr) =
+  [lnom ++ " has a behaviour that " ++ rnom ++ " does not match"]
+  ++ mem
+  ++ foldMapArr grot mr
+  where
+    (loss, mem) = case findArr l ml of
+      Just (lvas, loss) -> (,) loss $ case leftmostArr lvas of
+        Just [] -> []
+        Just vs -> ["in memory state {" ++ foldMap show vs ++ "}"]
+    grot (r, (rvas, ross)) = (++ grump) $ case leftmostArr rvas of
+      Just [] -> []
+      _ -> ["when " ++ rnom ++ " has memory like {"
+            ++ intercalate "," (foldMapSet statesh rvas) ++ "}"]
+      where
+        grump = foldMap screp
+          [ (is, (los, ros))
+          | (is, ((los, _), (ros, _))) <- zip ins (zip loss ross)
+          , los /= ros
+          ]
+    screp (is, (los, ros)) = (:[]) $ concat
+      ["  "
+      ,lnom,"(",foldMap show is,") = ", foldMap show los
+      , " but "
+      ,rnom,"(",foldMap show is,") = ", foldMap show ros
+      ]
+report (lnom, rnom) (InstantKarma ins ml [] (r : _) mr) =
+  [rnom ++ " has a behaviour that " ++ lnom ++ " does not match"]
+  ++ mem
+  ++ foldMapArr grot ml
+  where
+    (ross, mem) = case findArr r mr of
+      Just (rvas, ross) -> (,) ross $ case leftmostArr rvas of
+        Just [] -> []
+        Just vs -> ["in memory state {" ++ foldMap show vs ++ "}"]
+    grot (l, (lvas, loss)) = (++ grump) $ case leftmostArr lvas of
+      Just [] -> []
+      _ -> ["when " ++ lnom ++ " has memory like {"
+            ++ intercalate "," (foldMapSet statesh lvas) ++ "}"]
+      where
+        grump = foldMap screp
+          [ (is, (los, ros))
+          | (is, ((los, _), (ros, _))) <- zip ins (zip loss ross)
+          , los /= ros
+          ]
+    screp (is, (los, ros)) = (:[]) $ concat
+      ["  "
+      ,rnom,"(",foldMap show is,") = ", foldMap show ros
+      , " but "
+      ,lnom,"(",foldMap show is,") = ", foldMap show los
+      ]
+report (lnom, rnom) (CounterModel ml (Left (l, rss)) mr) =
+  [lnom ++ " can be distinguished from all possible states of " ++ rnom
+  ,"when " ++ lnom ++ " has memory {" ++ lmem ++ "}"
+  ] ++ foldMapArr grump rss
+  where
+  lmem = case findArr l ml of
+    Just (lvas, _) -> case leftmostArr lvas of
+      Just lmem -> foldMap show lmem
+  grump (r, vss) =
+    ["if " ++ rnom ++ " has memory like {" ++
+     intercalate "," (foldMapSet statesh rs) ++ "}, try inputs " ++
+     intercalate ";" (fmap (foldMap show) vss)
+    ] where Just (rs, _) = findArr r mr
+report (lnom, rnom) (CounterModel ml (Right (r, lss)) mr) =
+  [rnom ++ " can be distinguished from all possible states of " ++ lnom
+  ,"when " ++ rnom ++ " has memory {" ++ rmem ++ "}"
+  ] ++ foldMapArr grump lss
+  where
+  rmem = case findArr r mr of
+    Just (rvas, _) -> case leftmostArr rvas of
+      Just rmem -> foldMap show rmem
+  grump (l, vss) =
+    ["if " ++ lnom ++ " has memory like {" ++
+     intercalate "," (foldMapSet statesh ls) ++ "}, try inputs " ++
+     intercalate ";" (fmap (foldMap show) vss)
+    ] where Just (ls, _) = findArr l ml
+report (lnom, rnom) (Bisimilar ml (Bisim l2r _) mr) =
+  [lnom ++ " behaves like " ++ rnom] ++ foldMapArr simState l2r
+  where
+    simState (l, r) = case (findArr l ml, findArr r mr) of
+      (Just (ls, _), Just (rs, _)) -> (:[]) $ concat
+        [  "  {"
+        ,  intercalate "," (foldMapSet statesh ls)
+        ,  "} ~ {"
+        ,  intercalate "," (foldMapSet statesh rs)
+        ,  "}"
+        ]
+
+statesh :: [Va] -> [String]
+statesh vs = [foldMap show vs]
+
+bisimReport :: Compo -> Compo -> Report
+bisimReport cl cr
+  | (lit, lot) /= (rit, rot) = Incompatible (lit, lot) (rit, rot)
+  | not (null lino && null rino) = InstantKarma ins ml lino rino mr
+  | otherwise = case (lcOrBs, rcOrBs) of
+    (Left (l, rvss), _) ->
+      CounterModel
+        ml
+        (Left (l, imapArr (complete rvss) (fromJust (findArr l lido))))
+        mr
+    (_, Left (r, lvss)) ->
+      CounterModel ml
+        (Right (r, imapArr (complete lvss) (fromJust (findArr r rido))))
+        mr
+    (Right (b : _), _) -> Bisimilar ml b mr
+  where
+  
+    -- phase 0 check types
+    lit = inpTys cl              -- left  input  types
+    lot = map fogTy (oupTys cl)  -- left  output types
+    rit = inpTys cr              -- right input  types
+    rot = map fogTy (oupTys cr)  -- right output types
+    ins = traverse tyVas lit     -- tabulated input values
+
+    -- phase 1 compute abstract machines
+    ml = abstractStates cl       -- left  abstract machine
+    loss l = case findArr l ml of Just (_, loss) -> loss
+    mr = abstractStates cr       -- right abstract machine
+    ross r = case findArr r mr of Just (_, ross) -> ross
+
+    -- phase 2 check every state has a counterpart with same output
+    lido = fmap                  -- lefts -:> rights -:> odiscs
+      (\ (_, ib) -> fmap (outputDiscrepancies ib . snd) mr)
+      ml
+    lica = fmap candidates lido  -- lefts -:> rights-with-no-odiscs
+    lino = candidates lica       -- lefts-with-no-rights
+    rido = fmap                  -- rights -:> lefts -:> odiscs
+      (\ (_, ib) -> fmap (outputDiscrepancies ib . snd) ml)
+      mr
+    rica = fmap candidates rido  -- rights -:> lefts-with-no-odiscs
+    rino = candidates rica       -- rights-with-no-lefts
+
+    -- phase 3 grow possible bisims from left/right candidates
+    lcOrBs = appEndo (foldMapArr (Endo . improve) lica)
+               (Right [Bisim emptyArr emptyArr])
+    rcOrBs = appEndo (foldMapArr (Endo . improve) rica)
+               (Right [Bisim emptyArr emptyArr])
+
+    -- phase 2 auxiliaries
+    outputDiscrepancies
+      :: [([Va], Integer)]
+      -> [([Va], Integer)]
+      -> [([Va], ([Va], [Va]))]
+    outputDiscrepancies ib ob =
+      [ (is, (los, ros))
+      | (is, ((los, _), (ros, _))) <- zip ins (zip ib ob)
+      , los /= ros
+      ]
+    candidates :: Arr Integer [x] -> [Integer]
+    candidates = foldMapArr (\ (j, ds) -> if null ds then [j] else [])
+
+    -- phase 3 auxiliaries
+    improve :: (Integer, [Integer]) ->
+               Either (Integer, [(Integer, [[Va]])])
+                      [Bisim Integer Integer] ->
+               Either (Integer, [(Integer, [[Va]])])
+                      [Bisim Integer Integer]
+    improve _ (Left c) = Left c  -- dead? stay dead
+    improve (l, rs) (Right bs) = case bs' of
+      _ : _ -> Right bs'  -- we got some candidate bisims
+        -- rs is nonempty, so if no Rights, some Lefts
+      [] -> case [c | Left c <- ws] of
+        c : _ -> Left (l, c)
+      where
+        ws = map (tryCands l rs) bs
+        bs' = [b | Right bs <- ws, b <- bs]
+    tryCands :: Integer -> [Integer] -> Bisim Integer Integer ->
+                   Either [(Integer, [[Va]])]
+                          [Bisim Integer Integer]
+      -- try all the right-simulant candidates for a given left
+      -- so we either find none will do or some plausible bisims
+    tryCands l []       b = Left []
+    tryCands l (r : rs) b = case execStateT (growBis (l, r)) b of
+      Left vss -> case tryCands l rs b of
+        Left cs  -> Left ((r, vss) : cs)
+        Right bs -> Right bs
+      Right b  -> case tryCands l rs b of
+        Left _   -> Right [b]
+        Right bs -> Right (b : bs)
+    growBis :: (Integer, Integer)
+            -> StateT (Bisim Integer Integer) (Either [[Va]]) ()
+      -- grow a bisimulation by tracing from a candidate pair
+    growBis (l, r) = do
+      let tab = zip ins (zip (loss l) (ross r))
+      case [vs | (vs, ((los, _), (ros, _))) <- tab, los /= ros] of
+        vs : _ -> balk [vs]
+        [] -> do
+          Bisim l2r r2l <- get
+          case (findArr l l2r, findArr r r2l) of
+              -- r already something else
+            (Just r', _) | r /= r' -> balk (whyDiffer mr ins (r, r'))
+              -- l already something else
+            (_, Just l') | l /= l' -> balk (whyDiffer ml ins (l, l'))
+              -- (l, r) already in simulation
+            (Just _, Just _) -> return ()
+              -- (l, r) free to be added to simulation
+            (Nothing, Nothing) -> do
+              put (Bisim (insertArr (l, r) l2r) (insertArr (r, l) r2l))
+              for tab $ \ (vs, ((_, l), (_, r))) -> 
+                search vs $ growBis (l, r)
+              return ()
+              
+    -- countermodel completion
+    complete :: [(Integer, [[Va]])]                -- bad right traces
+             -> (Integer, [([Va], ([Va], [Va]))])  -- right discrepancies
+             -> [[Va]]                             -- right badness
+    complete _   (_, (vs, _) : _) = [vs]
+    complete rvss (r, _) = case lookup r rvss of
+      Just vss  -> vss
+      Nothing   -> []   -- this should not happen
+
+
+balk :: e -> StateT s (Either e) x
+balk e = StateT $ \ _ -> Left e
+
+search :: t -> StateT s (Either [t]) x -> StateT s (Either [t]) x
+search t p = StateT $ \ s -> case runStateT p s of
+  Left ts -> Left (t : ts)
+  Right o -> Right o
+
 
 rankBySize :: Ord k => Arr k (Set v) -> [(k, [v])]
 rankBySize =
@@ -242,6 +536,7 @@ bisimulations cl cr
       flr l = r where Just r = findArr l l2r
       frc r = flc l where Just l = findArr r r2l
       done = appEndo
+      
         (foldMapArr
           (\ (l, (lms, ols)) ->
             let Just (rms, _) = findArr (flr l) mr
@@ -249,10 +544,9 @@ bisimulations cl cr
          ml)
         emptyArr
     go l2r [] r2l [] = [(l2r, r2l)]
-    go l2r ((lv, ls) : gl) r2l ((rv, rs) : gr) = case compare lv rv of
-      LT -> []
-      GT -> []
-      EQ -> mo l2r ls gl r2l rs gr
+    go l2r ((lv, ls) : gl) r2l ((rv, rs) : gr) | lv == rv =
+      mo l2r ls gl r2l rs gr
+    go _ _ _ _ = []
     mo l2r [] gl r2l [] gr = go l2r gl r2l gr
     mo _ [] _ _ _ _ = []
     mo _ _ _ _ [] _ = []
@@ -277,3 +571,4 @@ bisimulations cl cr
             )
             (Just (l2r', r2l')) (zip (map snd lt) (map snd rt))
         mo l2r ls gl r2l rs gr
+
