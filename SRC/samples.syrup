@@ -102,3 +102,13 @@ experiment tff = guff
 experiment tff{0}(0;1;0)
 experiment guff{00}(0;1;0)
 experiment tff = tff2
+
+
+type H = [Two,Two]
+
+adc4(H,H,<Bit>) -> <Bit>,H
+adc4([X32,X10],[Y32,Y10],CI) = CO,[Z32,Z10] where
+  C2,Z10 = adc2(X10,Y10,CI)
+  CO,Z32 = adc2(X32,Y32,C2)
+
+experiment adc4
