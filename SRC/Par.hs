@@ -214,10 +214,15 @@ pLhs s p = pClue (SEEKING "a component template") $
              (  pSep (pTokIs (Sym ",")) p)
   <|> pYelp AARGH
 
+-- non terminals
+pNT :: Par TYC
+pNT = BIT   <$  pTokIs (Id "Bit")
+  <|> TYVAR <$> pVar
+
 pTY :: Par TYC
 pTY = pClue (SEEKING "a type") $
-      BIT <$ pTokIs (Sym "<") <* pTokIs (Id "Bit") <* pTokIs (Sym ">")
-  <|> OLD BIT <$ pTokIs (Sym "@<") <* pTokIs (Id "Bit") <* pTokIs (Sym ">")
+      pTokIs (Sym "<") *> pNT <* pTokIs (Sym ">")
+  <|> OLD <$ pTokIs (Sym "@<") <*> pNT <* pTokIs (Sym ">")
   <|> OLD <$ pTokIs (Sym "@") <* pSpc <*> pTY
   <|> CABLE <$> pBrk Square  (SEEKING "cable contents")
                   (pAllSep (pTokIs (Sym ",")) pTY)
@@ -227,8 +232,9 @@ pTY = pClue (SEEKING "a type") $
 pTYA :: Par (String, TYC)
 pTYA = pTokIs (Id "type") *> pSpc *>
   pClue (SEEKING "a type alias")
-    ( (,) <$>
-      pVar <* pSpc <* pTokIs (Sym "=") <* pSpc
+    ( (,) <$
+      pTokIs (Sym "<") <*> pVar <* pTokIs (Sym ">")
+      <* pSpc <* pTokIs (Sym "=") <* pSpc
       <*> pTY
     )
 
