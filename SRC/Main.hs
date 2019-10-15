@@ -14,6 +14,7 @@ import Syrup.SRC.Par
 import Syrup.SRC.Ty
 import Syrup.SRC.Chk
 import Syrup.SRC.Expt
+import Syrup.SRC.Sub
 
 grokSy :: CoEnv -> [Either [String] (Source, String)] -> (CoEnv, [String])
 grokSy env [] = (env, [])
@@ -37,10 +38,14 @@ grokSy env (Right (Experiment expt, _) : src) =
   (id *** ((experiment env expt ++) . ("" :))) (grokSy env src)
 grokSy env (Right (Definition _, _) : src) = grokSy env src
 
-syrup :: CoEnv -> String -> (CoEnv, String)
-syrup g = (id *** unlines) . grokSy g . syrupFile
+syrup :: TyEnv -> CoEnv -> String -> ((TyEnv, CoEnv), String)
+syrup t g txt =
+  let ls          = syrupFile txt
+      (t' , srcs) = inlineAliases t ls
+      (g' , strs) = grokSy g srcs
+  in ((t', g'), unlines strs)
 
 main :: IO ()
 main = do
   src <- getContents
-  putStr (snd (syrup myCoEnv src))
+  putStr (snd (syrup myTyEnv myCoEnv src))

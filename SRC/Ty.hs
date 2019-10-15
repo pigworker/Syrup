@@ -147,6 +147,7 @@ data TySt = TySt
 type Cxt = Arr String (Bool, Typ)
 
 type CoEnv = Arr String Compo
+type TyEnv = Arr String TY
 
 type TyNom = Integer
 

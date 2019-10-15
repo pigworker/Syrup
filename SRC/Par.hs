@@ -141,7 +141,7 @@ pEOI = do
   case ts of
     [] -> return ()
     _  -> pYelp ExpectedEnd
-  
+
 pBrk :: Bracket -> ParClue -> Par x -> Par x
 pBrk b c p = do
   tz <- gets toksEaten
@@ -181,14 +181,15 @@ pPeek ah = do
 -- parsing Syrup
 ------------------------------------------------------------------------------
 
-pSource :: Par Source
+pSource :: Par SourceC
 pSource = pClue (SEEKING "Syrup source code") $
       Declaration <$> pDEC
+  <|> TypeAlias  <$> pTYA
   <|> Definition <$> pDef
   <|> Experiment <$> pEXPT
   <|> pYelp AARGH
 
-pDEC :: Par DEC
+pDEC :: Par DECC
 pDEC = pClue (SEEKING "a declaration") $ DEC
   <$ pPeek (elem (Sym "->"))
   <*> pLhs "type" pTY <* pSpc <* pTokIs (Sym "->") <* pSpc
@@ -211,16 +212,31 @@ pLhs s p = pClue (SEEKING "a component template") $
   <|> (,) <$> pVar <* pSpc
           <*> pBrk Round (SEEKING $ "list of input " ++ s ++ "s")
              (  pSep (pTokIs (Sym ",")) p)
-  <|> pYelp AARGH 
+  <|> pYelp AARGH
 
-pTY :: Par TY
+-- non terminals
+pNT :: Par TYC
+pNT = BIT   <$  pTokIs (Id "Bit")
+  <|> TYVAR <$> pVar
+
+pTY :: Par TYC
 pTY = pClue (SEEKING "a type") $
-      BIT <$ pTokIs (Sym "<") <* pTokIs (Id "Bit") <* pTokIs (Sym ">")
-  <|> OLD BIT <$ pTokIs (Sym "@<") <* pTokIs (Id "Bit") <* pTokIs (Sym ">")
+      pTokIs (Sym "<") *> pNT <* pTokIs (Sym ">")
+  <|> OLD <$ pTokIs (Sym "@<") <*> pNT <* pTokIs (Sym ">")
   <|> OLD <$ pTokIs (Sym "@") <* pSpc <*> pTY
   <|> CABLE <$> pBrk Square  (SEEKING "cable contents")
                   (pAllSep (pTokIs (Sym ",")) pTY)
+  <|> TYVAR <$> pVar
   <|> pYelp AARGH
+
+pTYA :: Par (String, TYC)
+pTYA = pTokIs (Id "type") *> pSpc *>
+  pClue (SEEKING "a type alias")
+    ( (,) <$
+      pTokIs (Sym "<") <*> pVar <* pTokIs (Sym ">")
+      <* pSpc <* pTokIs (Sym "=") <* pSpc
+      <*> pTY
+    )
 
 pPat :: Par Pat
 pPat = pClue (SEEKING "a pattern") $
@@ -257,12 +273,12 @@ pMore prec e = ( pSpc *> (
      <*> (((e:) . (:[])) <$> pExpPrec 1) >>= pMore prec)
   <|>
   (App "and" <$ guard (prec <= 2) <* pTokIs (Sym "&") <* pSpc
-     <*> (((e:) . (:[])) <$> pExpPrec 2) >>= pMore prec)  
+     <*> (((e:) . (:[])) <$> pExpPrec 2) >>= pMore prec)
   ) ) <|> pure e
 
 
 pEqns :: Par [Eqn]
-pEqns = 
+pEqns =
   id <$ pTokIs (Id "where") <* pSpc <*> pAll pEqn
   <|> [] <$ pEOI
 
@@ -286,7 +302,7 @@ pEXPT = pTokIs (Id "experiment") *> pSpc *>
         <* pSpc <* pEOI
   <|>  Bisimilarity <$> pVar <* pSpc <* pTokIs (Sym "=") <* pSpc
          <*> pVar <* pSpc <* pEOI
-  ) 
+  )
 
 pMem :: Par [Va]
 pMem = id <$> pBrk Curly (SEEKING "the initial memory contents") pVas
@@ -304,10 +320,10 @@ pVa = V0 <$ pTokIs (Sym "0") <|> V1 <$ pTokIs (Sym "1")
 -- the top level
 ------------------------------------------------------------------------------
 
-syrupFile :: String -> [Either [String] (Source, String)]
+syrupFile :: String -> [Either [String] (SourceC, String)]
 syrupFile = map syrupSource . lexFile
 
-syrupSource :: (String, [Token]) -> Either [String] (Source, String)
+syrupSource :: (String, [Token]) -> Either [String] (SourceC, String)
 syrupSource (s, ts) = case par pSource en st of
     Left e -> Left (syntaxError e)
     Right (x, _) -> Right (x, s)
@@ -322,7 +338,7 @@ syrupSource (s, ts) = case par pSource en st of
       }
 
 syrupKeywords = foldMap singleton
-  ["where", "experiment"]
+  ["where", "experiment", "type"]
 
 
 ------------------------------------------------------------------------------

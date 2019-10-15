@@ -49,6 +49,12 @@ adc2([X2,X1],[Y2,Y1],C1) = C4,[Z2,Z1] where
   C2,Z1 = fadd(X1,Y1,C1)
   C4,Z2 = fadd(X2,Y2,C2)
 
+type <Two> = [<Bit>,<Bit>]
+
+adcTwo(<Two>,<Two>,<Bit>) -> <Bit>,<Two>
+adcTwo(X,Y,C) = adc2(X,Y,C)
+
+
 ndnff(<Bit>) -> @<Bit>
 ndnff(D) = !Q where Q = dff(!D)
 
@@ -96,3 +102,13 @@ experiment tff = guff
 experiment tff{0}(0;1;0)
 experiment guff{00}(0;1;0)
 experiment tff = tff2
+
+
+type <Four> = [<Two>,<Two>]
+
+adc4(<Four>,<Four>,<Bit>) -> <Bit>,<Four>
+adc4([X32,X10],[Y32,Y10],CI) = CO,[Z32,Z10] where
+  C2,Z10 = adc2(X10,Y10,CI)
+  CO,Z32 = adc2(X32,Y32,C2)
+
+experiment adc4

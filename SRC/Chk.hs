@@ -99,7 +99,7 @@ stubOut (Dec (g, ss) ts) = Compo
   , stage0 = const (fmap stub ts0)
   , stage1 = const (fmap stub ts1)
   } where (ts0, ts1) = foldMap splitTy2 ts
-  
+
 
 decPats :: [Typ] -> [Pat] -> TyM ()
 decPats [] [] = return ()
@@ -371,6 +371,12 @@ myCoEnv = foldr insertArr emptyCoEnv
       }
     )
   ]
+
+emptyTyEnv :: TyEnv
+emptyTyEnv = emptyArr
+
+myTyEnv :: TyEnv
+myTyEnv = emptyTyEnv
 
 (_, _, env1) = mkComponent myCoEnv
   (DEC ("not", [BIT]) [BIT], "!<Bit> -> <Bit>") $ Just

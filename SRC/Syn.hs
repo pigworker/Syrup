@@ -10,14 +10,20 @@
 module Syrup.SRC.Syn where
 
 import Data.List
+import Data.Void
 
 import Syrup.SRC.BigArray
 
-data Source
-  = Declaration DEC
+data Source' a
+  = Declaration (DEC' a)
+  | TypeAlias (a, TY' a)
   | Definition Def
   | Experiment EXPT
   deriving Show
+
+-- Concrete and internal sources
+type SourceC = Source' String
+type Source  = Source' Void
 
 data Exp
   = Var String
@@ -36,14 +42,23 @@ exPat _         = Nothing
 data Eqn = [Pat] :=: [Exp]
 data Def = Def (String,[Pat]) [Exp] [Eqn] deriving Show
 
-data TY
+data TY' a
   = BIT
-  | OLD TY
-  | CABLE [TY]
+  | OLD (TY' a)
+  | CABLE [TY' a]
+  | TYVAR a
   deriving Show
 
-data DEC = DEC (String,[TY]) [TY]
+-- Concrete and internal types
+type TYC = TY' String
+type TY  = TY' Void
+
+data DEC' a = DEC (String,[TY' a]) [TY' a]
   deriving Show
+
+-- Concrete and internal declarations
+type DECC = DEC' String
+type DEC  = DEC' Void
 
 data EXPT
   = Tabulate String
