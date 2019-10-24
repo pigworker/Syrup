@@ -1,0 +1,8 @@
+not(<Bit>) -> <Bit>
+not(c) = nand(c,c)
+
+not2(<Bit>) -> <Bit>
+not2(c) = !C
+
+nand(<Bit>,<Bit>) -> <Bit>
+nand(X,Y) = nand(X,Y)

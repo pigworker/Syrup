@@ -41,7 +41,7 @@ experiment g (Bisimilarity l r) = case (findArr l g, findArr r g) of
   (_, Nothing) -> ["I don't know what " ++ r ++ " is."]
   (Just lc, Just rc) ->
     report (l, r) (bisimReport lc rc)
-    
+
 
 ------------------------------------------------------------------------------
 -- running tine sequences
@@ -78,7 +78,7 @@ runCompo c m0 iss
           ]
         lastrow = concat
           [ showtime z, " {", foldMap show mo, "}" ]
-  
+
 
 
 tyVaChks :: [Ty1] -> [Va] -> Bool
@@ -276,7 +276,7 @@ data Report
       AbstractCompo
       (Either (Integer, Arr Integer [[Va]])
               (Integer, Arr Integer [[Va]]))
-      AbstractCompo  
+      AbstractCompo
   | Bisimilar AbstractCompo (Bisim Integer Integer) AbstractCompo
   deriving Show
 
@@ -490,7 +490,7 @@ bisimReport cl cr
               for tab $ \ (vs, ((_, l), (_, r))) -> 
                 search vs $ growBis (l, r)
               return ()
-              
+
     -- countermodel completion
     complete :: [(Integer, [[Va]])]                -- bad right traces
              -> (Integer, [([Va], ([Va], [Va]))])  -- right discrepancies

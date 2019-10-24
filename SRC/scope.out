@@ -1,0 +1,17 @@
+not is defined.
+
+I was trying to make sense of the following code:
+
+not2(<Bit>) -> <Bit>
+not2(c) = !C
+
+
+Error: You tried to use C but it is not in scope.
+Did you mean one of these: c
+
+not2 has been stubbed out.
+
+Warning: You are redefining the top-level variable nand
+
+nand is defined.
+
