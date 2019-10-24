@@ -6,3 +6,27 @@ not2(c) = !C
 
 nand(<Bit>,<Bit>) -> <Bit>
 nand(X,Y) = nand(X,Y)
+
+and(<Bit>,<Bit>) -> <Bit>
+and(X,Y) = !n where
+
+  N = nand(X,Y)
+
+or(<Bit>,<Bit>) -> <Bit>
+or(X,Y) = nand(!X,!Y)
+
+xor(<Bit>,<Bit>) -> <Bit>
+xor(X,Y) = X&!Y|!X&Y
+
+h1(<Bit>,<Bit>) -> <Bit>,<Bit>
+h1(X,Y) = C,Z where
+
+  C = X&Y
+  Z = xor(X,Y)
+
+f1(<Bit>,<Bit>) -> <Bit>,<Bit>
+f1(X,Y,CIN) = Cin,Z where
+
+  CIN   = xor(CiN, CIn)
+  CiN,Z = h1(D,CIn)
+  CIn,D = h1(X,Y)
