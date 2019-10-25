@@ -247,7 +247,7 @@ stub :: (Source' a, String) -> [String]
      -> [Either [String] (Source' a, String)]
      -> [Either [String] (Source' a, String)]
 stub (Definition (Def (nm, _) _ _), src) msg rst = Right (Definition (Stub nm msg), src) : rst
-stub _ msg rst = rst
+stub _ msg rst = Left msg : rst
 
 check :: Scope -> [Either [String] (Source' a, String)] -> [Either [String] (Source' a, String)]
 check ga []                     = []
