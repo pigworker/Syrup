@@ -30,3 +30,9 @@ f1(X,Y,CIN) = Cin,Z where
   CIN   = xor(CiN, CIn)
   CiN,Z = h1(D,CIn)
   CIn,D = h1(X,Y)
+
+tff(<Bit>) -> @<Bit>
+tff(T) = Q where
+
+  Q = dff(D)
+  D = T & !Q | !T & Q

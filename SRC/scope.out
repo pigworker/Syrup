@@ -43,9 +43,12 @@ f1(X,Y,CIN) = Cin,Z where
   CiN,Z = h1(D,CIn)
   CIn,D = h1(X,Y)
 
+
 Error: You are redefining the local variable CIN.
 Error: You tried to use Cin but it is not in scope.
 Did you mean one of these: CIN, CIn, CiN?
 
 f1 has been stubbed out.
+
+tff is defined.
 
