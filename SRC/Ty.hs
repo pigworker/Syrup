@@ -110,6 +110,7 @@ data TyErr
   | BitCable              -- a bit has been connected to a cable!
   | CableLoop             -- there's a spatial loop!
   | DecDef String String  -- declaration and definition names mismatch!
+  | Stubbed [String]      -- definition already stubbed out!
   | DuplicateWire String  -- same name used for two wires!
   | LongPats              -- too many patterns for the types!
   | ShortPats             -- not enough patterns for the expressions!

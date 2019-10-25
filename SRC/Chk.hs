@@ -39,7 +39,7 @@ mkComponent env (dec, decSrc) mdef =
           ( False
           , typeErrorReport e ++ ["", g ++ " has been stubbed out."]
           , insertArr (g, stubOut dec) env)
-        Right ((ps, (qs0, qs1)), st) -> 
+        Right ((ps, (qs0, qs1)), st) ->
           let mI  = memIn st
               mO  = memOu st
               ((ta0, k1), tar) =
@@ -89,6 +89,9 @@ guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   (qs', (qs0, qs1)) <- foldMap stage ts
   solders qs' qs
   return (ps, (qs0, qs1))
+guts (Dec (g, ss) ts) (Stub f msg)
+  | f /= g    = tyErr (DecDef f g)
+  | otherwise = tyErr (Stubbed msg)
 
 stubOut :: Dec -> Compo
 stubOut (Dec (g, ss) ts) = Compo
@@ -232,8 +235,8 @@ cookTY t old (CABLE tys) = Cable (fmap (cookTY t old) tys)
 typeErrorReport :: (Bwd TyClue, TyErr) -> [String]
 typeErrorReport (cz, e) = concat
   [ preamble, [""]
-  , problem e, [""]
-  , context cz
+  , problem e
+  , context e cz
   ]
   where
     getSrc (TySOURCE dec def) = Last (Just (lines dec ++ lines def))
@@ -249,6 +252,7 @@ typeErrorReport (cz, e) = concat
     problem (DecDef c f) = [ concat
       [ "I found a declaration for ", c
       , " but its definition was for ", f, "."] ]
+    problem (Stubbed msg) = msg
     problem (DuplicateWire x) = [ concat
       ["I found more than one signal called ", x, "."] ]
     problem LongPats  = ["I found fewer signals than I needed."]
@@ -270,53 +274,55 @@ typeErrorReport (cz, e) = concat
       ["There's some extra junk in this circuit" ++
        "that I can't see how to compute!"]
     problem BUGSolderMismatch = ["I messed up my internal wiring: report me!"]
-    context (_ :< TyEQN eq) =
+    context (Stubbed _) = const []
+    context _ = ("" :) . context'
+    context' (_ :< TyEQN eq) =
       ["At the time, I was checking this equation:", show eq]
-    context (_ :< TyOUTPUTS ts es) =
+    context' (_ :< TyOUTPUTS ts es) =
       [ "I was trying to get outputs"
       , "  " ++ csepShow ts
       , "from expressions"
       , "  " ++ csepShow es
       , "at the time."
       ]
-    context (_ :< TyINPUTS ts ps) =
+    context' (_ :< TyINPUTS ts ps) =
       [ "I was trying to fit inputs"
       , "  " ++ csepShow ts
       , "into the patterns"
       , "  " ++ csepShow ps
       , "at the time."
       ]
-    context (_ :< TyEXP e ts) =
+    context' (_ :< TyEXP e ts) =
       [ "I was hoping to get the beginning of these"
       , "  " ++ csepShow ts
       , "from the expression"
       , "  " ++ show e
       , "at the time."
       ]
-    context (_ :< TyCAB es ts) =
+    context' (_ :< TyCAB es ts) =
       [ "I was trying to make a cable of these"
       , "  " ++ csepShow ts
       , "from the expressions"
       , "  " ++ csepShow es
       , "at the time."
       ]
-    context (_ :< TyAPP c es) =
+    context' (_ :< TyAPP c es) =
       [ "I was trying to use " ++ monick c ++ " which wants input types"
       , "  " ++ csepShow (inpTys c)
       , "but feeding in these expressions"
       , "  " ++ csepShow es
       , "at the time."
       ]
-    context (g :< TyWIRE x s t) =
+    context' (g :< TyWIRE x s t) =
       [ "I was trying to connect " ++ ww x
       , "but it carried a signal of type " ++ show s
       , "where a signal of type " ++ show t
       , "was expected."
-      ] ++ context g
+      ] ++ context' g
       where
         ww (c : _) = "wire x"
         ww _       = "a wire"
-    context _ = ["I can't remember any more about what I thought I was doing."]
+    context' _ = ["I can't remember any more about what I thought I was doing."]
 
 human :: String -> [String]
 human s@(c : _) | isAlpha c = [s]
@@ -328,7 +334,7 @@ yank ts x = foldMap go ts where
   go (qs :<- (_, ps))
     | x `inSet` foldMap support qs = foldMap support ps
     | otherwise = mempty
-    
+
 
 ------------------------------------------------------------------------------
 -- experiments

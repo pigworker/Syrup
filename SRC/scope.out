@@ -1,0 +1,54 @@
+not is defined.
+
+I was trying to make sense of the following code:
+
+not2(<Bit>) -> <Bit>
+not2(c) = !C
+
+
+Error: You tried to use C but it is not in scope.
+Did you mean: c?
+
+not2 has been stubbed out.
+
+Warning: You are redefining the top-level variable nand.
+
+nand is defined.
+
+I was trying to make sense of the following code:
+
+and(<Bit>,<Bit>) -> <Bit>
+and(X,Y) = !n where
+
+  N = nand(X,Y)
+
+
+Error: You tried to use n but it is not in scope.
+Did you mean: N?
+
+and has been stubbed out.
+
+or is defined.
+
+xor is defined.
+
+h1 is defined.
+
+I was trying to make sense of the following code:
+
+f1(<Bit>,<Bit>) -> <Bit>,<Bit>
+f1(X,Y,CIN) = Cin,Z where
+
+  CIN   = xor(CiN, CIn)
+  CiN,Z = h1(D,CIn)
+  CIn,D = h1(X,Y)
+
+
+Error: You are redefining the local variable CIN.
+Error: You tried to use Cin but it is not in scope.
+Did you mean one of these: CIN, CIn, CiN?
+
+f1 has been stubbed out.
+
+tff is defined.
+

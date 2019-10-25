@@ -40,7 +40,11 @@ exPat (Cab es)  = PCab <$> traverse exPat es
 exPat _         = Nothing
 
 data Eqn = [Pat] :=: [Exp]
-data Def = Def (String,[Pat]) [Exp] [Eqn] deriving Show
+data Def
+  = Stub String [String]
+  -- stubbed out definition together with error msg
+  | Def (String,[Pat]) [Exp] [Eqn]
+  deriving Show
 
 data TY' a
   = BIT
