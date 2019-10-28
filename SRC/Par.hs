@@ -276,11 +276,10 @@ pMore prec e = ( pSpc *> (
      <*> (((e:) . (:[])) <$> pExpPrec 2) >>= pMore prec)
   ) ) <|> pure e
 
-
-pEqns :: Par [Eqn]
+pEqns :: Par (Maybe [Eqn])
 pEqns =
-  id <$ pTokIs (Id "where") <* pSpc <*> pAll pEqn
-  <|> [] <$ pEOI
+  Just <$ pTokIs (Id "where") <* pSpc <*> pAll pEqn
+  <|> Nothing <$ pEOI
 
 pEqn :: Par Eqn
 pEqn = pClue (SEEKING "an equation") $

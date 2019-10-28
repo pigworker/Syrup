@@ -163,6 +163,7 @@ isGlobalVar ga nm = do
 
 type family Level t :: ScopeLevel where
   Level [a]         = Level a
+  Level (Maybe a)   = Level a
   Level Pat         = 'Local
   Level Eqn         = 'Local
   Level (DEC' a)    = 'Global
@@ -186,6 +187,8 @@ class Scoped t where
   scopecheck ga ts = do
     es <- mapM (scopecheck ga) ts
     foldM mergeExtension emptyExtension es
+
+instance Scoped a => Scoped (Maybe a)
 
 instance Scoped Pat where
   scopecheck ga = \case

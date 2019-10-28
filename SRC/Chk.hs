@@ -85,7 +85,7 @@ guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   local (:< TyINPUTS ss' ps) $ decPats ss' ps
   qs <- local (:< TyOUTPUTS ts' es) $ chkExps ts' es
   st <- get
-  foldMap (\ eq -> local (:< TyEQN eq) $ chkEqn eq) eqs
+  foldMap (foldMap (\ eq -> local (:< TyEQN eq) $ chkEqn eq)) eqs
   (qs', (qs0, qs1)) <- foldMap stage ts
   solders qs' qs
   return (ps, (qs0, qs1))
@@ -386,13 +386,13 @@ myTyEnv = emptyTyEnv
 
 (_, _, env1) = mkComponent myCoEnv
   (DEC ("not", [BIT]) [BIT], "!<Bit> -> <Bit>") $ Just
-  (Def ("not", [PVar "x"]) [Var "y"]
-    [[PVar "y"] :=: [App "nand" [Var "x", Var "x"]]]
+  (Def ("not", [PVar "x"]) [Var "y"] $ Just
+   [[PVar "y"] :=: [App "nand" [Var "x", Var "x"]]]
   ,"!x = y where  y = nand(x,x)")
 
 (_, _, env2) = mkComponent env1
   (DEC ("and", [BIT, BIT]) [BIT], "<Bit> & <Bit> -> <Bit>") $ Just
-  (Def ("and", [PVar "x", PVar "y"]) [Var "b"]
+  (Def ("and", [PVar "x", PVar "y"]) [Var "b"] $ Just
     [[PVar "a"] :=: [App "nand" [Var "x", Var "y"]]
     ,[PVar "b"] :=: [App "not" [Var "a"]]
     ]
@@ -400,7 +400,7 @@ myTyEnv = emptyTyEnv
 
 (_, _, env3) = mkComponent env2
   (DEC ("or", [BIT, BIT]) [BIT], "<Bit> | <Bit> -> <Bit>") $ Just
-  (Def ("or", [PVar "x", PVar "y"]) [Var "c"]
+  (Def ("or", [PVar "x", PVar "y"]) [Var "c"] $ Just
     [[PVar "c"] :=: [App "nand" [Var "a", Var "b"]]
     ,[PVar "a",PVar "b"] :=: [App "not" [Var "x"],App "not" [Var "y"]]
     ]
@@ -408,7 +408,7 @@ myTyEnv = emptyTyEnv
 
 (_, _, env4) = mkComponent env3
   (DEC ("jkff", [BIT, BIT]) [OLD BIT], "jkff(<Bit>,<Bit>) -> @<Bit>") $ Just
-  (Def ("jkff", [PVar "j", PVar "k"]) [Var "q"]
+  (Def ("jkff", [PVar "j", PVar "k"]) [Var "q"] $ Just
     [[PVar "q"] :=: [App "dff" [Var "d"]]
     ,[PVar "d"] :=: [App "or"
        [  App "and" [Var "j", App "not" [Var "q"]]
@@ -419,7 +419,7 @@ myTyEnv = emptyTyEnv
 
 (_, _, env5) = mkComponent env4
   (DEC ("ndnff", [BIT]) [OLD BIT], "ndnff(<Bit>) -> @<Bit>") $ Just
-  (Def ("ndnff", [PVar "d"]) [App "not" [Var "q"]]
+  (Def ("ndnff", [PVar "d"]) [App "not" [Var "q"]] $ Just
     [[PVar "q"] :=: [App "dff" [App "not" [Var "d"]]]
     ]
   ,"ndnff(d) = !q where  q = dff(!d)")
@@ -430,12 +430,12 @@ myTyEnv = emptyTyEnv
        [App "or" [ App "and" [App "not" [Var "x"], Var "y"]
                  , App "and" [Var "x", App "not" [Var "y"]]
                  ]]
-       []
+       Nothing
   ,"xor(x,y) = !x & y | x & !y")
 
 (_, _, env7) = mkComponent env6
   (DEC ("tff", [BIT]) [OLD BIT], "tff(<Bit>) -> @<Bit>") $ Just
-  (Def ("tff", [PVar "t"]) [Var "q"]
+  (Def ("tff", [PVar "t"]) [Var "q"] $ Just
     [[PVar "q"] :=: [App "dff" [Var "d"]]
     ,[PVar "d"] :=: [App "xor" [Var "t", Var "q"]]
     ]
@@ -443,12 +443,12 @@ myTyEnv = emptyTyEnv
 
 (_, _, env8) = mkComponent env7
   (DEC ("one", []) [OLD BIT], "one() -> @<Bit>") $ Just
-  (Def ("one", []) [App "not" [App "zero" []]] []
+  (Def ("one", []) [App "not" [App "zero" []]] Nothing
   ,"one() = !zero()")
 
 (_, bah, env9) = mkComponent env8
   (DEC ("tff2", [BIT]) [OLD BIT], "tff2(<Bit>) -> @<Bit>") $ Just
-  (Def ("tff2", [PVar "t"]) [App "xor" [Var "q2",Var "q1"]]
+  (Def ("tff2", [PVar "t"]) [App "xor" [Var "q2",Var "q1"]] $ Just
     [[PVar "q2"] :=: [App "tff" [App "or" [App "not" [Var "t"],Var "q1"]]]
     ,[PVar "q1"] :=: [App "tff" [App "one" []]]
     ]

@@ -1,0 +1,4 @@
+and(<Bit>,<Bit>) -> <Bit>
+and(X,Y) = notnand where
+
+notnand = nand(nand(X,Y),nand(X,Y))

@@ -43,7 +43,7 @@ data Eqn = [Pat] :=: [Exp]
 data Def
   = Stub String [String]
   -- stubbed out definition together with error msg
-  | Def (String,[Pat]) [Exp] [Eqn]
+  | Def (String,[Pat]) [Exp] (Maybe [Eqn])
   deriving Show
 
 data TY' a

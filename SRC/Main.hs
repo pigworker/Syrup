@@ -8,10 +8,9 @@
 
 module Syrup.SRC.Main where
 
-import Data.List
 import Control.Arrow
-import Control.Monad
 import Data.Functor
+import Data.List
 
 import Syrup.SRC.Syn
 import Syrup.SRC.Par
@@ -20,6 +19,8 @@ import Syrup.SRC.Chk
 import Syrup.SRC.Expt
 import Syrup.SRC.Sub
 import Syrup.SRC.Scp
+import Syrup.SRC.Lnt
+import Syrup.SRC.Utils
 
 getDefsOf :: String -> [Either [String] (Source, String)] -> [(Def, String)]
 getDefsOf f src = src >>= \case
@@ -31,9 +32,10 @@ grokSy :: CoEnv -> [Either [String] (Source, String)] -> (CoEnv, [String])
 grokSy env [] = (env, [])
 grokSy env (Left ss : src) = (id *** ((ss ++) . ("" :))) (grokSy env src)
 grokSy env (Right (Declaration dec@(DEC (f, _) _), s) : src) =
-  (id *** ((drept ++) . (trept ++) . ("" :))) (grokSy env' src) where
+  (id *** ((concatMap (++ [""]) warn ++) . (drept ++) . (trept ++) . ("" :))) (grokSy env' rest) where
     (_, trept, env') = mkComponent env (dec, s) mdef
-    (drept, mdef) = case getDefsOf f src of
+    (warn, rest)  = spanMaybe isLeft src
+    (drept, mdef) = case getDefsOf f rest of
       [defs] -> ([], Just defs)
       zs@(_ : _ : _) ->
         (["I don't know which of the following is your preferred "
@@ -48,7 +50,8 @@ grokSy env (Right (Definition _, _) : src) = grokSy env src
 syrup :: TyEnv -> CoEnv -> String -> ((TyEnv, CoEnv), String)
 syrup t g txt =
   let ls          = syrupFile txt
-      scps        = check (globalScope (void g)) ls
+      linted      = linter ls
+      scps        = check (globalScope (void g)) linted
       (t' , srcs) = inlineAliases t scps
       (g' , strs) = grokSy g srcs
   in ((t', g'), unlines strs)
