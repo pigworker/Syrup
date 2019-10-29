@@ -4,9 +4,7 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE GADTs             #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Syrup.SRC.Lnt where
 
@@ -29,11 +27,6 @@ instance Lint Def where
         , "Did you forget to indent the block of local definitions using spaces?"
         ]
       _ -> []
-
-    uselessMatch = \case
-      Def (fun, ps) rhs eqns -> undefined
-      _ -> []
-
 
 instance Lint (Source' a) where
   linters = [deflint] where
