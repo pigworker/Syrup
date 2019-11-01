@@ -1,0 +1,25 @@
+one is defined.
+
+two is defined.
+
+Truth table for one:
+0 { 0 -> 1 } 0
+  { 1 -> 1 } 1
+1 { 0 -> 1 } 0
+  { 1 -> 0 } 1
+
+Truth table for two:
+0 { 00 -> 11 } 0
+  { 01 -> 11 } 0
+  { 10 -> 11 } 1
+  { 11 -> 11 } 1
+1 { 00 -> 11 } 0
+  { 01 -> 00 } 0
+  { 10 -> 11 } 1
+  { 11 -> 00 } 1
+
+two can be distinguished from all possible states of one
+when two has memory {10}
+if one has memory like {1}, try inputs 0;1;0
+if one has memory like {0}, try inputs 0
+
