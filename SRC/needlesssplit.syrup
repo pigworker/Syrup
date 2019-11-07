@@ -10,3 +10,7 @@ fst([[X0,X1],[X2,X3]]) = [X0,X1]
 snd(<Four>) -> <Two>
 snd([_,X23]) = [Y2,Y3] where
   [Y2,Y3] = X23
+
+nowarn(<Four>) -> <Bit>,<Two>,<Bit>
+nowarn([[X0,X1],X23]) = X0,[Y2,Y3],Y3 where
+  [Y2,Y3] = X23
