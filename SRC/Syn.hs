@@ -4,8 +4,10 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE
-    DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE DeriveFunctor     #-}
+{-# LANGUAGE DeriveFoldable    #-}
+{-# LANGUAGE DeriveTraversable #-}
 
 module Syrup.SRC.Syn where
 
@@ -29,6 +31,7 @@ data Exp
   = Var String
   | App String [Exp]
   | Cab [Exp]
+  deriving (Eq)
 
 data Pat
   = PVar String
@@ -38,6 +41,11 @@ exPat :: Exp -> Maybe Pat
 exPat (Var x)   = return (PVar x)
 exPat (Cab es)  = PCab <$> traverse exPat es
 exPat _         = Nothing
+
+patToExp :: Pat -> Exp
+patToExp = \case
+  PVar x  -> Var x
+  PCab ps -> Cab $ map patToExp ps
 
 data Eqn = [Pat] :=: [Exp]
 data Def
