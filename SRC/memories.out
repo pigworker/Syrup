@@ -1,0 +1,44 @@
+not is defined.
+
+and is defined.
+
+or is defined.
+
+alternator is defined.
+
+xor is defined.
+
+tff is defined.
+
+count2 is defined.
+
+Truth table for count2:
+ {     ->     } Q2 Q1
+-{------------}------
+ { 00 -> 10 } 0  0 
+ { 01 -> 11 } 1  0 
+ { 10 -> 01 } 0  1 
+ { 11 -> 00 } 1  1 
+
+Warning: You are redefining the top-level variable dff.
+
+dff is defined.
+
+Truth table for dff:
+D {   ->   } QD
+--{--------}---
+0 { 0 -> 0 } 0 
+  { 1 -> 0 } 1 
+1 { 0 -> 1 } 0 
+  { 1 -> 1 } 1 
+
+Warning: You are redefining the top-level variable zero.
+
+zero is defined.
+
+Truth table for zero:
+ {   ->   } Z
+-{--------}--
+ { 0 -> 0 } 0
+ { 1 -> 1 } 0
+
