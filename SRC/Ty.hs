@@ -4,9 +4,13 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE
-    MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances,
-    DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE DeriveFunctor         #-}
+{-# LANGUAGE DeriveFoldable        #-}
+{-# LANGUAGE DeriveTraversable     #-}
+{-# LANGUAGE LambdaCase            #-}
 
 module Syrup.SRC.Ty where
 
@@ -41,11 +45,32 @@ type Typ = Ty () TyNom
 
 data Ti = T0 | T1 deriving (Show, Eq)
 
+sizeTy :: Ty a Void -> Int
+sizeTy = \case
+  TyV v    -> absurd v
+  Bit{}    -> 1
+  Cable ts -> 2 + sum (sizeTy <$> ts)
+
+data MemoryCell = MemoryCell
+  { getCellName :: Maybe String
+  , getCellType :: Ty1
+  }
+
+data InputWire = InputWire
+  { getInputPat  :: Maybe Pat
+  , getInputType :: Ty1
+  }
+
+data OutputWire = OutputWire
+  { getOutputPat  :: Maybe Pat
+  , getOutputType :: Ty2
+  }
+
 data Compo = Compo
   { monick :: String
-  , memTys :: [Ty1]
-  , inpTys :: [Ty1]
-  , oupTys :: [Ty2]
+  , memTys :: [MemoryCell]
+  , inpTys :: [InputWire]
+  , oupTys :: [OutputWire]
   , stage0 :: [Va] -- memory
            -> [Va] -- stage 0 outputs
   , stage1 :: [Va] -- memory, stage1 inputs

@@ -39,7 +39,7 @@ mkComponent env (dec, decSrc) mdef =
           ( False
           , typeErrorReport e ++ ["", g ++ " has been stubbed out."]
           , insertArr (g, stubOut dec) env)
-        Right ((ps, (qs0, qs1)), st) ->
+        Right (((ps, rhs), (qs0, qs1)), st) ->
           let mI  = memIn st
               mO  = memOu st
               ((ta0, k1), tar) =
@@ -51,9 +51,9 @@ mkComponent env (dec, decSrc) mdef =
                 ([], True, True) -> (,,) True [g ++ " is defined."] $
                   let gc = Compo
                         { monick = g
-                        , memTys = memTy st
-                        , inpTys = ss
-                        , oupTys = ts
+                        , memTys = map (MemoryCell Nothing) $ memTy st
+                        , inpTys = zipWith (InputWire . pure) ps ss
+                        , oupTys = zipWith (OutputWire . exPat) rhs ts
                         , stage0 = plan (Plan mI ta0 qs0)
                         , stage1 = plan (Plan (mI ++ ps) ta1 (mO ++ qs1))
                         }
@@ -76,7 +76,7 @@ mkComponent env (dec, decSrc) mdef =
       , ["", g ++ " has been stubbed out."]
       , insertArr (g, stubOut dec) env)
 
-guts :: Dec -> Def -> TyM ([Pat], ([Pat], [Pat]))
+guts :: Dec -> Def -> TyM (([Pat], [Exp]), ([Pat], [Pat]))
 guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   | f /= g = tyErr (DecDef f g)
   | otherwise = do
@@ -88,7 +88,7 @@ guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   foldMap (foldMap (\ eq -> local (:< TyEQN eq) $ chkEqn eq)) eqs
   (qs', (qs0, qs1)) <- foldMap stage ts
   solders qs' qs
-  return (ps, (qs0, qs1))
+  return ((ps, es), (qs0, qs1))
 guts (Dec (g, ss) ts) (Stub f msg)
   | f /= g    = tyErr (DecDef f g)
   | otherwise = tyErr (Stubbed msg)
@@ -97,8 +97,8 @@ stubOut :: Dec -> Compo
 stubOut (Dec (g, ss) ts) = Compo
   { monick = g
   , memTys = []
-  , inpTys = ss
-  , oupTys = ts
+  , inpTys = InputWire  Nothing <$> ss
+  , oupTys = OutputWire Nothing <$> ts
   , stage0 = const (fmap stub ts0)
   , stage1 = const (fmap stub ts1)
   } where (ts0, ts1) = foldMap splitTy2 ts
@@ -165,7 +165,7 @@ chkExp ts e@(App f es) = do
   f <- case findArr f env of
     Nothing -> tyErr (Don'tKnow f)
     Just f  -> return f
-  let mTy  = memTys f
+  let mTy = getCellType <$> memTys f
   mIn <- for mTy $ \ ty -> do
     w <- wiF
     defineWire (Just (stanTy ty)) w
@@ -175,14 +175,17 @@ chkExp ts e@(App f es) = do
     defineWire (Just (stanTy ty)) w
     return (PVar w)
   st <- get
-  put (st { memTy = memTy st ++ mTy
-          , memIn = memIn st ++ mIn
-          , memOu = memOu st ++ mOu } )
-  ps <- local (:< TyAPP f es) $ chkExps (map stanTy (inpTys f)) es
-  (qs, (qs0, qs1)) <- foldMap stage (oupTys f)
+  put $ st { memTy = memTy st ++ mTy
+           , memIn = memIn st ++ mIn
+           , memOu = memOu st ++ mOu
+           }
+  let iTy = getInputType <$> inpTys f
+  ps <- local (:< TyAPP f es) $ chkExps (map stanTy iTy) es
+  let oTy = getOutputType <$> oupTys f
+  (qs, (qs0, qs1)) <- foldMap stage oTy
   schedule (qs0 :<- (stage0 f, mIn))
   schedule ((mOu ++ qs1) :<- (stage1 f, mIn ++ ps))
-  (,) qs <$> yield (map stanTy (oupTys f)) ts
+  (,) qs <$> yield (map stanTy oTy) ts
 chkExp (t : ts) (Cab es) = do
   ss <- case t of
     Cable ss -> return ss
@@ -308,7 +311,7 @@ typeErrorReport (cz, e) = concat
       ]
     context' (_ :< TyAPP c es) =
       [ "I was trying to use " ++ monick c ++ " which wants input types"
-      , "  " ++ csepShow (inpTys c)
+      , "  " ++ csepShow (getInputType <$> inpTys c)
       , "but feeding in these expressions"
       , "  " ++ csepShow es
       , "at the time."
@@ -348,8 +351,10 @@ myCoEnv = foldr insertArr emptyCoEnv
   [ ("nand", Compo
       { monick = "nand"
       , memTys = []
-      , inpTys = [Bit (), Bit ()]
-      , oupTys = [Bit T1]
+      , inpTys = [ InputWire (Just (PVar "X")) (Bit ())
+                 , InputWire (Just (PVar "Y")) (Bit ())
+                 ]
+      , oupTys = [ OutputWire (Just (PVar "X&Y")) (Bit T1) ]
       , stage0 = \ [] -> []
       , stage1 = \ i -> case i of
           [V0, _ ] -> [V1]
@@ -360,9 +365,9 @@ myCoEnv = foldr insertArr emptyCoEnv
     )
   , ("dff", Compo
       { monick = "dff"
-      , memTys = [Bit ()]
-      , inpTys = [Bit ()]
-      , oupTys = [Bit T0]
+      , memTys = [MemoryCell (Just "Q") (Bit ())]
+      , inpTys = [InputWire  (Just (PVar "D")) (Bit ())]
+      , oupTys = [OutputWire (Just (PVar "Q")) (Bit T0)]
       , stage0 = \ [q] -> [q]
       , stage1 = \ [_, d] -> [d]
       }
@@ -371,7 +376,7 @@ myCoEnv = foldr insertArr emptyCoEnv
       { monick = "zero"
       , memTys = []
       , inpTys = []
-      , oupTys = [Bit T0]
+      , oupTys = [OutputWire Nothing (Bit T0)]
       , stage0 = \ _ -> [V0]
       , stage1 = \ _ -> []
       }

@@ -22,3 +22,15 @@ isLeft :: Either a b -> Maybe a
 isLeft = \case
   Left a -> Just a
   _      -> Nothing
+
+padRight :: Int -> String -> String
+padRight n xs
+  | n <= 0    = xs
+  | otherwise = xs ++ replicate n ' '
+
+unzipWith :: (a -> (b, c)) -> [a] -> ([b], [c])
+unzipWith f []     = ([], [])
+unzipWith f (a:as) =
+  let (b , c)  = f a
+      (bs, cs) = unzipWith f as
+  in (b:bs, c:cs)
