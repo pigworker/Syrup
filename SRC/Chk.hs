@@ -51,7 +51,7 @@ mkComponent env (dec, decSrc) mdef =
                 ([], True, True) -> (,,) True [g ++ " is defined."] $
                   let gc = Compo
                         { monick = g
-                        , memTys = map (MemoryCell Nothing) $ memTy st
+                        , memTys = memTy st
                         , inpTys = zipWith (InputWire . pure) ps ss
                         , oupTys = zipWith (OutputWire . exPat) rhs ts
                         , stage0 = plan (Plan mI ta0 qs0)
@@ -175,7 +175,7 @@ chkExp ts e@(App f es) = do
     defineWire (Just (stanTy ty)) w
     return (PVar w)
   st <- get
-  put $ st { memTy = memTy st ++ mTy
+  put $ st { memTy = memTy st ++ memTys f
            , memIn = memIn st ++ mIn
            , memOu = memOu st ++ mOu
            }

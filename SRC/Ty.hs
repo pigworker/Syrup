@@ -54,7 +54,7 @@ sizeTy = \case
 data MemoryCell = MemoryCell
   { getCellName :: Maybe String
   , getCellType :: Ty1
-  }
+  } deriving (Show)
 
 data InputWire = InputWire
   { getInputPat  :: Maybe Pat
@@ -164,7 +164,7 @@ data TySt = TySt
   , wiCxt :: Cxt            -- per wire defined? type?
   , wiNew :: Integer        -- supply of fresh wire names
   , coEnv :: CoEnv          -- known components
-  , memTy :: [Ty1]          -- memory found so far
+  , memTy :: [MemoryCell]   -- memory found so far
   , memIn :: [Pat]          -- memory input patterns
   , memOu :: [Pat]          -- memory output patterns
   , sched :: [Task]         -- scheduled tasks so far
