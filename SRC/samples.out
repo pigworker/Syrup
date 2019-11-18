@@ -203,14 +203,14 @@ Truth table for one:
 Truth table for tff2:
 T { Q2 Q1 -> Q2 Q1 }  
 --{----------------}--
-0 { 00 -> 11 } 0
-  { 01 -> 10 } 1
-  { 10 -> 01 } 1
-  { 11 -> 00 } 0
-1 { 00 -> 10 } 0
-  { 01 -> 00 } 1
-  { 10 -> 11 } 1
-  { 11 -> 01 } 0
+0 { 0  0  -> 1  1  } 0
+  { 0  1  -> 1  0  } 1
+  { 1  0  -> 0  1  } 1
+  { 1  1  -> 0  0  } 0
+1 { 0  0  -> 1  0  } 0
+  { 0  1  -> 0  0  } 1
+  { 1  0  -> 1  1  } 1
+  { 1  1  -> 0  1  } 0
 
 tff can be distinguished from all possible states of guff
 when tff has memory {0}

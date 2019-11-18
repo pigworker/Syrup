@@ -112,8 +112,13 @@ data Tabulation = Tabulation
                       )]
   }
 
-
 type Template = Ty () Int
+
+data RowTemplate = RowTemplate
+  { inputTemplates  :: [Template]
+  , cellTemplates   :: [Template]
+  , outputTemplates :: [Template]
+  }
 
 -- Generate a template from a pattern and its type
 template :: Pat -> Ty a Void -> Template
@@ -154,18 +159,20 @@ displayVa (Cable ts) (VC vs) = "[" ++ displayVas ts vs ++ "]"
 displayVas :: [Template] -> [Va] -> String
 displayVas ts vs = unwords $ zipWith displayVa ts vs
 
-displayRow :: ([Template], [Template]) -> ([Va], [TabRow]) -> [String]
-displayRow (tINS, tOUT) (vs, [TabRow [] [] os]) =
-  [displayVas tINS vs ++ " | " ++ displayVas tOUT os ]
-
-displayRow (tINS, tOUT) (vs, trs) = zipWith (++) (inputs : padding) transitions where
+displayRow :: RowTemplate -> ([Va], [TabRow]) -> [String]
+displayRow tmp (vs, [TabRow [] [] os]) =
+  [ displayVas (inputTemplates tmp) vs
+  ++ " | "
+  ++ displayVas (outputTemplates tmp) os
+  ]
+displayRow tmp (vs, trs) = zipWith (++) (inputs : padding) transitions where
 
   padding     = repeat (replicate (length inputs) ' ')
-  inputs      = displayVas tINS vs
+  inputs      = displayVas (inputTemplates tmp) vs
   transitions =
-    [ concat [ " { " , foldMap show ccs
-             , " -> ", foldMap show ncs
-             , " } " , displayVas tOUT os
+    [ concat [ " { " , displayVas (cellTemplates tmp)   ccs
+             , " -> ", displayVas (cellTemplates tmp)   ncs
+             , " } " , displayVas (outputTemplates tmp) os
              ]
     | TabRow ccs ncs os <- trs
     ]
@@ -182,7 +189,13 @@ displayTabulation (Tabulation ins mes ous rs) =
               ++ statesSep
               ++ replicate (length outputs) '-'
             ]
-  rows   = concatMap (displayRow (tINS, tOUT)) rs
+  rows   = concatMap (displayRow template) rs
+
+  template = RowTemplate
+    { inputTemplates  = tINS
+    , cellTemplates   = tMEM
+    , outputTemplates = tOUT
+    }
 
   states    = if null mes then " | " else " { " ++ cells ++ " -> " ++ cells ++ " } "
   statesSep = if null mes then "-|-" else "-{-" ++ replicate (4 + 2 * length cells) '-' ++ "-}-"
