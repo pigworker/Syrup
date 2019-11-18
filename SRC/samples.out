@@ -130,7 +130,7 @@ Truth table for adc2:
 [1  1 ] [1  1 ] 1  | 1  [1  1 ]
 
 Truth table for jkff:
-J K {   ->   } Q
+J K { Q -> Q } Q
 ----{--------}--
 0 0 { 0 -> 0 } 0
     { 1 -> 1 } 1
@@ -201,8 +201,8 @@ Truth table for one:
  | 1
 
 Truth table for tff2:
-T {     ->     }  
---{------------}--
+T { Q2 Q1 -> Q2 Q1 }  
+--{----------------}--
 0 { 00 -> 11 } 0
   { 01 -> 10 } 1
   { 10 -> 01 } 1

@@ -77,7 +77,7 @@ class AllVars t where
 
 instance AllVars a => AllVars [a]
 
-instance AllVars Pat where
+instance a ~ String => AllVars (Pat' a) where
   allVars = \case
     PVar s -> singleton s
     PCab c -> allVars c

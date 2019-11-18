@@ -127,11 +127,14 @@ mTemplate (Just p) t = template p t
 inputTemplate :: InputWire -> Template
 inputTemplate (InputWire p t) = mTemplate p t
 
+getCellPat :: MemoryCell -> Maybe Pat
+getCellPat = fmap (PVar . cellName) . getCellName
+
 cellTemplate :: MemoryCell -> Template
-cellTemplate (MemoryCell s t) = mTemplate (PVar <$> s) t
+cellTemplate c@(MemoryCell _ t) = mTemplate (getCellPat c) t
 
 outputTemplate :: OutputWire -> Template
-outputTemplate (OutputWire p t) = mTemplate p t
+outputTemplate (OutputWire p t) = mTemplate (fmap (fst <$>) p) t
 
 -- `displayPat ts ps` PRECONDITION: ts was generated using ps
 displayPat :: Template -> Pat -> String
@@ -190,9 +193,9 @@ displayTabulation (Tabulation ins mes ous rs) =
   tOUT = map outputTemplate ous
 
   -- actual tabulated values
-  inputs    = unwords $ zipWith (\ t -> displayMPat t . getInputPat)             tINS ins
-  cells     = unwords $ zipWith (\ t -> displayMPat t . fmap PVar . getCellName) tMEM mes
-  outputs   = unwords $ zipWith (\ t -> displayMPat t . getOutputPat)            tOUT ous
+  inputs    = unwords $ zipWith (\ t -> displayMPat t . getInputPat)  tINS ins
+  cells     = unwords $ zipWith (\ t -> displayMPat t . getCellPat)   tMEM mes
+  outputs   = unwords $ zipWith (\ t -> displayMPat t . fmap (fst <$>) . getOutputPat) tOUT ous
 
 tabulate :: Compo -> Tabulation
 tabulate c = Tabulation (inpTys c) (memTys c) (oupTys c)

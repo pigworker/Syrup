@@ -1,3 +1,5 @@
+experiment dff
+
 not(<Bit>) -> <Bit>
 not(X) = nand(X,X)
 
@@ -8,9 +10,11 @@ or(<Bit>,<Bit>) -> <Bit>
 or(X,Y) = nand(!X,!Y)
 
 alternator() -> @<Bit>
-alternator() = Q where
+alternator() = ALT where
 
-  Q = dff(!Q)
+  ALT = dff(!ALT)
+
+experiment alternator
 
 xor(<Bit>,<Bit>) -> <Bit>
 xor(X,Y) = !X&Y | X&!Y
@@ -20,6 +24,7 @@ tff(T) = Q where
 
   Q = dff(xor(T,Q))
 
+experiment tff
 
 count2() -> @<Bit>,@<Bit>
 count2() = Q2,Q1 where
@@ -28,6 +33,15 @@ count2() = Q2,Q1 where
   Q2 = tff(Q1)
 
 experiment count2
+
+count2tff() -> @[<Bit>,<Bit>]
+count2tff() = [Q2,Q1] where
+
+  Q1 = tff(ONE)
+  Q2 = tff(Q1)
+  ONE = Q1|!Q1
+
+experiment count2tff
 
 dff(<Bit>) -> @<Bit>
 dff(D) = QD where

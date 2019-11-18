@@ -10,6 +10,11 @@ module Syrup.SRC.Utils where
 
 import Control.Arrow
 
+isNothing :: Maybe a -> Bool
+isNothing = \case
+  Nothing -> True
+  Just{}  -> False
+
 spanMaybe :: (a -> Maybe b) -> [a] -> ([b], [a])
 spanMaybe p = go where
 

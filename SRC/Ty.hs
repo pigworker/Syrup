@@ -11,6 +11,7 @@
 {-# LANGUAGE DeriveFoldable        #-}
 {-# LANGUAGE DeriveTraversable     #-}
 {-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE TupleSections         #-}
 
 module Syrup.SRC.Ty where
 
@@ -19,9 +20,11 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Arrow
 import Data.List
+import Data.Foldable
 import Data.Void
 import Data.Monoid
 import Data.Maybe
+import Control.Applicative
 
 import Syrup.SRC.BigArray
 import Syrup.SRC.Va
@@ -51,8 +54,11 @@ sizeTy = \case
   Bit{}    -> 1
   Cable ts -> 2 + sum (sizeTy <$> ts)
 
+newtype CellName = CellName { cellName :: String }
+  deriving (Eq, Show)
+
 data MemoryCell = MemoryCell
-  { getCellName :: Maybe String
+  { getCellName :: Maybe CellName
   , getCellType :: Ty1
   } deriving (Show)
 
@@ -61,10 +67,26 @@ data InputWire = InputWire
   , getInputType :: Ty1
   }
 
+type OPat = Pat' (String, Bool)
 data OutputWire = OutputWire
-  { getOutputPat  :: Maybe Pat
+  { getOutputPat  :: Maybe OPat
   , getOutputType :: Ty2
   }
+
+isProperOPat :: OPat -> Maybe OPat
+isProperOPat op = do
+  guard (any snd op)
+  pure op
+
+-- From a pattern and a list of memory cells, check whether any of the
+-- pattern's variables are pointing to one of the memory cell.
+mkOPat :: [MemoryCell] -> Pat -> OPat
+mkOPat ms = fmap $ \ str -> (str, any ((Just (CellName str) ==) . getCellName) ms)
+
+mkOutputWire :: [MemoryCell] -> Exp -> Ty2 -> OutputWire
+mkOutputWire ms e ty = flip OutputWire ty $ do
+  p <- exPat e
+  isProperOPat (mkOPat ms p) <|> Just ((, False) <$> p)
 
 data Compo = Compo
   { monick :: String
@@ -159,15 +181,15 @@ tyErr e = do
 ------------------------------------------------------------------------------
 
 data TySt = TySt
-  { tyNew :: Integer        -- supply of fresh type variables
-  , tyDef :: Arr TyNom Typ  -- store of type definitions
-  , wiCxt :: Cxt            -- per wire defined? type?
-  , wiNew :: Integer        -- supply of fresh wire names
-  , coEnv :: CoEnv          -- known components
-  , memTy :: [MemoryCell]   -- memory found so far
-  , memIn :: [Pat]          -- memory input patterns
-  , memOu :: [Pat]          -- memory output patterns
-  , sched :: [Task]         -- scheduled tasks so far
+  { tyNew  :: Integer        -- supply of fresh type variables
+  , tyDef  :: Arr TyNom Typ  -- store of type definitions
+  , wiCxt  :: Cxt            -- per wire defined? type?
+  , wiNew  :: Integer        -- supply of fresh wire names
+  , coEnv  :: CoEnv          -- known components
+  , memTy  :: [[MemoryCell]] -- memories found so far
+  , memIn  :: [Pat]          -- memory input patterns
+  , memOu  :: [Pat]          -- memory output patterns
+  , sched  :: [Task]         -- scheduled tasks so far
   } deriving Show
 
 type Cxt = Arr String (Bool, Typ)
