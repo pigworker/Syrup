@@ -84,16 +84,33 @@ elabPat = \case
   PVar x -> x
   PCab{} -> error "not supported yet"
 
--- If the RHS is already a variable name then we can simply return it.
+-- If the Exp is already a variable name then we can simply return it.
 -- Otherwise we have an arbitrary expression so we introduce a virtual
 -- name for it and return an equation connecting this virtual name to
 -- the expression.
-elabRHS :: Exp -> Fresh (Output, [Eqn])
-elabRHS = \case
+elabExp :: Exp -> Fresh (Output, [Eqn])
+elabExp = \case
   Var x -> pure (Output False x, [])
   e     -> do
     vn <- freshVirtualName
     pure (Output True vn, [[PVar vn] :=: [e]])
+
+-- If an expression on the RHS is a variable corresponding to an input
+-- wire, we introduce a virtual name for it an do aliasing. This allows
+-- us to assume that the named inputs & outputs are always distinct
+-- which a really useful invariant when producing a diagram.
+
+elabRHS :: [Input] -> Exp -> Fresh (Output, [Eqn])
+elabRHS inputs e =
+  let dflt = elabExp e
+      ins  = map inputName inputs
+  in case e of
+    Var x
+      | x `elem` ins -> do
+          vn <- freshVirtualName
+          pure (Output True vn, [[PVar vn] :=: [e]])
+      | otherwise -> dflt
+    _ -> dflt
 
 -- Not much work done here: elaborate the LHS, elaborate the RHS and
 -- collect the additional equations added by doing so and finally
@@ -102,7 +119,7 @@ elabDef :: Def -> Fresh (Maybe (String, Gate))
 elabDef Stub{} = pure Nothing
 elabDef (Def (nm, ps) rhs eqns) = Just <$> do
   let ins = map (Input . elabPat) ps
-  os <- mapM elabRHS rhs
+  os <- mapM (elabRHS ins) rhs
   let (ous, oeqns) = unzip os
   lcs <- mapM elabEqn (concat oeqns ++ fromMaybe [] eqns)
   let gate = Gate
@@ -119,7 +136,7 @@ elabDef (Def (nm, ps) rhs eqns) = Just <$> do
 -- The second is bit more complex:
 --   - If e is a variable then we're done.
 --   - If e is an application then we recursively elaborate all of its
---     arguments as if they were RHS i.e. we want variable names for them
+--     the expression it has as arguments i.e. we want variable names for them
 --     and we are ready to pay for it by generating additional equations.
 --     Finally we elaborate these additional equations.
 elabEqn :: Eqn -> Fresh ([([Output], Expr)])
@@ -128,7 +145,7 @@ elabEqn (ps :=: [rhs]) = do
   case rhs of
     Var x    -> pure [(ous, Alias x)]
     App f es -> do
-      aes <- mapM elabRHS es
+      aes <- mapM elabExp es
       let (args, eqs) = unzip aes
       ih <- mapM elabEqn $ concat eqs
       pure $ (ous, Call f (map (Input . outputName) args)) : concat ih
