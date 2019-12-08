@@ -5,36 +5,26 @@
 ------------------------------------------------------------------------------
 
 {-# LANGUAGE LambdaCase                 #-}
-{-# LANGUAGE TupleSections              #-}
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
-{-# LANGUAGE DeriveFunctor              #-}
-{-# LANGUAGE NamedFieldPuns             #-}
-{-# LANGUAGE DeriveFoldable             #-}
 {-# LANGUAGE DeriveTraversable          #-}
+{-# LANGUAGE GeneralisedNewtypeDeriving #-}
 
 module Syrup.SRC.Anf where
 
 import Control.Monad.State
-import Control.Monad.Writer
-import Control.Monad.Trans.Maybe
-
 import Data.Maybe
-import Data.Foldable
-
 import Syrup.SRC.Syn
-import Syrup.SRC.BigArray
 
 newtype Input' nm = Input { inputName :: nm }
   deriving (Functor, Foldable, Traversable)
 
 data Output' nm = Output
-  { outputName    :: nm
-  , virtualOutput :: Bool
+  { isVirtual  :: Bool
+  , outputName :: nm
   } deriving (Functor, Foldable, Traversable)
 
 data Expr' nm
   = Alias nm
-  | App nm [Input' nm]
+  | Call nm [Input' nm]
   deriving (Functor, Foldable, Traversable)
 
 type Input  = Input' String
@@ -42,8 +32,7 @@ type Output = Output' String
 type Expr   = Expr' String
 
 data Gate = Gate
-  { virtualGate :: Bool
-  , inputs      :: [Input]
+  { inputs      :: [Input]
   , outputs     :: [Output]
   , definitions :: [([Output], Expr)]
   }
@@ -54,11 +43,11 @@ instance Semigroup Gate where
   a <> b = a
 
 newtype Fresh a = Fresh
-  { runFresh :: StateT Int (MaybeT (Writer (Arr String Gate))) a }
+  { runFresh :: State Int a }
   deriving (Functor, Applicative, Monad)
 
-evalFresh :: Fresh a -> (Maybe a, Arr String Gate)
-evalFresh = runWriter . runMaybeT . flip evalStateT 0 . runFresh
+evalFresh :: Fresh a -> a
+evalFresh = flip evalState 0 . runFresh
 
 fresh :: Fresh Int
 fresh = Fresh $ do
@@ -72,38 +61,67 @@ freshVirtualName = do
   i <- fresh
   pure $ '#' : show i
 
-declare :: String -> Gate -> Fresh ()
-declare nm gate = Fresh $ tell (single (nm, gate))
-
-elabPat :: Pat -> Input
+elabPat :: Pat -> String
 elabPat = \case
-  PVar x -> Input x
+  PVar x -> x
   PCab{} -> error "not supported yet"
 
 elabRHS :: Exp -> Fresh (Output, [Eqn])
 elabRHS = \case
-  Var x -> pure (Output x False, [])
+  Var x -> pure (Output False x, [])
   e     -> do
     vn <- freshVirtualName
-    pure (Output vn True, [[PVar vn] :=: [e]])
+    pure (Output True vn, [[PVar vn] :=: [e]])
 
-elabDef' :: Bool -> Def -> Fresh ()
-elabDef' isVirtual Stub{} = undefined
-elabDef' isVirtual (Def (nm, ps) rhs eqns) = do
-  let ins = map elabPat ps
+elabDef :: Def -> Fresh (String, Gate)
+elabDef Stub{} = undefined
+elabDef (Def (nm, ps) rhs eqns) = do
+  let ins = map (Input . elabPat) ps
   os <- mapM elabRHS rhs
   let (ous, oeqns) = unzip os
   lcs <- mapM elabEqn (concat oeqns ++ fromMaybe [] eqns)
   let gate = Gate
-       { virtualGate = isVirtual
-       , inputs      = ins
+       { inputs      = ins
        , outputs     = ous
-       , definitions = lcs
+       , definitions = concat lcs
        }
-  declare nm gate
+  pure (nm, gate)
 
-elabDef :: Def -> Fresh ()
-elabDef = elabDef' False
+elabEqn :: Eqn -> Fresh ([([Output], Expr)])
+elabEqn (ps :=: [rhs]) = do
+  let ous = map (Output False . elabPat) ps
+  case rhs of
+    Var x    -> pure [(ous, Alias x)]
+    App f es -> do
+      aes <- mapM elabRHS es
+      let (args, eqs) = unzip aes
+      ih <- mapM elabEqn $ concat eqs
+      pure $ (ous, Call f (map (Input . outputName) args)) : concat ih
+elabEqn (ps :=: rhs) = do
+  eqns <- mapM elabEqn (zipWith (\ p e -> [p] :=: [e]) ps rhs)
+  pure $ concat eqns
 
-elabEqn :: Eqn -> Fresh ([Output], Expr)
-elabEqn = undefined
+fromGate :: String -> Gate -> Def
+fromGate nm g =
+  Def (nm, map (PVar . inputName) (inputs g))
+      (map (Var . outputName) (outputs g))
+  $ case definitions g of
+      []   -> Nothing
+      eqns -> Just $ map (\ (os, rhs) ->
+                           (map (PVar . outputName) os)
+                           :=:
+                           [case rhs of
+                              Alias x   -> Var x
+                              Call f es -> App f (map (Var . inputName) es)
+                           ])
+                     eqns
+
+foo :: Def
+foo =
+  Def ("foo", [PVar "A", PVar "B", PVar "C"])
+      ([App "and" [Var "A", Var "B"], Var "Z"])
+      $ Just [([PVar "Z"] :=: [App "or" [Var "A"
+                                        , App "and" [Var "B", Var "C"]]])]
+test :: IO ()
+test =
+  putStrLn $ show $ uncurry fromGate (evalFresh (elabDef foo))
