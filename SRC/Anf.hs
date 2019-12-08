@@ -12,7 +12,9 @@ module Syrup.SRC.Anf where
 
 import Control.Monad.State
 import Data.Maybe
+
 import Syrup.SRC.Syn
+import Syrup.SRC.Smp
 
 ------------------------------------------------------------------------------
 -- Syntax of A normal forms
@@ -193,27 +195,6 @@ toANF d = fromMaybe d $ uncurry fromGate <$> toGate d
 
 ------------------------------------------------------------------------------
 -- Tests
-
-foo :: Def
-foo =
-  Def ("foo", PVar <$> ["A", "B", "C"])
-      ([App "and" [Var "A", Var "B"], Var "Z"])
-      $ Just [([PVar "Z"] :=: [App "or" [Var "A"
-                                        , App "and" [Var "B", Var "C"]]])]
-
-and4 :: Def
-and4 = Def ("and4", PVar <$> ["A", "B", "C", "D"])
-           [foldr1 (\ a b -> App "and" [a, b]) $ Var <$> ["A", "B", "C", "D"]]
-           Nothing
-
-and4' :: Def
-and4' =
-  Def ("and4'", PVar <$> ["A", "B", "C", "D"])
-  [App "and" [ App "and" (Var <$> ["A", "B"])
-             , App "and" (Var <$> ["C", "D"])
-             ]
-  ]
-  Nothing
 
 test :: IO ()
 test = do

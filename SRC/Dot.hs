@@ -32,6 +32,7 @@ import Syrup.SRC.Anf
   , Fresh
   )
 import qualified Syrup.SRC.Anf as Anf
+import Syrup.SRC.Smp
 
 data DotGate = DotGate
   { blackbox    :: [String]
@@ -287,24 +288,11 @@ whiteBoxDef d = fromMaybe [] $ do
     ++ whitebox ga
     ++ ["}"]
 
-
-
-notG :: Def
-notG = Def ("not", [PVar "x"]) [App "not" [Var "x"]] Nothing
-
-andG :: Def
-andG = Def ("and", [PVar "x", PVar "y"]) [Var "z"] $ Just
-  [ [PVar "z"] :=: [App "and" [Var "x", Var "y"]]
-  ]
-
-swapG :: Def
-swapG = Def ("swap", [PVar "x", PVar "y"]) [Var "y", Var "x"] Nothing
-
 test :: IO ()
 test = do
   let runner = putStrLn . unlines . whiteBoxDef
   runner notG
   runner swapG
   runner andG
-  runner Anf.and4
-  runner Anf.and4'
+  runner and4
+  runner and4'
