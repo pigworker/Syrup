@@ -98,9 +98,9 @@ elabRHS = \case
 -- Not much work done here: elaborate the LHS, elaborate the RHS and
 -- collect the additional equations added by doing so and finally
 -- elaborate all of the equations.
-elabDef :: Def -> Fresh (String, Gate)
-elabDef Stub{} = undefined
-elabDef (Def (nm, ps) rhs eqns) = do
+elabDef :: Def -> Fresh (Maybe (String, Gate))
+elabDef Stub{} = pure Nothing
+elabDef (Def (nm, ps) rhs eqns) = Just <$> do
   let ins = map (Input . elabPat) ps
   os <- mapM elabRHS rhs
   let (ous, oeqns) = unzip os
@@ -158,7 +158,7 @@ fromGate nm g =
                      eqns
 
 toANF :: Def -> Def
-toANF d = uncurry fromGate (evalFresh (elabDef d))
+toANF d = fromMaybe d $ uncurry fromGate <$> evalFresh (elabDef d)
 
 ------------------------------------------------------------------------------
 -- Tests
