@@ -86,21 +86,25 @@ elabPat = \case
 
 -- If the Exp is already a variable name then we can simply return it.
 -- Otherwise we have an arbitrary expression so we introduce a virtual
--- name for it and return an equation connecting this virtual name to
--- the expression.
-elabExp :: Exp -> Fresh (Output, [Eqn])
+-- name for it and return an delayed "equation" connecting this virtual
+-- name to the expression. We do not reuse the Eqn because we want to
+-- remember that the name on the LHS is virtual.
+type Assignment = ([Output], Exp)
+
+elabExp :: Exp -> Fresh (Output, [Assignment])
 elabExp = \case
   Var x -> pure (Output False x, [])
   e     -> do
     vn <- freshVirtualName
-    pure (Output True vn, [[PVar vn] :=: [e]])
+    let out = Output True vn
+    pure (out, [([out], e)])
 
 -- If an expression on the RHS is a variable corresponding to an input
 -- wire, we introduce a virtual name for it an do aliasing. This allows
 -- us to assume that the named inputs & outputs are always distinct
 -- which a really useful invariant when producing a diagram.
 
-elabRHS :: [Input] -> Exp -> Fresh (Output, [Eqn])
+elabRHS :: [Input] -> Exp -> Fresh (Output, [Assignment])
 elabRHS inputs e =
   let dflt = elabExp e
       ins  = map inputName inputs
@@ -108,7 +112,8 @@ elabRHS inputs e =
     Var x
       | x `elem` ins -> do
           vn <- freshVirtualName
-          pure (Output True vn, [[PVar vn] :=: [e]])
+          let out = Output True vn
+          pure (out, [([out], e)])
       | otherwise -> dflt
     _ -> dflt
 
@@ -121,37 +126,43 @@ elabDef (Def (nm, ps) rhs eqns) = Just <$> do
   let ins = map (Input . elabPat) ps
   os <- mapM (elabRHS ins) rhs
   let (ous, oeqns) = unzip os
-  lcs <- mapM elabEqn (concat oeqns ++ fromMaybe [] eqns)
+  lcs1 <- mapM elabEqn  (fromMaybe [] eqns)
+  lcs2 <- mapM elabAss  (concat oeqns)
   let gate = Gate
        { inputs      = ins
        , outputs     = ous
-       , definitions = concat lcs
+       , definitions = concat (lcs1 ++ lcs2)
        }
   pure (nm, gate)
 
 -- When elaborating an equations we have two situations:
---    A,B,C = d,e,f
--- or A,B,C = e
--- The first case can be reduced to solving (A = d, B = e, C = f)
--- The second is bit more complex:
---   - If e is a variable then we're done.
---   - If e is an application then we recursively elaborate all of its
---     the expression it has as arguments i.e. we want variable names for them
---     and we are ready to pay for it by generating additional equations.
---     Finally we elaborate these additional equations.
+--    A,B,C = e
+-- or A,B,C = d,e,f
+-- The first case can be reduced to the notion of assignment we introduced earlier
+-- The second case can be reduced to solving (A = d, B = e, C = f)
 elabEqn :: Eqn -> Fresh ([([Output], Expr)])
 elabEqn (ps :=: [rhs]) = do
   let ous = map (Output False . elabPat) ps
-  case rhs of
-    Var x    -> pure [(ous, Alias x)]
-    App f es -> do
-      aes <- mapM elabExp es
-      let (args, eqs) = unzip aes
-      ih <- mapM elabEqn $ concat eqs
-      pure $ (ous, Call f (map (Input . outputName) args)) : concat ih
+  elabAss (ous, rhs)
 elabEqn (ps :=: rhs) = do
   eqns <- mapM elabEqn (zipWith (\ p e -> [p] :=: [e]) ps rhs)
   pure $ concat eqns
+
+-- The assignment case is bit more complex:
+--   - If e is a variable then we're done.
+--   - If e is an application then we recursively elaborate all of its
+--     the expression it has as arguments i.e. we want variable names for them
+--     and we are ready to pay for it by generating additional assignments.
+--     Finally we elaborate these additional assignments
+
+elabAss :: Assignment -> Fresh ([([Output], Expr)])
+elabAss (ous, e) = case e of
+  Var x    -> pure [(ous, Alias x)]
+  App f es -> do
+    aes <- mapM elabExp es
+    let (args, eqs) = unzip aes
+    ih <- mapM elabAss $ concat eqs
+    pure $ (ous, Call f (map (Input . outputName) args)) : concat ih
 
 toGate :: Def -> Maybe (String, Gate)
 toGate = evalFresh . elabDef

@@ -110,9 +110,6 @@ mkNode p str = show $ "NODE_" ++ str ++ "_" ++ show p
 mkGate :: Path -> String -> String
 mkGate p str = show $ "GATE_" ++ str ++ "_" ++ show p
 
-mkArrow :: Path -> String -> String -> String
-mkArrow p x y = arrow True (mkNode p x) (mkNode p y)
-
 arrow :: Bool -> String -> String -> String
 arrow b x y = concat
   [ x
@@ -126,9 +123,9 @@ declareInput p Input{..} =
   mkNode p inputName ++ " [label = " ++ show inputName ++ "];"
 
 declareOutput :: Path -> Output -> String
-declareOutput p Output{..} =
-  let name = mkNode p outputName in
-  name ++ " [label = " ++ (if isVirtual then show "" else show outputName) ++ "];"
+declareOutput p (Output b nm) =
+  let name = mkNode p nm in
+  name ++ " [label = " ++ (if b then show "" else show nm) ++ "];"
 
 declareLocal :: Path -> Output -> String
 declareLocal p Output{..} =
@@ -139,11 +136,20 @@ declareLocal p Output{..} =
 -- The monad we use to generate the content of the whitebox implementation:
 -- we need a name supply & we would rather use Writer to collect the lines
 -- of code rather than having to assemble everything by hand.
-newtype WhiteBox a = WhiteBox { runWhiteBox :: WriterT [String] Fresh a }
-  deriving (Functor, Applicative, Monad, MonadWriter [String])
+newtype WhiteBox a = WhiteBox
+  { runWhiteBox :: WriterT (Arr String [Output], ([String] -> [String])) Fresh a }
+  deriving ( Functor, Applicative, Monad
+           , MonadWriter (Arr String [Output], ([String] -> [String]))
+           )
 
-execWhiteBox :: WhiteBox () -> [String]
-execWhiteBox = evalFresh . execWriterT . runWhiteBox
+tellGraph :: [String] -> WhiteBox ()
+tellGraph ls = tell (emptyArr, (ls ++))
+
+tellArrow :: String -> Output -> WhiteBox ()
+tellArrow x y = tell (single (x, [y]), id)
+
+execWhiteBox :: WhiteBox () -> (Arr String [Output], [String])
+execWhiteBox = fmap ($ []) . evalFresh . execWriterT . runWhiteBox
 
 fresh :: WhiteBox Int
 fresh = WhiteBox $ lift Anf.fresh
@@ -176,37 +182,51 @@ gate nm Gate{..} env p =
     ] ++ str ++
     [ "/***************************************************/" ]
 
-  theWhitebox = execWhiteBox $ do
-    tell [ header [ "// The circuit's inputs and outputs" ] ]
-    tell $ nodeCluster p "inputs" $ map (declareInput p) inputs
-    tell $ nodeCluster p "outputs" $ map (declareOutput p) outputs
+  preWhitebox = execWhiteBox $ do
+    tellGraph [ header [ "// The circuit's inputs and outputs" ] ]
+    tellGraph $ nodeCluster p "inputs" $ map (declareInput p) inputs
+    tellGraph $ nodeCluster p "outputs" $ map (declareOutput p) outputs
 
-    tell [ "  node [shape = rectangle];" ]
+    tellGraph [ "  node [shape = rectangle];" ]
 
     forM_ (reverse definitions) $ \ (os, e) -> do
-      forM_ os $ \ o -> tell [ declareLocal p o ]
+      forM_ os $ \ o -> tellGraph [ declareLocal p o ]
       case e of
         Alias x     -> case os of
-          [y] -> tell [indent 2 $ mkArrow p x (outputName y) ]
+          [y] -> tellArrow (mkNode p x) (mkNode p <$> y)
           _   -> error "not yet supported"
         Call f args -> case findArr f env of
           Nothing   -> error "This should never happen"
           Just repr -> do
             id <- fresh
             let dotG = repr (extend id p)
-            tell (blackbox dotG)
+            tellGraph (blackbox dotG)
             forM_ (zip args (inputNodes dotG)) $ \ (arg, iport) ->
-              tell [ arrow False (mkNode p (inputName arg)) iport ]
+              tellArrow (mkNode p (inputName arg)) (Output False iport)
             forM_ (zip (outputNodes dotG) os) $ \ (oport, out) -> do
-              let outName = mkNode p (outputName out)
-              tell [ arrow (outName `elem` theOutputs) oport outName ]
+              tellArrow oport (mkNode p <$> out)
 
-    tell [ header [ "// Finally, we make sure the left-to-right ordering"
-                  , "// of inputs and outputs is respected."
-                  ]
+    tellGraph [ header [ "// Finally, we make sure the left-to-right ordering"
+                       , "// of inputs and outputs is respected."
+                       ]
          ]
-    tell [ leftToRight "inputs" theInputs ]
-    tell [ leftToRight "outputs" theOutputs ]
+    tellGraph [ leftToRight "inputs" theInputs ]
+    tellGraph [ leftToRight "outputs" theOutputs ]
+
+  theWhitebox =
+    let (arr, bboxes) = preWhitebox in
+    let (skipped, del) =
+          flip foldMapArr arr $ \ kv@(src, ts) ->
+            flip foldMap ts $ \ (Output b t) ->
+              if not b then (single kv, emptyArr)
+              else case findArr t arr of
+                Nothing  -> (single kv, emptyArr) -- virtual output
+                Just ts' -> (single (src, ts'), singleton t)
+    in
+    let final = foldr deleteArr skipped (foldMapSet (:[]) del) in
+    (bboxes ++) $ flip foldMapArr final $ \ (s, ts) ->
+      flip map ts $ \ (Output _ nm) ->
+        arrow (nm `elem` theOutputs) s nm
 
   theBlackbox = filter (/= "")
     [ "subgraph cluster_" ++ show p ++ " {"
@@ -235,8 +255,9 @@ def d = case toGate d of
 dotDef :: Def -> Maybe DotGate
 dotDef d = do
   st <- flip execStateT initDotSt $ runDot $ do
-    -- we throw in some basic definitions so that whitebox has a change to succeed
-    -- in practice we will only need 'nand'
+    -- we throw in some basic definitions so that whitebox has a
+    -- chance to succeed. In practice we will only need 'nand'
+    -- and 'dff'.
     def notG
     def andG
     def d
