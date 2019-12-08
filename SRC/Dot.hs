@@ -138,18 +138,21 @@ declareLocal p Output{..} =
 -- we need a name supply & we would rather use Writer to collect the lines
 -- of code rather than having to assemble everything by hand.
 newtype WhiteBox a = WhiteBox
-  { runWhiteBox :: WriterT (Arr String [Output], ([String] -> [String])) Fresh a }
+  { runWhiteBox :: WriterT (Arr String (Set Output)
+                           , ([String] -> [String]))
+                   Fresh a
+  }
   deriving ( Functor, Applicative, Monad
-           , MonadWriter (Arr String [Output], ([String] -> [String]))
+           , MonadWriter (Arr String (Set Output), ([String] -> [String]))
            )
 
 tellGraph :: [String] -> WhiteBox ()
 tellGraph ls = tell (emptyArr, (ls ++))
 
 tellArrow :: String -> Output -> WhiteBox ()
-tellArrow x y = tell (single (x, [y]), id)
+tellArrow x y = tell (single (x, singleton y), id)
 
-execWhiteBox :: WhiteBox () -> (Arr String [Output], [String])
+execWhiteBox :: WhiteBox () -> (Arr String (Set Output), [String])
 execWhiteBox = fmap ($ []) . evalFresh . execWriterT . runWhiteBox
 
 fresh :: WhiteBox Int
@@ -185,13 +188,15 @@ gate nm Gate{..} env p =
 
   preWhitebox = execWhiteBox $ do
     tellGraph [ header [ "// The circuit's inputs and outputs" ] ]
-    tellGraph $ nodeCluster p "inputs" $ map (declareInput p) inputs
+    tellGraph $ nodeCluster p "inputs"  $ map (declareInput p) inputs
     tellGraph $ nodeCluster p "outputs" $ map (declareOutput p) outputs
 
     tellGraph [ "  node [shape = rectangle];" ]
 
     forM_ (reverse definitions) $ \ (os, e) -> do
-      forM_ os $ \ o -> tellGraph [ declareLocal p o ]
+      forM_ os $ \ o ->
+        unless (mkNode p (outputName o) `elem` theOutputs) $
+          tellGraph [ declareLocal p o ]
       case e of
         Alias x     -> case os of
           [y] -> tellArrow (mkNode p x) (mkNode p <$> y)
@@ -218,7 +223,7 @@ gate nm Gate{..} env p =
     let (arr, bboxes) = preWhitebox in
     let (skipped, del) =
           flip foldMapArr arr $ \ kv@(src, ts) ->
-            flip foldMap ts $ \ (Output b t) ->
+            flip foldMapSet ts $ \ (Output b t) ->
               if not b then (single kv, emptyArr)
               else case findArr t arr of
                 Nothing  -> (single kv, emptyArr) -- virtual output
@@ -226,8 +231,14 @@ gate nm Gate{..} env p =
     in
     let final = foldr deleteArr skipped (foldMapSet (:[]) del) in
     (bboxes ++) $ flip foldMapArr final $ \ (s, ts) ->
-      flip map ts $ \ (Output _ nm) ->
-        arrow (nm `elem` theOutputs) s nm
+      let (src, decls)
+            | length ts > 1 = let src = init s ++ "-aux\"" in
+                              (src , [ src ++ " [shape = point];"
+                                   , s ++ " -> " ++ src ++ " [dir = none];"
+                                   ])
+            | otherwise     = (s, [])
+      in (decls ++) $ flip map (foldMapSet pure ts) $ \ (Output _ nm) ->
+        arrow (nm `elem` theOutputs) src nm
 
   theBlackbox = filter (/= "")
     [ "subgraph cluster_" ++ show p ++ " {"
@@ -259,8 +270,13 @@ dotDef d = do
     -- we throw in some basic definitions so that whitebox has a
     -- chance to succeed. In practice we will only need 'nand'
     -- and 'dff'.
+    def nand
     def notG
     def andG
+    def orG
+    def dff
+    def xor
+    def mux
     def d
   nm <- case d of { Stub{} -> Nothing; Def (nm, _) _ _ -> Just nm }
   ga <- findArr nm (gates st)
@@ -288,11 +304,15 @@ whiteBoxDef d = fromMaybe [] $ do
     ++ whitebox ga
     ++ ["}"]
 
+runner :: String -> Def -> IO ()
+runner nm d = putStrLn $ unlines $ whiteBoxDef d
+
 test :: IO ()
 test = do
-  let runner = putStrLn . unlines . whiteBoxDef
-  runner notG
-  runner swapG
-  runner andG
-  runner and4
-  runner and4'
+  runner "swap"       swapG
+  runner "and"        andG
+  runner "and4"       and4
+  runner "and4-prime" and4'
+  runner "mux"        mux2
+  runner "tff"        tff
+  runner "not"        notG

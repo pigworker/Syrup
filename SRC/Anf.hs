@@ -31,7 +31,7 @@ newtype Input' nm = Input { inputName :: nm }
 data Output' nm = Output
   { isVirtual  :: Bool
   , outputName :: nm
-  } deriving (Functor, Foldable, Traversable)
+  } deriving (Eq, Ord, Functor, Foldable, Traversable)
 
 -- Expressions in A normal form: either a variable or a function applied
 -- to a bunch of variables. Nothing more complex than that.
