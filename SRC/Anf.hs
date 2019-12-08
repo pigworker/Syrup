@@ -128,8 +128,11 @@ and4 = Def ("and4", PVar <$> ["A", "B", "C", "D"])
            [foldr1 (\ a b -> App "and" [a, b]) $ Var <$> ["A", "B", "C", "D"]]
            Nothing
 
+toANF :: Def -> Def
+toANF d = uncurry fromGate (evalFresh (elabDef d))
+
 test :: IO ()
 test = do
-  let runner d = putStrLn $ show $ uncurry fromGate (evalFresh (elabDef d))
+  let runner = print . toANF
   runner foo
   runner and4
