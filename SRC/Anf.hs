@@ -118,10 +118,18 @@ fromGate nm g =
 
 foo :: Def
 foo =
-  Def ("foo", [PVar "A", PVar "B", PVar "C"])
+  Def ("foo", PVar <$> ["A", "B", "C"])
       ([App "and" [Var "A", Var "B"], Var "Z"])
       $ Just [([PVar "Z"] :=: [App "or" [Var "A"
                                         , App "and" [Var "B", Var "C"]]])]
+
+and4 :: Def
+and4 = Def ("and4", PVar <$> ["A", "B", "C", "D"])
+           [foldr1 (\ a b -> App "and" [a, b]) $ Var <$> ["A", "B", "C", "D"]]
+           Nothing
+
 test :: IO ()
-test =
-  putStrLn $ show $ uncurry fromGate (evalFresh (elabDef foo))
+test = do
+  let runner d = putStrLn $ show $ uncurry fromGate (evalFresh (elabDef d))
+  runner foo
+  runner and4
