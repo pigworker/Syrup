@@ -4,27 +4,39 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE TupleSections              #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE DeriveFunctor              #-}
-{-# LANGUAGE NamedFieldPuns    #-}
-{-# LANGUAGE DeriveFoldable    #-}
-{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE NamedFieldPuns             #-}
+{-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE DeriveFoldable             #-}
+{-# LANGUAGE DeriveTraversable          #-}
 
 module Syrup.SRC.Dot where
 
 import Control.Monad.State
 import Data.List
 import Data.Maybe
+
 import Syrup.SRC.BigArray
 import Syrup.SRC.Syn
+import Syrup.SRC.Anf
+  ( Input'(..), Input
+  , Output'(..), Output
+  , Gate(..)
+  , toGate
+  )
 
 data DotGate = DotGate
-  { blackbox :: [String]
-  , whitebox :: [String]
-  , inputs   :: [String]
-  , outputs  :: [String]
+  { blackbox    :: [String]
+  , whitebox    :: [String]
+  , inputNodes  :: [String]
+  , outputNodes :: [String]
   }
+
+indent :: Int -> String -> String
+indent n str = replicate n ' ' ++ str
 
 -- Path of unique IDs
 newtype Path = Path { getPath :: [Int] }
@@ -62,79 +74,104 @@ fresh = Dot $ do
   put $ s { supply = i + 1 }
   pure i
 
-pat :: Pat -> Dot (Path -> String)
-pat (PVar x) = do
-  i <- fresh
-  pure $ ("N" ++) . show . extend i
-pat (PCab x) = error "Not supported yet"
-
-rhs :: Exp -> Dot (Path -> String)
-rhs e = case exPat e of
-  Nothing -> pat (PVar "")
-  Just p  -> pat p
-
-leftToRight :: [String] -> String
-leftToRight ns@(_:_:_) = unlines $
-  [ "  {"
-  , "    rank = same;"
-  , "    rankdir = LR;"
-  , "    " ++ intercalate " -> " ns ++ " [color = white];"
-  , "  }"
+leftToRight :: String -> [String] -> String
+leftToRight str ns@(_:_:_) = unlines $ indent 2 <$>
+  [ "// Order " ++ str ++ " left to right"
+  , "{"
+  , "  rank = same;"
+  , "  rankdir = LR;"
+  , "  " ++ intercalate " -> " ns ++ " [color = white];"
+  , "}"
   ]
-leftToRight _ = ""
+leftToRight _ _ = ""
 
 connectInputs :: [String] -> String -> String
 connectInputs [] _  = ""
-connectInputs ns nm =
-  "  { " ++ unwords ns ++ " } -> " ++ nm ++ ";"
+connectInputs ns nm = unlines $ indent 2 <$>
+  [ "// Connect inputs to gate"
+  , "{ " ++ unwords ns ++ " } -> " ++ nm ++ ";"
+  ]
 
 connectOutputs :: String -> [String] -> String
 connectOutputs _  [] = ""
-connectOutputs nm ns =
-  "  " ++ nm ++ " -> { " ++ unwords ns ++ " } [dir = none];"
+connectOutputs nm ns = unlines $ indent 2 <$>
+  [ "// Connect outputs to gate"
+  , nm ++ " -> { " ++ unwords ns ++ " } [dir = none];"
+  ]
 
-gate :: String           -- name
-     -> [Path -> String] -- inputs
-     -> [Path -> String] -- ouputs
-     -> Arr String (Path -> DotGate)
+mkNode :: Path -> String -> String
+mkNode p str = "NODE_" ++ str ++ "_" ++ show p
+
+mkGate :: Path -> String -> String
+mkGate p str = "GATE_" ++ str ++ "_" ++ show p
+
+declareInput :: Path -> Input -> String
+declareInput p Input{..} =
+  mkNode p inputName ++ " [label = " ++ inputName ++ "];"
+
+declareOutput :: Path -> Output -> String
+declareOutput p Output{..} =
+  let name = mkNode p outputName in
+  if isVirtual then name ++ ";" else (name ++ " [label = " ++ outputName ++ "];")
+
+gate :: String -> Gate -> Arr String (Path -> DotGate)
      -> Path -> DotGate
-gate nm ins ous env p =
-  let inputs   = fmap ($ p) ins
-      outputs  = fmap ($ p) ous
-      whitebox = []
+gate nm Gate{..} env p =
+  let gateNode    = mkGate p nm
+      inputNodes  = map (mkNode p . inputName)  inputs
+      outputNodes = map (mkNode p . outputName) outputs
 
-      gateNode = "N" ++ show p
-      blackbox = filter (/= "")
+      blackbox    = filter (/= "")
         [ "subgraph cluster_" ++ show p ++ " {"
-        , "  " ++ gateNode ++ " [label = " ++ show nm ++ "]"
+        , "  style = invis;"
+        , indent 2 $ gateNode ++ " [label = " ++ show nm ++ "];"
         , "  {"
         , "    node [shape = point, height = 0];"
-        , "    " ++ intercalate "; " (inputs ++ outputs)
+        ,      unlines (map (indent 4 . declareInput p) inputs)
+            ++ unlines (map (indent 4 . declareOutput p) outputs)
         , "  }"
-        , leftToRight inputs
-        , leftToRight outputs
-        , connectInputs inputs gateNode
-        , connectOutputs gateNode outputs
+        , leftToRight "inputs" inputNodes
+        , leftToRight "outputs" outputNodes
+        , connectInputs inputNodes gateNode
+        , connectOutputs gateNode outputNodes
         , "}"
         ]
-  in DotGate { blackbox, whitebox, inputs, outputs }
+
+      whitebox = []
+  in DotGate { blackbox, whitebox, inputNodes, outputNodes }
 
 def :: Def -> Dot ()
-def Stub{} = pure ()
-def (Def (nm, ps) es eqns) = do
-  id  <- fresh
-  ins <- mapM pat ps
-  ous <- mapM rhs es
-  Dot $ modify $ \ s ->
-    s { gates = insertArr (nm, gate nm ins ous (gates s) . extend id) (gates s) }
+def d = case toGate d of
+  Nothing      -> pure ()
+  Just (nm, g) -> do
+    id <- fresh
+    Dot $ modify $ \ s ->
+      s { gates = insertArr (nm, gate nm g (gates s) . extend id) (gates s) }
 
-dotDef :: Def -> [String]
-dotDef d = fromMaybe [] $ do
+blackBoxDef :: Def -> [String]
+blackBoxDef d = fromMaybe [] $ do
   st <- flip execStateT initDotSt $ runDot $ def d
   nm <- case d of { Stub{} -> Nothing; Def (nm, _) _ _ -> Just nm }
   ga <- findArr nm (gates st)
-  pure $ blackbox (ga empty)
+  pure $
+    [ "digraph blackbox {"
+    , "  rankdir=TB;"
+    , "  splines=ortho;"
+    ]
+    ++ blackbox (ga empty)
+    ++ ["}"]
+
+
+notG :: Def
+notG = Def ("not", [PVar "x"]) [App "not" [Var "x"]] Nothing
+
+andG :: Def
+andG = Def ("and", [PVar "x", PVar "y"]) [Var "z"] $ Just
+  [ [PVar "z"] :=: [App "and" [Var "x", Var "y"]]
+  ]
 
 test :: IO ()
-test = putStrLn $ unlines $
-  dotDef (Def ("not", [PVar "x"]) [App "not" [Var "x"]] Nothing)
+test = do
+  let runner = putStrLn . unlines . blackBoxDef
+  runner notG
+  runner andG

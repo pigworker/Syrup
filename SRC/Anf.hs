@@ -136,6 +136,9 @@ elabEqn (ps :=: rhs) = do
   eqns <- mapM elabEqn (zipWith (\ p e -> [p] :=: [e]) ps rhs)
   pure $ concat eqns
 
+toGate :: Def -> Maybe (String, Gate)
+toGate = evalFresh . elabDef
+
 ------------------------------------------------------------------------------
 -- Back to Def
 
@@ -158,7 +161,7 @@ fromGate nm g =
                      eqns
 
 toANF :: Def -> Def
-toANF d = fromMaybe d $ uncurry fromGate <$> evalFresh (elabDef d)
+toANF d = fromMaybe d $ uncurry fromGate <$> toGate d
 
 ------------------------------------------------------------------------------
 -- Tests
