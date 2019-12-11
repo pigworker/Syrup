@@ -149,10 +149,10 @@ elabEqn (ps :=: rhs) = do
   eqns <- mapM elabEqn (zipWith (\ p e -> [p] :=: [e]) ps rhs)
   pure $ concat eqns
 
--- The assignment case is bit more complex:
+-- The assignment A,B,C = e case is bit more complex:
 --   - If e is a variable then we're done.
---   - If e is an application then we recursively elaborate all of its
---     the expression it has as arguments i.e. we want variable names for them
+--   - If e is an application then we recursively elaborate all of the
+--     expression it has as arguments i.e. we want variable names for them
 --     and we are ready to pay for it by generating additional assignments.
 --     Finally we elaborate these additional assignments
 
@@ -172,7 +172,7 @@ toGate = evalFresh . elabDef
 -- Back to Def
 
 -- Erase a Gate back to a Def for pretty-printing purposes.
--- Not that we could also use this function to check that
+-- Note that we could also use this function to check that
 -- `d` and `toANF d` are bisimilar!
 fromGate :: String -> Gate -> Def
 fromGate nm g =
