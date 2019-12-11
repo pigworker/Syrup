@@ -88,18 +88,21 @@ elabPat = \case
 
 -- If the Exp is already a variable name then we can simply return it.
 -- Otherwise we have an arbitrary expression so we introduce a virtual
--- name for it and return an delayed "equation" connecting this virtual
--- name to the expression. We do not reuse the Eqn because we want to
--- remember that the name on the LHS is virtual.
+-- name for it and return a delayed "equation" connecting this virtual
+-- name to the expression. We do not reuse the type Eqn because we want
+-- to remember that the name on the LHS is virtual.
 type Assignment = ([Output], Exp)
+
+declareAlias :: Exp -> Fresh (Output, [Assignment])
+declareAlias e = do
+  vn <- freshVirtualName
+  let out = Output True vn
+  pure (out, [([out], e)])
 
 elabExp :: Exp -> Fresh (Output, [Assignment])
 elabExp = \case
   Var x -> pure (Output False x, [])
-  e     -> do
-    vn <- freshVirtualName
-    let out = Output True vn
-    pure (out, [([out], e)])
+  e     -> declareAlias e
 
 -- If an expression on the RHS is a variable corresponding to an input
 -- wire, we introduce a virtual name for it an do aliasing. This allows
@@ -111,12 +114,8 @@ elabRHS inputs e =
   let dflt = elabExp e
       ins  = map inputName inputs
   in case e of
-    Var x
-      | x `elem` ins -> do
-          vn <- freshVirtualName
-          let out = Output True vn
-          pure (out, [([out], e)])
-      | otherwise -> dflt
+    Var x | x `elem` ins -> declareAlias e
+          | otherwise    -> dflt
     _ -> dflt
 
 -- Not much work done here: elaborate the LHS, elaborate the RHS and
