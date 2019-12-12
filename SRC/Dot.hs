@@ -32,6 +32,7 @@ import Syrup.SRC.Anf
 import qualified Syrup.SRC.Anf as Anf
 import Syrup.SRC.Smp
 import Syrup.SRC.Fsh
+import Syrup.SRC.Gph
 
 data DotGate = DotGate
   { blackbox    :: [String]
@@ -137,24 +138,64 @@ declareLocal p Output{..} =
 -- we need a name supply & we would rather use Writer to collect the lines
 -- of code rather than having to assemble everything by hand.
 newtype WhiteBox a = WhiteBox
-  { runWhiteBox :: WriterT (Arr String (Set Output)
-                           , ([String] -> [String]))
-                   (Fresh Int) a
+  { runWhiteBox :: WriterT Graph (Fresh Int) a
   }
   deriving ( Functor, Applicative, Monad
-           , MonadWriter (Arr String (Set Output), ([String] -> [String]))
+           , MonadWriter Graph
            , MonadFresh Int
            )
 
-tellGraph :: [String] -> WhiteBox ()
-tellGraph ls = tell (emptyArr, (ls ++))
+evalWhiteBox :: WhiteBox a -> (a, Graph)
+evalWhiteBox = evalFresh . runWriterT . runWhiteBox
 
-tellArrow :: String -> Output -> WhiteBox ()
-tellArrow x y = tell (single (x, singleton y), id)
+tellVirtual :: String -> WhiteBox ()
+tellVirtual nm = tell (Graph (single (nm, Invisible False)) emptyArr)
 
-execWhiteBox :: WhiteBox () -> (Arr String (Set Output), [String])
-execWhiteBox = fmap ($ []) . evalFresh . execWriterT . runWhiteBox
+tellVertex :: String -> String -> Maybe Shape -> WhiteBox ()
+tellVertex nm lb sh = tell (Graph (single (nm, Visible lb sh)) emptyArr)
 
+tellEdge :: String -> String -> Bool -> WhiteBox ()
+tellEdge x y dir = tell (Graph emptyArr (single (x, single (y, Edge dir))))
+
+toWhitebox :: String -> Gate -> Arr String (Path -> DotGate)
+         -> Path -> WhiteBox ([String], [String], [String])
+toWhitebox nm (Gate is os defs) env p = do
+  let gateNode   = mkGate p nm
+
+  ins <- forM is $ \ (Input i) -> do
+     let node  = mkNode p ("#INPUT" ++ i)
+     let vnode = mkNode p i
+     tellVertex node i Nothing
+     tellVirtual vnode
+     tellEdge node vnode False
+     pure node
+
+  ous <- forM os $ \ (Output _ o) -> do
+     let node  = mkNode p ("#OUTPUT" ++ o)
+     let vnode = mkNode p o
+     tellVertex node o Nothing
+     tellVirtual vnode
+     tellEdge vnode node True
+     pure node
+
+  gph <- fmap concat $ forM (reverse defs) $ \ (os, e) -> do
+    forM_ os $ tellVirtual . mkNode p . outputName -- TODO: use names of non-virtual vertices?
+    case e of
+      Alias x     -> case os of
+        [y] -> [] <$ tellEdge (mkNode p x) (mkNode p $ outputName y) True
+        _   -> error "not yet supported"
+      Call f args -> case findArr f env of
+        Nothing   -> error "This should never happen"
+        Just repr -> do
+          id <- fresh
+          let dotG = repr (extend id p)
+          forM_ (zip args (inputNodes dotG)) $ \ (arg, iport) ->
+            tellEdge (mkNode p (inputName arg)) iport False
+          forM_ (zip (outputNodes dotG) os) $ \ (oport, out) -> do
+            tellEdge oport (mkNode p $ outputName out) False
+          pure (blackbox dotG)
+
+  pure (ins, ous, gph)
 
 nodeCluster :: Path -> String -> [String] -> [String]
 nodeCluster p name nodes =
@@ -167,7 +208,7 @@ nodeCluster p name nodes =
 
 gate :: String -> Gate -> Arr String (Path -> DotGate)
      -> Path -> DotGate
-gate nm Gate{..} env p =
+gate nm g@Gate{..} env p =
   DotGate { inputNodes  = theInputs
           , outputNodes = theOutputs
           , blackbox    = theBlackbox
@@ -184,64 +225,23 @@ gate nm Gate{..} env p =
     ] ++ str ++
     [ "/***************************************************/" ]
 
-  preWhitebox = execWhiteBox $ do
-    tellGraph [ header [ "// The circuit's inputs and outputs" ] ]
-    tellGraph $ nodeCluster p "inputs"  $ map (declareInput p) inputs
-    tellGraph $ nodeCluster p "outputs" $ map (declareOutput p) outputs
-
-    tellGraph [ "  node [shape = rectangle];" ]
-
-    forM_ (reverse definitions) $ \ (os, e) -> do
-      forM_ os $ \ o ->
-        unless (mkNode p (outputName o) `elem` theOutputs) $
-          tellGraph [ declareLocal p o ]
-      case e of
-        Alias x     -> case os of
-          [y] -> tellArrow (mkNode p x) (mkNode p <$> y)
-          _   -> error "not yet supported"
-        Call f args -> case findArr f env of
-          Nothing   -> error "This should never happen"
-          Just repr -> do
-            id <- fresh
-            let dotG = repr (extend id p)
-            tellGraph (blackbox dotG)
-            forM_ (zip args (inputNodes dotG)) $ \ (arg, iport) ->
-              tellArrow (mkNode p (inputName arg)) (Output False iport)
-            forM_ (zip (outputNodes dotG) os) $ \ (oport, out) -> do
-              tellArrow oport (mkNode p <$> out)
-
-    tellGraph [ header [ "// Finally, we make sure the left-to-right ordering"
-                       , "// of inputs and outputs is respected."
-                       ]
-         ]
-    tellGraph [ leftToRight "inputs" theInputs ]
-    tellGraph [ leftToRight "outputs" theOutputs ]
-
   theWhitebox =
-    let (arr, bboxes) = preWhitebox in
-    let (skipped, del) =
-          flip foldMapArr arr $ \ kv@(src, ts) ->
-            flip foldMapSet ts $ \ (Output b t) ->
-              if not b then (single kv, emptyArr)
-              else case findArr t arr of
-                Nothing  -> (single kv, emptyArr) -- virtual output
-                Just ts' -> (single (src, ts'), singleton t)
-    in
-    let final = foldr deleteArr skipped (foldMapSet (:[]) del) in
-    (bboxes ++) $ flip foldMapArr final $ \ (s, ts) ->
-      let (src, decls)
-            | length ts > 1 = let src = init s ++ "-aux\"" in
-                              (src , [ src ++ " [shape = point];"
-                                   , s ++ " -> " ++ src ++ " [dir = none];"
-                                   ])
-            | otherwise     = (s, [])
-      in (decls ++) $ flip map (foldMapSet pure ts) $ \ (Output _ nm) ->
-        arrow (nm `elem` theOutputs) src nm
+    let ((ins, ous, gts), gph) = evalWhiteBox (toWhitebox nm g env p)
+        optimized              = shrinkInvisible $ detectSplit gph
+        (vertices, edges)      = fromGraph optimized
+     in concat
+     [ nodeCluster p "inputs" ins
+     , nodeCluster p "outputs" ous
+     , vertices
+     , gts
+     , edges
+     , [ leftToRight "inputs" ins, leftToRight "outputs" ous ]
+     ]
 
   theBlackbox = filter (/= "")
     [ "subgraph cluster_" ++ show p ++ " {"
     , "  style = invis;"
-    , indent 2 $ gateNode ++ " [label = " ++ show nm ++ "];"
+    , indent 2 $ gateNode ++ " [shape = rectangle, label = " ++ show nm ++ "];"
     , "  {"
     , "    node [shape = point, height = 0];"
     ,      unlines (map (indent 4 . declareInput p) inputs)
@@ -303,14 +303,17 @@ whiteBoxDef d = fromMaybe [] $ do
     ++ ["}"]
 
 runner :: String -> Def -> IO ()
-runner nm d = putStrLn $ unlines $ whiteBoxDef d
+runner nm d = do
+  let content = unlines $ whiteBoxDef d
+  writeFile ("whitebox-" ++ nm ++ ".dot") content
 
 test :: IO ()
 test = do
   runner "swap"       swapG
   runner "and"        andG
-  runner "and4"       and4
   runner "and4-prime" and4'
   runner "mux"        mux2
-  runner "tff"        tff
   runner "not"        notG
+  runner "and4"       and4
+  runner "tff"        tff
+  runner "xor"        xor

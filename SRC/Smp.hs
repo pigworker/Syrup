@@ -34,7 +34,7 @@ dff =
 xor :: Def
 xor =
   Def ("xor", PVar <$> ["X", "Y"]) [App "or" (Var <$> ["A", "B"])] $ Just
-  [ ([PVar "A"]  :=: [App "and" (Var <$> ["X", "Y"])])
+  [ ([PVar "A"]  :=: [App "and" (Var <$> ["Y", "X"])])
   , ([PVar "B"]  :=: [App "and" (Var <$> ["NX", "NY"])])
   , ([PVar "NX"] :=: [App "not" [Var "X"]])
   , ([PVar "NY"] :=: [App "not" [Var "Y"]])

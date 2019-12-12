@@ -22,3 +22,11 @@ isLeft :: Either a b -> Maybe a
 isLeft = \case
   Left a -> Just a
   _      -> Nothing
+
+unzipWith :: (a -> (b, c)) -> [a] -> ([b], [c])
+unzipWith f = \case
+  []       -> ([], [])
+  (a : as) ->
+    let (b , c)  = f a
+        (bs, cs) = unzipWith f as
+    in (b : bs, c : cs)
