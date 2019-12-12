@@ -28,11 +28,10 @@ import Syrup.SRC.Anf
   , Expr'(..)
   , Gate(..)
   , toGate
-  , evalFresh
-  , Fresh
   )
 import qualified Syrup.SRC.Anf as Anf
 import Syrup.SRC.Smp
+import Syrup.SRC.Fsh
 
 data DotGate = DotGate
   { blackbox    :: [String]
@@ -140,10 +139,11 @@ declareLocal p Output{..} =
 newtype WhiteBox a = WhiteBox
   { runWhiteBox :: WriterT (Arr String (Set Output)
                            , ([String] -> [String]))
-                   Fresh a
+                   (Fresh Int) a
   }
   deriving ( Functor, Applicative, Monad
            , MonadWriter (Arr String (Set Output), ([String] -> [String]))
+           , MonadFresh Int
            )
 
 tellGraph :: [String] -> WhiteBox ()
@@ -155,8 +155,6 @@ tellArrow x y = tell (single (x, singleton y), id)
 execWhiteBox :: WhiteBox () -> (Arr String (Set Output), [String])
 execWhiteBox = fmap ($ []) . evalFresh . execWriterT . runWhiteBox
 
-fresh :: WhiteBox Int
-fresh = WhiteBox $ lift Anf.fresh
 
 nodeCluster :: Path -> String -> [String] -> [String]
 nodeCluster p name nodes =

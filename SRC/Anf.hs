@@ -15,6 +15,7 @@ import Data.Maybe
 
 import Syrup.SRC.Syn
 import Syrup.SRC.Smp
+import Syrup.SRC.Fsh
 
 ------------------------------------------------------------------------------
 -- Syntax of A normal forms
@@ -57,23 +58,12 @@ instance Semigroup Gate where
   a <> b = a
 
 ------------------------------------------------------------------------------
--- Fresh monad: generate fresh names for virtual wires
+-- ANF: the Fresh monad to generate fresh names for virtual wires
 
-newtype Fresh a = Fresh
-  { runFresh :: State Int a }
-  deriving (Functor, Applicative, Monad)
-
-evalFresh :: Fresh a -> a
-evalFresh = flip evalState 0 . runFresh
-
-fresh :: Fresh Int
-fresh = Fresh $ do
-  i <- get
-  put (i + 1)
-  pure i
+type ANF = Fresh Int
 
 -- This should return a name not valid in the surface syntax.
-freshVirtualName :: Fresh String
+freshVirtualName :: ANF String
 freshVirtualName = do
   i <- fresh
   pure $ '#' : show i
@@ -93,13 +83,13 @@ elabPat = \case
 -- to remember that the name on the LHS is virtual.
 type Assignment = ([Output], Exp)
 
-declareAlias :: Exp -> Fresh (Output, [Assignment])
+declareAlias :: Exp -> ANF (Output, [Assignment])
 declareAlias e = do
   vn <- freshVirtualName
   let out = Output True vn
   pure (out, [([out], e)])
 
-elabExp :: Exp -> Fresh (Output, [Assignment])
+elabExp :: Exp -> ANF (Output, [Assignment])
 elabExp = \case
   Var x -> pure (Output False x, [])
   e     -> declareAlias e
@@ -109,7 +99,7 @@ elabExp = \case
 -- us to assume that the named inputs & outputs are always distinct
 -- which a really useful invariant when producing a diagram.
 
-elabRHS :: [Input] -> Exp -> Fresh (Output, [Assignment])
+elabRHS :: [Input] -> Exp -> ANF (Output, [Assignment])
 elabRHS inputs e =
   let dflt = elabExp e
       ins  = map inputName inputs
@@ -121,7 +111,7 @@ elabRHS inputs e =
 -- Not much work done here: elaborate the LHS, elaborate the RHS and
 -- collect the additional equations added by doing so and finally
 -- elaborate all of the equations.
-elabDef :: Def -> Fresh (Maybe (String, Gate))
+elabDef :: Def -> ANF (Maybe (String, Gate))
 elabDef Stub{} = pure Nothing
 elabDef (Def (nm, ps) rhs eqns) = Just <$> do
   let ins = map (Input . elabPat) ps
@@ -141,7 +131,7 @@ elabDef (Def (nm, ps) rhs eqns) = Just <$> do
 -- or A,B,C = d,e,f
 -- The first case can be reduced to the notion of assignment we introduced earlier
 -- The second case can be reduced to solving (A = d, B = e, C = f)
-elabEqn :: Eqn -> Fresh ([([Output], Expr)])
+elabEqn :: Eqn -> ANF ([([Output], Expr)])
 elabEqn (ps :=: [rhs]) = do
   let ous = map (Output False . elabPat) ps
   elabAss (ous, rhs)
@@ -156,7 +146,7 @@ elabEqn (ps :=: rhs) = do
 --     and we are ready to pay for it by generating additional assignments.
 --     Finally we elaborate these additional assignments
 
-elabAss :: Assignment -> Fresh ([([Output], Expr)])
+elabAss :: Assignment -> ANF ([([Output], Expr)])
 elabAss (ous, e) = case e of
   Var x    -> pure [(ous, Alias x)]
   App f es -> do
