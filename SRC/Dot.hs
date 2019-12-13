@@ -319,3 +319,4 @@ test = do
   runner "hadd"       hadd
   runner "fadd"       fadd
   runner "rca4"       rca4
+  runner "andnot"     andnot

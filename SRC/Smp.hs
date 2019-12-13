@@ -98,8 +98,8 @@ fadd :: Def
 fadd =
   Def ("fadd", PVar <$> ["X", "Y", "C"])
       (Var <$> ["C1", "Z0"]) $ Just
-      [ ((PVar <$> ["CA", "D"])  :=: [App "hadd" (Var <$> ["C", "X"])])
-      , ((PVar <$> ["CB", "Z0"]) :=: [App "hadd" (Var <$> ["D", "Y"])])
+      [ ((PVar <$> ["CA", "D"])  :=: [App "hadd" (Var <$> ["X", "Y"])])
+      , ((PVar <$> ["CB", "Z0"]) :=: [App "hadd" (Var <$> ["D", "C"])])
       , ([PVar "C1"]             :=: [App "xor"  (Var <$> ["CA", "CB"])])
       ]
 
@@ -112,3 +112,10 @@ rca4 =
       , ((PVar <$> ["C2", "Z1"]) :=: [App "fadd" (Var <$> [ "X1", "Y1", "C1" ])])
       , ((PVar <$> ["C1", "Z0"]) :=: [App "fadd" (Var <$> [ "X0", "Y0", "CI" ])])
       ]
+
+andnot :: Def
+andnot =
+  Def ("andnot", [PVar "X"]) [Var "R"] $ Just
+    [ [PVar "Z"] :=: [App "not" [Var "X"]]
+    , [PVar "R"] :=: [App "and" (Var <$> ["Z", "Z"])]
+    ]
