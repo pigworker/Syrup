@@ -85,3 +85,30 @@ mux2 =
       [ ([PVar "A"] :=: [App "mux" (Var <$> [ "C", "X1", "Y1" ])])
       , ([PVar "B"] :=: [App "mux" (Var <$> [ "C", "X2", "Y2" ])])
       ]
+
+hadd :: Def
+hadd =
+  Def ("hadd", PVar <$> ["X", "Y"])
+      [ App "and" (Var <$> ["X", "Y"])
+      , App "xor" (Var <$> ["X", "Y"])
+      ]
+      Nothing
+
+fadd :: Def
+fadd =
+  Def ("fadd", PVar <$> ["X", "Y", "C"])
+      (Var <$> ["C1", "Z0"]) $ Just
+      [ ((PVar <$> ["CA", "D"])  :=: [App "hadd" (Var <$> ["C", "X"])])
+      , ((PVar <$> ["CB", "Z0"]) :=: [App "hadd" (Var <$> ["D", "Y"])])
+      , ([PVar "C1"]             :=: [App "xor"  (Var <$> ["CA", "CB"])])
+      ]
+
+rca4 :: Def
+rca4 =
+  Def ("rca4", PVar <$> ["X3", "X2", "X1", "X0", "Y3", "Y2", "Y1", "Y0", "CI"])
+      (Var <$> ["CO", "Z3", "Z2", "Z1", "Z0"]) $ Just
+      [ ((PVar <$> ["CO", "Z3"]) :=: [App "fadd" (Var <$> [ "X3", "Y3", "C3" ])])
+      , ((PVar <$> ["C3", "Z2"]) :=: [App "fadd" (Var <$> [ "X2", "Y2", "C2" ])])
+      , ((PVar <$> ["C2", "Z1"]) :=: [App "fadd" (Var <$> [ "X1", "Y1", "C1" ])])
+      , ((PVar <$> ["C1", "Z0"]) :=: [App "fadd" (Var <$> [ "X0", "Y0", "CI" ])])
+      ]

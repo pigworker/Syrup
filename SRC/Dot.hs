@@ -273,6 +273,8 @@ dotDef d = do
     def dff
     def xor
     def mux
+    def hadd
+    def fadd
     def d
   nm <- case d of { Stub{} -> Nothing; Def (nm, _) _ _ -> Just nm }
   ga <- findArr nm (gates st)
@@ -314,3 +316,6 @@ test = do
   runner "and4"       and4
   runner "tff"        tff
   runner "xor"        xor
+  runner "hadd"       hadd
+  runner "fadd"       fadd
+  runner "rca4"       rca4
