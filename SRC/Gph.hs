@@ -65,7 +65,7 @@ shrinkInvisible g@(Graph vs es) = loop g es where
     Just ((src, ts), queue) ->
       let (vs', es') = case foldMapArr pure ts of
             [(t, Edge False)] -> case (findArr t vs, findArr t es) of
-              (Just (Invisible False), Just next) -> ( vs
+              (Just (Invisible False), Just next) -> ( deleteArr t vs
                                                      , insertArr (src, next)
                                                      $ deleteArr src
                                                      $ deleteArr t es)
