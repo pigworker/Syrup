@@ -66,7 +66,7 @@ type ANF = Fresh Int
 freshVirtualName :: ANF String
 freshVirtualName = do
   i <- fresh
-  pure $ '#' : show i
+  pure $ concat ["__VIRTUAL__", show i]
 
 ------------------------------------------------------------------------------
 -- Elaboration

@@ -19,6 +19,7 @@ import Control.Monad.Writer
 import Control.Monad.State
 import Data.List
 import Data.Maybe
+import Data.Char
 
 import Syrup.SRC.BigArray
 import Syrup.SRC.Syn
@@ -34,11 +35,15 @@ import Syrup.SRC.Smp
 import Syrup.SRC.Fsh
 import Syrup.SRC.Gph
 
+data Circuit = Circuit
+  { inputPorts   :: [String]
+  , outputPorts  :: [String]
+  , circuitGraph :: [String]
+  }
+
 data DotGate = DotGate
-  { blackbox    :: [String]
-  , whitebox    :: [String]
-  , inputNodes  :: [String]
-  , outputNodes :: [String]
+  { blackbox    :: Circuit
+  , whitebox    :: Circuit
   }
 
 indent :: Int -> String -> String
@@ -80,59 +85,18 @@ freshId = Dot $ do
   put $ s { supply = i + 1 }
   pure i
 
-leftToRight :: String -> [String] -> String
-leftToRight str ns@(_:_:_) = unlines $ indent 2 <$>
-  [ "// Order " ++ str ++ " left to right"
-  , "{"
-  , "  rank = same;"
-  , "  rankdir = LR;"
-  , "  " ++ intercalate " -> " ns ++ " [color = white];"
-  , "}"
-  ]
-leftToRight _ _ = ""
+cleanupName :: String -> String
+cleanupName = map cleanup where
 
-connectInputs :: [String] -> String -> String
-connectInputs [] _  = ""
-connectInputs ns nm = unlines $ indent 2 <$>
-  [ "// Connect inputs to gate"
-  , "{ " ++ unwords ns ++ " } -> " ++ nm ++ ";"
-  ]
-
-connectOutputs :: String -> [String] -> String
-connectOutputs _  [] = ""
-connectOutputs nm ns = unlines $ indent 2 <$>
-  [ "// Connect outputs to gate"
-  , nm ++ " -> { " ++ unwords ns ++ " } [dir = none];"
-  ]
+  cleanup :: Char -> Char
+  cleanup c | isAlphaNum c = c
+            | otherwise    = '_'
 
 mkNode :: Path -> String -> String
-mkNode p str = show $ "NODE_" ++ str ++ "_" ++ show p
+mkNode p str = "NODE_" ++ cleanupName str ++ "_" ++ show p
 
 mkGate :: Path -> String -> String
-mkGate p str = show $ "GATE_" ++ str ++ "_" ++ show p
-
-arrow :: Bool -> String -> String -> String
-arrow b x y = concat
-  [ x
-  , " -> "
-  , y
-  , if b then ";" else " [dir = none];"
-  ]
-
-declareInput :: Path -> Input -> String
-declareInput p Input{..} =
-  mkNode p inputName ++ " [label = " ++ show inputName ++ "];"
-
-declareOutput :: Path -> Output -> String
-declareOutput p (Output b nm) =
-  let name = mkNode p nm in
-  name ++ " [label = " ++ (if b then show "" else show nm) ++ "];"
-
-declareLocal :: Path -> Output -> String
-declareLocal p Output{..} =
-  let name = mkNode p outputName in
-  name ++ " [shape = point, height = 0];"
-
+mkGate p str = "GATE_" ++ cleanupName str ++ "_" ++ show p
 
 -- The monad we use to generate the content of the whitebox implementation:
 -- we need a name supply & we would rather use Writer to collect the lines
@@ -158,25 +122,46 @@ tellEdge :: String -> String -> Bool -> WhiteBox ()
 tellEdge x y dir = tell (Graph emptyArr (single (x, single (y, Edge dir))))
 
 toWhitebox :: String -> Gate -> Arr String (Path -> DotGate)
-         -> Path -> WhiteBox ([String], [String], [String])
+         -> Path -> WhiteBox Circuit
 toWhitebox nm (Gate is os defs) env p = do
   let gateNode   = mkGate p nm
 
   ins <- forM is $ \ (Input i) -> do
-     let node  = mkNode p ("#INPUT" ++ i)
+     let node  = concat [gateNode, "__INPUTS:", i]
      let vnode = mkNode p i
-     tellVertex node i Nothing
      tellVirtual vnode
      tellEdge node vnode False
      pure node
 
   ous <- forM os $ \ (Output _ o) -> do
-     let node  = mkNode p ("#OUTPUT" ++ o)
+     let node  = concat [gateNode, "__OUTPUTS:", o]
      let vnode = mkNode p o
-     tellVertex node o Nothing
      tellVirtual vnode
      tellEdge vnode node True
      pure node
+
+  let (iports, oports) = declarePorts 20 is os
+  let iPorts = unlines
+         [ concat [ gateNode, "__INPUTS" ]
+         , "    [ shape = none"
+         , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"10\">"
+         , "               <TR>"
+         , unlines $ map (indent 15) iports
+         , "               </TR>"
+         , "               </TABLE>>"
+         , "      ];"
+         ]
+
+  let oPorts = unlines
+         [ concat [ gateNode, "__OUTPUTS" ]
+         , "    [ shape = none"
+         , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"10\">"
+         , "               <TR>"
+         , unlines $ map (indent 15) oports
+         , "               </TR>"
+         , "               </TABLE>>"
+         , "      ];"
+         ]
 
   gph <- fmap concat $ forM (reverse defs) $ \ (os, e) -> do
     forM_ os $ tellVirtual . mkNode p . outputName -- TODO: use names of non-virtual vertices?
@@ -188,70 +173,83 @@ toWhitebox nm (Gate is os defs) env p = do
         Nothing   -> error "This should never happen"
         Just repr -> do
           id <- fresh
-          let dotG = repr (extend id p)
-          forM_ (zip args (inputNodes dotG)) $ \ (arg, iport) ->
-            tellEdge (mkNode p (inputName arg)) iport False
-          forM_ (zip (outputNodes dotG) os) $ \ (oport, out) -> do
-            tellEdge oport (mkNode p $ outputName out) False
-          pure (blackbox dotG)
+          let dotG = blackbox $ repr (extend id p)
+          forM_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
+            tellEdge (mkNode p (inputName arg)) (iport ++ ":n") True
+          forM_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
+            tellEdge (oport ++ ":s") (mkNode p $ outputName out) False
+          pure (circuitGraph dotG)
 
-  pure (ins, ous, gph)
-
-nodeCluster :: Path -> String -> [String] -> [String]
-nodeCluster p name nodes =
-  [ "  subgraph cluster_" ++ name ++ "_" ++ show p ++ " {"
-  , "    style = invis;"
-  , "    node [shape = none];"
-  ,      unlines $ map (indent 4) nodes
-  , "  }"
-  ]
+  pure $ Circuit { inputPorts   = ins
+                 , outputPorts  = ous
+                 , circuitGraph = [ iPorts
+                                  -- needed to get the outputs at the bottom in e.g. tff
+                                  , "subgraph cluster_circuit__ {"
+                                  , "  style=invis;"
+                                  ]
+                                  ++ gph ++
+                                  ["}"
+                                  , oPorts
+                                  ]
+                 }
 
 gate :: String -> Gate -> Arr String (Path -> DotGate)
      -> Path -> DotGate
 gate nm g@Gate{..} env p =
-  DotGate { inputNodes  = theInputs
-          , outputNodes = theOutputs
-          , blackbox    = theBlackbox
+  DotGate { blackbox    = toBlackbox p inputs nm outputs
           , whitebox    = theWhitebox
           } where
 
   gateNode   = mkGate p nm
-  theInputs  = map (mkNode p . inputName)  inputs
-  theOutputs = map (mkNode p . outputName) outputs
-
-  header str  = unlines $
-    [ ""
-    , "/***************************************************/"
-    ] ++ str ++
-    [ "/***************************************************/" ]
 
   theWhitebox =
-    let ((ins, ous, gts), gph) = evalWhiteBox (toWhitebox nm g env p)
-        optimized              = shrinkInvisible $ detectSplit gph
-        (vertices, edges)      = fromGraph optimized
-     in concat
-     [ nodeCluster p "inputs" ins
-     , nodeCluster p "outputs" ous
-     , vertices
+    let (Circuit ins ous gts, gph) = evalWhiteBox (toWhitebox nm g env p)
+        optimized                  = shrinkInvisible $ detectSplit gph
+        (vertices, edges)          = fromGraph optimized
+     in Circuit ins ous $ concat
+     [ vertices
      , gts
      , edges
-     , [ leftToRight "inputs" ins, leftToRight "outputs" ous ]
      ]
 
-  theBlackbox = filter (/= "")
-    [ "subgraph cluster_" ++ show p ++ " {"
+toBlackbox :: Path -> [Input] -> String -> [Output] -> Circuit
+toBlackbox p is nm os =
+  let gateNode         = "GATE_" ++ nm ++ "_" ++ show p
+      iportNames       = map (\ i -> gateNode ++ ":" ++ inputName i) is
+      oportNames       = map (\ o -> gateNode ++ ":" ++ outputName o) os
+      (iports, oports) = declarePorts 7 is os
+  in Circuit iportNames oportNames $
+    [ "subgraph gate_" ++ show p ++ " {"
     , "  style = invis;"
-    , indent 2 $ gateNode ++ " [shape = rectangle, label = " ++ show nm ++ "];"
-    , "  {"
-    , "    node [shape = point, height = 0];"
-    ,      unlines (map (indent 4 . declareInput p) inputs)
-        ++ unlines (map (indent 4 . declareOutput p) outputs)
-    , "  }"
-    , leftToRight "inputs" theInputs
-    , leftToRight "outputs" theOutputs
-    , connectInputs theInputs gateNode
-    , connectOutputs gateNode theOutputs
+    , indent 2 $ gateNode
+    , "    [ shape = none"
+    , "    , label = <<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"4\">"
+    , unlines $ map (\ s -> indent 15 $ "<TR>" ++ s ++ "</TR>")
+        [ unlines iports
+        , concat [ "<TD COLSPAN=\"", show (max (length iports) (length oports)), "\">"
+                 , "<FONT POINT-SIZE=\"20\">", nm, "</FONT>"
+                 , "</TD>"
+                 ]
+        , unlines oports
+        ]
+    , "              </TABLE>>"
+    , "    ];"
     , "}"
+    ]
+
+declarePorts :: Int -> [Input] -> [Output] -> ([String], [String])
+declarePorts size is os =
+  ( map (\ i -> declarePort (inputName i))  is
+  , map (\ (Output _ nm) -> declarePort nm) os
+  ) where
+
+  declarePort :: String -> String
+  declarePort lb = concat
+    [ "<TD PORT=\"", lb, "\">"
+    , if head lb == '_'
+      then ""
+      else concat ["<FONT POINT-SIZE=", show (show size), ">", lb, "</FONT>" ]
+    , "</TD>"
     ]
 
 def :: Def -> Dot ()
@@ -286,9 +284,8 @@ blackBoxDef d = fromMaybe [] $ do
   pure $
     [ "digraph blackbox {"
     , "  rankdir = TB;"
-    , "  splines = ortho;"
     ]
-    ++ blackbox ga
+    ++ circuitGraph (blackbox ga)
     ++ ["}"]
 
 whiteBoxDef :: Def -> [String]
@@ -296,10 +293,10 @@ whiteBoxDef d = fromMaybe [] $ do
   ga <- dotDef d
   pure $
     [ "digraph whitebox {"
-    , "  rankdir=TB;"
-    , "  splines=ortho;"
+    , "  rankdir = TB;"
+    , "  nodesep = 0.2;"
     ]
-    ++ whitebox ga
+    ++ circuitGraph (whitebox ga)
     ++ ["}"]
 
 runner :: String -> Def -> IO ()

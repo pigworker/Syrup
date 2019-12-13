@@ -88,5 +88,10 @@ fromGraph Graph{..} =
   , -- then add edges
     flip foldMapArr edges $ \ (src, es) ->
       flip foldMapArr es $ \ (tgt, Edge dir) ->
-        pure $ src ++ " -> " ++ tgt ++ if dir then ";" else " [dir = none];"
+        pure $ concat [ src
+                      , " -> "
+                      , tgt
+                      , " [arrowsize = .5"
+                      , if dir then "];" else " , dir = none];"
+                      ]
   )
