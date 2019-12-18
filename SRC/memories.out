@@ -1,0 +1,76 @@
+Truth table for dff:
+D { Q -> Q } Q
+--{--------}--
+0 { 0 -> 0 } 0
+  { 1 -> 0 } 1
+1 { 0 -> 1 } 0
+  { 1 -> 1 } 1
+
+not is defined.
+
+and is defined.
+
+or is defined.
+
+alternator is defined.
+
+Truth table for alternator:
+ { ALT -> ALT } ALT
+-{------------}----
+ { 0   -> 1   } 0  
+ { 1   -> 0   } 1  
+
+xor is defined.
+
+tff is defined.
+
+Truth table for tff:
+T { Q -> Q } Q
+--{--------}--
+0 { 0 -> 0 } 0
+  { 1 -> 1 } 1
+1 { 0 -> 1 } 0
+  { 1 -> 0 } 1
+
+count2 is defined.
+
+Truth table for count2:
+ { Q1 Q2 -> Q1 Q2 } Q2 Q1
+-{----------------}------
+ { 0  0  -> 1  0  } 0  0 
+ { 0  1  -> 1  1  } 1  0 
+ { 1  0  -> 0  1  } 0  1 
+ { 1  1  -> 0  0  } 1  1 
+
+count2tff is defined.
+
+Truth table for count2tff:
+ { Q1 Q2 -> Q1 Q2 } [Q2 Q1]
+-{----------------}--------
+ { 0  0  -> 1  0  } [0  0 ]
+ { 0  1  -> 1  1  } [1  0 ]
+ { 1  0  -> 0  1  } [0  1 ]
+ { 1  1  -> 0  0  } [1  1 ]
+
+Warning: You are redefining the top-level variable dff.
+
+dff is defined.
+
+Truth table for dff:
+D { QD -> QD } QD
+--{----------}---
+0 { 0  -> 0  } 0 
+  { 1  -> 0  } 1 
+1 { 0  -> 1  } 0 
+  { 1  -> 1  } 1 
+
+Warning: You are redefining the top-level variable zero.
+
+zero is defined.
+
+Truth table for zero:
+ { W -> W } Z
+-{--------}--
+ { 0 -> 0 } 0
+ { 1 -> 1 } 0
+

@@ -8,6 +8,7 @@
 {-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE DeriveFoldable    #-}
 {-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE GADTs             #-}
 
 module Syrup.SRC.Syn where
 
@@ -33,9 +34,11 @@ data Exp
   | Cab [Exp]
   deriving (Eq)
 
-data Pat
-  = PVar String
-  | PCab [Pat]
+type Pat = Pat' String
+data Pat' a
+  = PVar a
+  | PCab [Pat' a]
+  deriving (Functor, Traversable, Foldable)
 
 exPat :: Exp -> Maybe Pat
 exPat (Var x)   = return (PVar x)
@@ -107,8 +110,8 @@ instance Show Exp where
   show (App f es) = concat [f, "(", csepShow es, ")"]
   show (Cab es)   = concat ["[", csepShow es, "]"]
 
-instance Show Pat where
-  show (PVar x) = x
+instance a ~ String => Show (Pat' a) where
+  show (PVar x)  = x
   show (PCab ps) = concat ["[", csepShow ps, "]"]
 
 instance Show Eqn where
