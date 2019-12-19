@@ -55,7 +55,6 @@ data Def
   = Stub String [String]
   -- stubbed out definition together with error msg
   | Def (String,[Pat]) [Exp] (Maybe [Eqn])
-  deriving Show
 
 data TY' a
   = BIT
@@ -107,9 +106,9 @@ support (PCab ps) = foldMap support ps
 ------------------------------------------------------------------------------
 
 instance Show Exp where
-  show (Var x) = x
+  show (Var x)    = x
   show (App f es) = concat [f, "(", csepShow es, ")"]
-  show (Cab es) = concat ["[", csepShow es, "]"]
+  show (Cab es)   = concat ["[", csepShow es, "]"]
 
 instance a ~ String => Show (Pat' a) where
   show (PVar x)  = x
@@ -117,6 +116,17 @@ instance a ~ String => Show (Pat' a) where
 
 instance Show Eqn where
   show (ps :=: es) = concat [csepShow ps, " = ", csepShow es]
+
+instance Show Def where
+  show = \case
+    Stub{} -> "Stubbed out definition"
+    Def (nm, ps) rhs eqns ->
+      concat [ nm
+             , "(", csepShow ps, ")"
+             , " = ", csepShow rhs
+             , flip (maybe "") eqns $ \ eqns ->
+                 unlines (" where" : map (("  " ++) . show) eqns)
+             ]
 
 csepShow :: Show x => [x] -> String
 csepShow = intercalate ", " . map show

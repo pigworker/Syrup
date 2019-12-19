@@ -218,6 +218,12 @@ rightmostArr (Arr t) = go t where
   go (Node2 _ (k, _) r) = go r <|> Just k
   go (Node3 _ _ _ (k, _) r) = go r <|> Just k
 
+popArr :: Ord k => Arr k v -> Maybe ((k, v), Arr k v)
+popArr arr@(Arr t23) = case t23 of
+  Leaf                    -> Nothing
+  Node2 _ kv@(k, _) _     -> Just (kv, deleteArr k arr)
+  Node3 _ kv@(k, _) _ _ _ -> Just (kv, deleteArr k arr)
+
 intersectSet :: Ord x => Set x -> Set x -> Set x
 intersectSet xs =
   foldMapArr (\ (y, ()) -> if inSet y xs then singleton y else mempty)
