@@ -346,11 +346,13 @@ abstractStates c = go start
         ps'@(isv', _) = refinePState observeS ps
         observeS m = [findArr (fst (unstage c (m, i))) vi | i <- inTab]
     stop (isv, (vi, _)) = fmap glom isv where
-      glom sm = (sm, [see i | i <- inTab]) where
+      glom sm = (sm, [x | i <- inTab, x <- see i]) where
         Just m = setElt sm
-        see i = (o, s) where
-          (n, o) = unstage c (m, i)
-          Just s = findArr n vi
+        see i =
+          let (n, o) = unstage c (m, i)
+          in  case findArr n vi of
+                 Just s -> [(o, s)]
+                 _ -> []
 
 whyDiffer :: AbstractCompo
           -> [[Va]]               -- tabulated inputs
