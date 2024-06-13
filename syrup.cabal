@@ -61,8 +61,11 @@ common warnings
 library
     -- Silence some flags
     ghc-options:  -Wno-name-shadowing
-                  -Wno-unused-matches
+                  -Wno-noncanonical-monad-instances
+                  -Wno-noncanonical-monoid-instances
                   -Wno-unused-do-bind
+                  -Wno-unused-matches
+
 
     -- Modules exported by the library.
     exposed-modules:  Language.Syrup.Anf
