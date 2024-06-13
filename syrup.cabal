@@ -22,11 +22,17 @@ name:               syrup
 --                  | | | +--- code changes with no API change
 version:            0.1.0.0
 
+tested-with: GHC ==9.8.2 || ==9.6.4 || ==9.4.8 || ==9.2.8
+
 -- A short (one-line) description of the package.
--- synopsis:
+synopsis: Haskell-style circuit description language
 
 -- A longer description of the package.
--- description:
+description:
+  Haskell-style circuit description, simulation, and
+  rendering language.
+  This is used in the delivery of our hardware first
+  year class.
 
 -- The license under which the package is released.
 license:            NONE
@@ -36,6 +42,7 @@ author:             Conor McBride
 
 -- An email address to which users can send suggestions, bug reports, and patches.
 maintainer:         guillaume.allais@ens-lyon.org
+
 
 -- A copyright notice.
 -- copyright:
@@ -53,9 +60,9 @@ common warnings
 
 library
     -- Silence some flags
-    flags:  -Wno-name-shadowing
-          , -Wno-unused-matches
-          , -Wno-unused-do-bind
+    ghc-options:  -Wno-name-shadowing
+                  -Wno-unused-matches
+                  -Wno-unused-do-bind
 
     -- Modules exported by the library.
     exposed-modules:  Language.Syrup.Anf
@@ -97,8 +104,8 @@ library
                       , TypeOperators
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.19.1.0
-                    , mtl ^>=2.3
+    build-depends:    base >=4.16 && <=4.21
+                    , mtl >=2.2 && <2.4
 
     -- Directories containing source files.
     hs-source-dirs:   lib
@@ -120,9 +127,8 @@ executable syrup
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:
-        base ^>=4.19.1.0,
-        syrup
+    build-depends: base >=4.16 && <=4.21
+                 , syrup
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -131,12 +137,14 @@ executable syrup
     default-language: Haskell2010
 
 test-suite golden-tests
-  type: exitcode-stdio-1.0
-  main-is: test/Test.hs
-  test-module: Test
-  build-depends: base ^>=4.19.1.0
-               , bytestring ^>= 0.12
-               , filepath ^>= 1.5
-               , tasty ^>= 1.5
-               , tasty-golden ^>=2.3.5
-               , syrup
+    type: exitcode-stdio-1.0
+    main-is: test/Test.hs
+    build-depends: base >=4.16 && <4.21
+                 , bytestring >= 0.11 && <0.13
+                 , filepath >= 1.4 && <1.5
+                 , tasty >= 1.5 && <1.6
+                 , tasty-golden >=2.3 && <2.4
+                 , syrup
+
+    -- Base language which the package is written in.
+    default-language: Haskell2010
