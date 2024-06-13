@@ -222,39 +222,6 @@ tabulate c = Tabulation (inpTys c) (memTys c) (oupTys c)
     inTab = traverse tyVas (getInputType <$> inpTys c)
     meTab = traverse tyVas (getCellType  <$> memTys c)
 
-{-
-tabCompo :: Compo -> [( [Va]  -- inputs in
-                      , [( [Va]  -- memory in
-                         , ( [Va]  -- memory out
-                           , [Va]  -- outputs out
-                           ))])]
-tabCompo c =
-  [ (ii, [ (mi, unstage c (mi, ii))
-         | mi <- meTab
-         ] )
-  | ii <- inTab
-  ]
-  where
-    inTab = traverse tyVas (getInputType <$> inpTys c)
-    meTab = traverse tyVas (getCellType <$> memTys c)
-
-displayTab :: [( [Va]  -- inputs in
-                      , [( [Va]  -- memory in
-                         , ( [Va]  -- memory out
-                           , [Va]  -- outputs out
-                           ))])]
-           -> [String]
-displayTab = (>>= go) where
-  go (is, [([],([], os))]) = [foldMap show is ++ " | " ++ foldMap show os]
-  go (is, xs) = zipWith (++)
-      (l : repeat (replicate (length l) ' '))
-      [ concat [" { ", foldMap show mi, " -> ", foldMap show mo, " } ",
-                foldMap show os]
-      | (mi, (mo, os)) <- xs
-      ]
-    where l = foldMap show is
--}
-
 ------------------------------------------------------------------------------
 -- generating input values from types
 ------------------------------------------------------------------------------
