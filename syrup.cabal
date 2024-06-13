@@ -71,6 +71,7 @@ library
                     , Language.Syrup.Lnt
                     , Language.Syrup.Par
                     , Language.Syrup.Pty
+                    , Language.Syrup.Run
                     , Language.Syrup.Scp
                     , Language.Syrup.Smp
                     , Language.Syrup.Sub
@@ -128,3 +129,14 @@ executable syrup
 
     -- Base language which the package is written in.
     default-language: Haskell2010
+
+test-suite golden-tests
+  type: exitcode-stdio-1.0
+  main-is: test/Test.hs
+  test-module: Test
+  build-depends: base ^>=4.19.1.0
+               , bytestring ^>= 0.12
+               , filepath ^>= 1.5
+               , tasty ^>= 1.5
+               , tasty-golden ^>=2.3.5
+               , syrup
