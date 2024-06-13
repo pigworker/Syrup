@@ -7,6 +7,8 @@
 module Language.Syrup.Utils where
 
 import Control.Arrow
+import Data.Bifunctor as Bi
+import Data.Maybe
 
 isNothing :: Maybe a -> Bool
 isNothing = \case
@@ -25,6 +27,16 @@ isLeft :: Either a b -> Maybe a
 isLeft = \case
   Left a -> Just a
   _      -> Nothing
+
+isRight :: Either a b -> Maybe b
+isRight = \case
+  Right b -> Just b
+  _       -> Nothing
+
+allLeftsOrRight :: [Either a b] -> Either [a] [b]
+allLeftsOrRight []             = Left []
+allLeftsOrRight (Left a : rs)  = Bi.first (a :) (allLeftsOrRight rs)
+allLeftsOrRight (Right b : rs) = Right (b : mapMaybe isRight rs)
 
 padRight :: Int -> String -> String
 padRight n xs

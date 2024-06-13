@@ -1,0 +1,19 @@
+one(<Bit>) -> @<Bit>
+one(X) = Z where
+
+  Z = dff(Q)
+  Q = nand(X,Y)
+  Y = Z
+
+two(<Bit>) -> @<Bit>
+two(X) = Z where
+
+  Z = dff(Q)
+  Q = nand(X,Y)
+  Y = dff(Q)
+
+experiment one
+experiment two
+
+experiment one = two
+experiment two = one

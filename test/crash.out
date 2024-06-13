@@ -1,0 +1,34 @@
+one is defined.
+
+two is defined.
+
+Truth table for one:
+X { Z -> Z } Z
+--{--------}--
+0 { 0 -> 1 } 0
+  { 1 -> 1 } 1
+1 { 0 -> 1 } 0
+  { 1 -> 0 } 1
+
+Truth table for two:
+X { Z Y -> Z Y } Z
+--{------------}--
+0 { 0 0 -> 1 1 } 0
+  { 0 1 -> 1 1 } 0
+  { 1 0 -> 1 1 } 1
+  { 1 1 -> 1 1 } 1
+1 { 0 0 -> 1 1 } 0
+  { 0 1 -> 0 0 } 0
+  { 1 0 -> 1 1 } 1
+  { 1 1 -> 0 0 } 1
+
+two can be distinguished from all possible states of one
+when two has memory {10}
+if one has memory like {1}, try inputs 0;1;0
+if one has memory like {0}, try inputs 0
+
+two can be distinguished from all possible states of one
+when two has memory {10}
+if one has memory like {1}, try inputs 0;1;0
+if one has memory like {0}, try inputs 0
+
