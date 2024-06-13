@@ -4,8 +4,11 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE
-    DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE DeriveFunctor     #-}
+{-# LANGUAGE DeriveFoldable    #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE GADTs             #-}
 
 module Syrup.SRC.Syn where
 
@@ -29,22 +32,29 @@ data Exp
   = Var String
   | App String [Exp]
   | Cab [Exp]
+  deriving (Eq)
 
-data Pat
-  = PVar String
-  | PCab [Pat]
+type Pat = Pat' String
+data Pat' a
+  = PVar a
+  | PCab [Pat' a]
+  deriving (Functor, Traversable, Foldable)
 
 exPat :: Exp -> Maybe Pat
 exPat (Var x)   = return (PVar x)
 exPat (Cab es)  = PCab <$> traverse exPat es
 exPat _         = Nothing
 
+patToExp :: Pat -> Exp
+patToExp = \case
+  PVar x  -> Var x
+  PCab ps -> Cab $ map patToExp ps
+
 data Eqn = [Pat] :=: [Exp]
 data Def
   = Stub String [String]
   -- stubbed out definition together with error msg
   | Def (String,[Pat]) [Exp] (Maybe [Eqn])
-  deriving Show
 
 data TY' a
   = BIT
@@ -96,16 +106,27 @@ support (PCab ps) = foldMap support ps
 ------------------------------------------------------------------------------
 
 instance Show Exp where
-  show (Var x) = x
+  show (Var x)    = x
   show (App f es) = concat [f, "(", csepShow es, ")"]
-  show (Cab es) = concat ["[", csepShow es, "]"]
+  show (Cab es)   = concat ["[", csepShow es, "]"]
 
-instance Show Pat where
-  show (PVar x) = x
+instance a ~ String => Show (Pat' a) where
+  show (PVar x)  = x
   show (PCab ps) = concat ["[", csepShow ps, "]"]
 
 instance Show Eqn where
   show (ps :=: es) = concat [csepShow ps, " = ", csepShow es]
+
+instance Show Def where
+  show = \case
+    Stub{} -> "Stubbed out definition"
+    Def (nm, ps) rhs eqns ->
+      concat [ nm
+             , "(", csepShow ps, ")"
+             , " = ", csepShow rhs
+             , flip (maybe "") eqns $ \ eqns ->
+                 unlines (" where" : map (("  " ++) . show) eqns)
+             ]
 
 csepShow :: Show x => [x] -> String
 csepShow = intercalate ", " . map show

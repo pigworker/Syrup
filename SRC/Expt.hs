@@ -9,6 +9,8 @@
 {-# LANGUAGE StandaloneDeriving        #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE LambdaCase    #-}
 
 module Syrup.SRC.Expt where
 
@@ -21,6 +23,7 @@ import Data.Function
 import Control.Arrow
 import Data.Maybe
 import qualified Data.Bifunctor as Bi
+import Data.Void
 
 import Syrup.SRC.BigArray
 import Syrup.SRC.Syn
@@ -36,7 +39,7 @@ experiment :: CoEnv -> EXPT -> [String]
 experiment g (Tabulate x) = case findArr x g of
   Nothing -> ["I don't know what " ++ x ++ " is."]
   Just c ->  ["Truth table for " ++ x ++ ":"] ++
-             displayTab (tabCompo c)
+             displayTabulation (tabulate c)
 experiment g (Simulate x m0 iss) = case findArr x g of
   Nothing -> ["I don't know what " ++ x ++ " is."]
   Just c ->  ["Simulation for " ++ x ++ ":"] ++
@@ -44,8 +47,7 @@ experiment g (Simulate x m0 iss) = case findArr x g of
 experiment g (Bisimilarity l r) = case (findArr l g, findArr r g) of
   (Nothing, _) -> ["I don't know what " ++ l ++ " is."]
   (_, Nothing) -> ["I don't know what " ++ r ++ " is."]
-  (Just lc, Just rc) ->
-    report (l, r) (bisimReport lc rc)
+  (Just lc, Just rc) -> report (l, r) (bisimReport lc rc)
 
 
 ------------------------------------------------------------------------------
@@ -66,9 +68,9 @@ runCompo c m0 iss
     ]
   | otherwise = render (go 0 m0 iss)
   where
-    mTys = memTys c
-    iTys = inpTys c
-    oTys = oupTys c
+    mTys = getCellType <$> memTys c
+    iTys = getInputType <$> inpTys c
+    oTys = getOutputType <$> oupTys c
     go t mt [] = ([], (t, mt))
     go t mt (is : iss) = ((t, mt, is, os) : xs , (z, mo)) where
       (xs, (z, mo)) = go (t + 1) mt' iss
@@ -87,7 +89,7 @@ runCompo c m0 iss
 
 
 tyVaChks :: [Ty1] -> [Va] -> Bool
-tyVaChks ts vs = length ts == length vs && all id (zipWith tyVaChk ts vs)
+tyVaChks ts vs = length ts == length vs && and (zipWith tyVaChk ts vs)
 
 tyVaChk :: Ty1 -> Va -> Bool
 tyVaChk (Bit ()) V0 = True
@@ -100,6 +102,133 @@ tyVaChk _ _ = False
 -- tabulating behaviours of components
 ------------------------------------------------------------------------------
 
+data TabRow = TabRow
+  { currentCells :: [Va] -- current value for the memory cells
+  , nextCells    :: [Va] -- next value for the memory cells
+  , outputValues :: [Va] -- output values
+  }
+
+data Tabulation = Tabulation
+  { -- headers
+    tabbedInputs  :: [InputWire]
+  , tabbedCells   :: [MemoryCell]
+  , tabbedOutputs :: [OutputWire]
+    -- actual content
+  , tabbedRows    :: [([Va]      -- inputs
+                      , [TabRow] -- rows
+                      )]
+  }
+
+type Template = Ty () Int
+
+data RowTemplate = RowTemplate
+  { inputTemplates  :: [Template]
+  , cellTemplates   :: [Template]
+  , outputTemplates :: [Template]
+  }
+
+-- Generate a template from a pattern and its type
+template :: Pat -> Ty a Void -> Template
+template (PVar v)  t          = TyV (max (length v) (sizeTy t))
+template (PCab ps) (Cable ts) = Cable (zipWith template ps ts)
+
+mTemplate :: Maybe Pat -> Ty a Void -> Template
+mTemplate Nothing  t = TyV (sizeTy t)
+mTemplate (Just p) t = template p t
+
+inputTemplate :: InputWire -> Template
+inputTemplate (InputWire p t) = mTemplate p t
+
+getCellPat :: MemoryCell -> Maybe Pat
+getCellPat = fmap (PVar . cellName) . getCellName
+
+cellTemplate :: MemoryCell -> Template
+cellTemplate c@(MemoryCell _ t) = mTemplate (getCellPat c) t
+
+outputTemplate :: OutputWire -> Template
+outputTemplate (OutputWire p t) = mTemplate (fmap (fst <$>) p) t
+
+-- `displayPat ts ps` PRECONDITION: ts was generated using ps
+displayPat :: Template -> Pat -> String
+displayPat (TyV s)    (PVar n)  = padRight (s - length n) n
+displayPat (Cable ts) (PCab ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
+
+displayMPat :: Template -> Maybe Pat -> String
+displayMPat t = maybe (displayEmpty t) (displayPat t)
+
+displayEmpty :: Template -> String
+displayEmpty t = replicate (sum t) ' '
+
+displayVa :: Template -> Va -> String
+displayVa (TyV s)    v       = let n = show v in padRight (s - length n) n
+displayVa (Cable ts) (VC vs) = "[" ++ displayVas ts vs ++ "]"
+
+displayVas :: [Template] -> [Va] -> String
+displayVas ts vs = unwords $ zipWith displayVa ts vs
+
+displayRow :: RowTemplate -> ([Va], [TabRow]) -> [String]
+displayRow tmp (vs, [TabRow [] [] os]) =
+  [ displayVas (inputTemplates tmp) vs
+  ++ " | "
+  ++ displayVas (outputTemplates tmp) os
+  ]
+displayRow tmp (vs, trs) = zipWith (++) (inputs : padding) transitions where
+
+  padding     = repeat (replicate (length inputs) ' ')
+  inputs      = displayVas (inputTemplates tmp) vs
+  transitions =
+    [ concat [ " { " , displayVas (cellTemplates tmp)   ccs
+             , " -> ", displayVas (cellTemplates tmp)   ncs
+             , " } " , displayVas (outputTemplates tmp) os
+             ]
+    | TabRow ccs ncs os <- trs
+    ]
+
+displayTabulation :: Tabulation -> [String]
+displayTabulation (Tabulation ins mes ous rs) =
+  header ++ rows where
+
+  header = [ inputs
+              ++ states
+              ++ outputs
+            ]
+         ++ [ replicate (length inputs) '-'
+              ++ statesSep
+              ++ replicate (length outputs) '-'
+            ]
+  rows   = concatMap (displayRow template) rs
+
+  template = RowTemplate
+    { inputTemplates  = tINS
+    , cellTemplates   = tMEM
+    , outputTemplates = tOUT
+    }
+
+  states    = if null mes then " | " else " { " ++ cells ++ " -> " ++ cells ++ " } "
+  statesSep = if null mes then "-|-" else "-{-" ++ replicate (4 + 2 * length cells) '-' ++ "-}-"
+
+  -- templates
+  tINS = map inputTemplate ins
+  tMEM = map cellTemplate mes
+  tOUT = map outputTemplate ous
+
+  -- actual tabulated values
+  inputs    = unwords $ zipWith (\ t -> displayMPat t . getInputPat)  tINS ins
+  cells     = unwords $ zipWith (\ t -> displayMPat t . getCellPat)   tMEM mes
+  outputs   = unwords $ zipWith (\ t -> displayMPat t . fmap (fst <$>) . getOutputPat) tOUT ous
+
+tabulate :: Compo -> Tabulation
+tabulate c = Tabulation (inpTys c) (memTys c) (oupTys c)
+  [ (ii, [ uncurry (TabRow mi) (unstage c (mi, ii))
+         | mi <- meTab
+         ]
+    )
+  | ii <- inTab
+  ] where
+    inTab = traverse tyVas (getInputType <$> inpTys c)
+    meTab = traverse tyVas (getCellType  <$> memTys c)
+
+{-
 tabCompo :: Compo -> [( [Va]  -- inputs in
                       , [( [Va]  -- memory in
                          , ( [Va]  -- memory out
@@ -112,8 +241,8 @@ tabCompo c =
   | ii <- inTab
   ]
   where
-    inTab = traverse tyVas (inpTys c)
-    meTab = traverse tyVas (memTys c)
+    inTab = traverse tyVas (getInputType <$> inpTys c)
+    meTab = traverse tyVas (getCellType <$> memTys c)
 
 displayTab :: [( [Va]  -- inputs in
                       , [( [Va]  -- memory in
@@ -130,7 +259,7 @@ displayTab = (>>= go) where
       | (mi, (mo, os)) <- xs
       ]
     where l = foldMap show is
-
+-}
 
 ------------------------------------------------------------------------------
 -- generating input values from types
@@ -162,7 +291,7 @@ unstage c (mi, ii) = (mo, oo) where
   o0 = stage0 c mi
   moo1 = stage1 c (mi ++ ii)
   (mo, o1) = splitAt (length (memTys c)) moo1
-  oo = spliceVas (oupTys c) o0 o1
+  oo = spliceVas (getOutputType <$> oupTys c) o0 o1
 
 
 ------------------------------------------------------------------------------
@@ -226,11 +355,11 @@ refinePState f (PState isv _ _) =
 abstractStates :: Compo -> AbstractCompo
 abstractStates c = AC $ go start
   where
-    inTab = traverse tyVas (inpTys c)
+    inTab = traverse tyVas (getInputType <$> inpTys c)
     observeO :: [Va] -> [[Va]]
     observeO m = [snd (unstage c (m, i)) | i <- inTab]
     start = refinePState observeO $
-      let startvs = foldMap singleton (traverse tyVas (memTys c))
+      let startvs = foldMap singleton (traverse tyVas (getCellType <$> memTys c))
           vsClass = 0 <$ startvs
       in PState (single (0, startvs)) vsClass 1
     go ps@(PState isv vi _) =
@@ -238,11 +367,13 @@ abstractStates c = AC $ go start
         ps'@(PState isv' _ _) = refinePState observeS ps
         observeS m = [findArr (fst (unstage c (m, i))) vi | i <- inTab]
     stop (PState isv vi _) = fmap glom isv where
-      glom sm = (sm, [see i | i <- inTab]) where
+      glom sm = (sm, [x | i <- inTab, x <- see i]) where
         Just m = setElt sm
-        see i = (o, s) where
-          (n, o) = unstage c (m, i)
-          Just s = findArr n vi
+        see i =
+          let (n, o) = unstage c (m, i)
+          in  case findArr n vi of
+                 Just s -> [(o, s)]
+                 _ -> []
 
 whyDiffer :: forall st. Ord st => AbstractCompo' st
           -> [[Va]]             -- tabulated inputs
@@ -425,11 +556,11 @@ bisimReport cl cr = case (abstractStates cl, abstractStates cr) of
     where
 
       -- phase 0 check types
-      lit = inpTys cl              -- left  input  types
-      lot = map fogTy (oupTys cl)  -- left  output types
-      rit = inpTys cr              -- right input  types
-      rot = map fogTy (oupTys cr)  -- right output types
-      ins = traverse tyVas lit     -- tabulated input values
+      lit = getInputType <$> inpTys cl               -- left  input  types
+      lot = map (fogTy . getOutputType) (oupTys cl)  -- left  output types
+      rit = getInputType <$> inpTys cr               -- right input  types
+      rot = map (fogTy . getOutputType) (oupTys cr)  -- right output types
+      ins = traverse tyVas lit                       -- tabulated input values
 
       -- phase 1 compute abstract machines
       -- cf. arguments ml and mr to analysis
@@ -548,63 +679,3 @@ rankBySize =
 picks :: [x] -> [(x, [x])]
 picks [] = []
 picks (x : xs) = (x, xs) : [(y, x : ys) | (y, ys) <- picks xs]
-
-{-
-bisimulations :: Compo -> Compo
-              -> [Arr Integer ((Set [Va], Set [Va]), [([Va], Integer)])]
-bisimulations cl cr
-  | inpTys cl /= inpTys cr || map stanTy (oupTys cl) /= map stanTy (oupTys cr)
-  = []  -- not even type compatible
-  | otherwise = map stop (go emptyArr gl emptyArr gr)
-  where
-    ml = abstractStates cl
-    gl = rankBySize (groupArr (fmap fst . snd) ml)
-    mr = abstractStates cr
-    gr = rankBySize (groupArr (fmap fst . snd) mr)
-    stop (l2r, r2l) = done where
-      l2c = fst $ appEndo
-          (foldMapArr
-            (\ (l, _) -> Endo $ \ (l2c, c) -> (insertArr (l, c) l2c, c + 1))
-            ml)
-          (emptyArr, 0)
-      flc l = c where Just c = findArr l l2c
-      flr l = r where Just r = findArr l l2r
-      frc r = flc l where Just l = findArr r r2l
-      done = appEndo
-      
-        (foldMapArr
-          (\ (l, (lms, ols)) ->
-            let Just (rms, _) = findArr (flr l) mr
-            in  Endo $ insertArr (flc l, ((lms, rms), fmap (id *** flc) ols)))
-         ml)
-        emptyArr
-    go l2r [] r2l [] = [(l2r, r2l)]
-    go l2r ((lv, ls) : gl) r2l ((rv, rs) : gr) | lv == rv =
-      mo l2r ls gl r2l rs gr
-    go _ _ _ _ = []
-    mo l2r [] gl r2l [] gr = go l2r gl r2l gr
-    mo _ [] _ _ _ _ = []
-    mo _ _ _ _ [] _ = []
-    mo l2r (l : ls) gl r2l rs gr = case findArr l l2r of
-      Just r -> case partition (r ==) rs of
-        ([_], rs) -> mo l2r ls gl r2l rs gr
-        _ -> []
-      Nothing -> do
-        (r, rs) <- picks rs
-        Nothing <- return (findArr r r2l)
-        let (l2r', r2l') = (insertArr (l, r) l2r, insertArr (r, l) r2l)
-        let Just (_, lt) = findArr l ml
-        let Just (_, rt) = findArr r mr
-        Just (l2r, r2l) <- return $
-          foldr
-            (\ (l, r) m -> m >>= \ (l2r, r2l) ->
-               case (findArr l l2r, findArr r r2l) of
-                 (Nothing, Nothing) ->
-                    Just (insertArr (l, r) l2r, insertArr (r, l) r2l)
-                 (Just _, Just l') | l == l' -> Just (l2r, r2l)
-                 _ -> Nothing
-            )
-            (Just (l2r', r2l')) (zip (map snd lt) (map snd rt))
-        mo l2r ls gl r2l rs gr
-
--}
