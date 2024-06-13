@@ -55,6 +55,7 @@ mkComponent env (dec, decSrc) mdef =
                   let mems = concat $ reverse $ memTy st in
                   let gc = Compo
                         { monick = g
+                        , defn = Just def
                         , memTys = mems
                         , inpTys = zipWith (InputWire . pure) ps ss
                         , oupTys = zipWith (mkOutputWire mems) rhs ts
@@ -100,6 +101,7 @@ guts (Dec (g, ss) ts) (Stub f msg)
 stubOut :: Dec -> Compo
 stubOut (Dec (g, ss) ts) = Compo
   { monick = g
+  , defn = Nothing
   , memTys = []
   , inpTys = InputWire  Nothing <$> ss
   , oupTys = OutputWire Nothing <$> ts
@@ -375,6 +377,7 @@ myCoEnv :: CoEnv
 myCoEnv = foldr insertArr emptyCoEnv
   [ ("nand", Compo
       { monick = "nand"
+      , defn = Nothing
       , memTys = []
       , inpTys = [ InputWire (Just (PVar "X")) (Bit ())
                  , InputWire (Just (PVar "Y")) (Bit ())
@@ -390,6 +393,7 @@ myCoEnv = foldr insertArr emptyCoEnv
     )
   , ("dff", Compo
       { monick = "dff"
+      , defn = Nothing
       , memTys = [MemoryCell (Just $ CellName "Q") (Bit ())]
       , inpTys = [InputWire  (Just (PVar "D")) (Bit ())]
       , oupTys = [OutputWire (Just (PVar ("Q", True))) (Bit T0)]
@@ -399,6 +403,7 @@ myCoEnv = foldr insertArr emptyCoEnv
     )
   , ("zero", Compo
       { monick = "zero"
+      , defn = Nothing
       , memTys = []
       , inpTys = []
       , oupTys = [OutputWire Nothing (Bit T0)]

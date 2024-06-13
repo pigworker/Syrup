@@ -292,7 +292,9 @@ pEqn = pClue (SEEKING "an equation") $
 ------------------------------------------------------------------------------
 
 pEXPT :: Par EXPT
-pEXPT = pTokIs (Id "experiment") *> pSpc *>
+pEXPT =
+  Display <$ pTokIs (Id "display") <* pSpc <*> pVar <* pSpc <* pEOI
+  <|> pTokIs (Id "experiment") *> pSpc *>
   pClue (SEEKING "an experiment")
   (    Tabulate <$> pVar <* pSpc <* pEOI
   <|>  Simulate <$> pVar <* pSpc <*> pMem <* pSpc <*>

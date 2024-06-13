@@ -109,6 +109,7 @@ library
     -- Other library packages from which modules are imported.
     build-depends:    base >=4.16 && <=4.21
                     , mtl >=2.2 && <2.4
+                    , process >=1.6 && <1.7
 
     -- Directories containing source files.
     hs-source-dirs:   lib

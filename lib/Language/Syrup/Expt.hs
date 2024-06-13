@@ -23,7 +23,11 @@ import Data.Void (Void)
 import Language.Syrup.BigArray
 import Language.Syrup.Syn
 import Language.Syrup.Ty
+import Language.Syrup.Dot
 import Language.Syrup.Utils
+
+import System.IO.Unsafe (unsafePerformIO)
+import System.Process (readProcess)
 
 ------------------------------------------------------------------------------
 -- experiments
@@ -42,7 +46,11 @@ experiment g (Bisimilarity l r) = case (findArr l g, findArr r g) of
   (Nothing, _) -> ["I don't know what " ++ l ++ " is."]
   (_, Nothing) -> ["I don't know what " ++ r ++ " is."]
   (Just lc, Just rc) -> report (l, r) (bisimReport lc rc)
-
+experiment g (Display x) = case findArr x g of
+ Nothing -> ["I don't know what " ++ x ++ " is."]
+ Just c -> case defn c of
+   Nothing -> ["I don't have an implementation for " ++ x ++ "."]
+   Just d -> lines $ unsafePerformIO $ readProcess "dot" ["-Tsvg"] (unlines $ whiteBoxDef d)
 
 ------------------------------------------------------------------------------
 -- running tine sequences

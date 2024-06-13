@@ -85,6 +85,7 @@ mkOutputWire ms e ty = flip OutputWire ty $ do
 
 data Compo = Compo
   { monick :: String
+  , defn   :: Maybe Def
   , memTys :: [MemoryCell]
   , inpTys :: [InputWire]
   , oupTys :: [OutputWire]

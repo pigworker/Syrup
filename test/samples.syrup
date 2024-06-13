@@ -112,3 +112,5 @@ adc4([X32,X10],[Y32,Y10],CI) = CO,[Z32,Z10] where
   CO,Z32 = adc2(X32,Y32,C2)
 
 experiment adc4
+
+display fadd
