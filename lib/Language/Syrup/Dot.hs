@@ -4,36 +4,31 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE LambdaCase                 #-}
-{-# LANGUAGE TupleSections              #-}
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
-{-# LANGUAGE DeriveFunctor              #-}
-{-# LANGUAGE NamedFieldPuns             #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE DeriveFoldable             #-}
-{-# LANGUAGE DeriveTraversable          #-}
+{-# LANGUAGE NamedFieldPuns  #-}
+{-# LANGUAGE RecordWildCards #-}
 
-module Syrup.SRC.Dot where
+module Language.Syrup.Dot where
 
-import Control.Monad.Writer
-import Control.Monad.State
-import Data.List
-import Data.Maybe
-import Data.Char
+import Control.Monad.Writer (MonadWriter, WriterT, tell, runWriterT)
+import Control.Monad.State (StateT, evalStateT, execStateT, get, modify, put)
+import Data.List (intercalate)
+import Data.Maybe (fromMaybe)
+import Data.Char (isAlphaNum)
+import Data.Foldable (for_)
+import Data.Traversable (for)
 
-import Syrup.SRC.BigArray
-import Syrup.SRC.Syn
-import Syrup.SRC.Anf
+import Language.Syrup.BigArray
+import Language.Syrup.Syn
+import Language.Syrup.Anf
   ( Input'(..), Input
   , Output'(..), Output
   , Expr'(..)
   , Gate(..)
   , toGate
   )
-import qualified Syrup.SRC.Anf as Anf
-import Syrup.SRC.Smp
-import Syrup.SRC.Fsh
-import Syrup.SRC.Gph
+import Language.Syrup.Smp
+import Language.Syrup.Fsh
+import Language.Syrup.Gph
 
 data Circuit = Circuit
   { inputPorts   :: [String]
@@ -126,14 +121,14 @@ toWhitebox :: String -> Gate -> Arr String (Path -> DotGate)
 toWhitebox nm (Gate is os defs) env p = do
   let gateNode   = mkGate p nm
 
-  ins <- forM is $ \ (Input i) -> do
+  ins <- for is $ \ (Input i) -> do
      let node  = concat [gateNode, "__INPUTS:", i]
      let vnode = mkNode p i
      tellVirtual vnode
      tellEdge node vnode False
      pure node
 
-  ous <- forM os $ \ (Output _ o) -> do
+  ous <- for os $ \ (Output _ o) -> do
      let node  = concat [gateNode, "__OUTPUTS:", o]
      let vnode = mkNode p o
      tellVirtual vnode
@@ -163,8 +158,8 @@ toWhitebox nm (Gate is os defs) env p = do
          , "      ];"
          ]
 
-  gph <- fmap concat $ forM (reverse defs) $ \ (os, e) -> do
-    forM_ os $ tellVirtual . mkNode p . outputName -- TODO: use names of non-virtual vertices?
+  gph <- fmap concat $ for (reverse defs) $ \ (os, e) -> do
+    for_ os $ tellVirtual . mkNode p . outputName -- TODO: use names of non-virtual vertices?
     case e of
       Alias x     -> case os of
         [y] -> [] <$ tellEdge (mkNode p x) (mkNode p $ outputName y) True
@@ -174,9 +169,9 @@ toWhitebox nm (Gate is os defs) env p = do
         Just repr -> do
           id <- fresh
           let dotG = blackbox $ repr (extend id p)
-          forM_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
+          for_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
             tellEdge (mkNode p (inputName arg)) (iport ++ ":n") True
-          forM_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
+          for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
             tellEdge (oport ++ ":s") (mkNode p $ outputName out) False
           pure (circuitGraph dotG)
 

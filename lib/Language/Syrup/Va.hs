@@ -4,12 +4,12 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-module Syrup.SRC.Va where
+module Language.Syrup.Va where
 
 import Data.List
 
-import Syrup.SRC.BigArray
-import Syrup.SRC.Syn
+import Language.Syrup.BigArray
+import Language.Syrup.Syn
 
 
 ------------------------------------------------------------------------------
@@ -100,5 +100,3 @@ glom (tao, known) tas
       (\ (_ :<- (_, ps)) -> foldMap support ps `subSet` known)
       tas
     known' = foldMap (\ (qs :<- _) -> foldMap support qs) ta1
-
-

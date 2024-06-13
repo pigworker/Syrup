@@ -4,15 +4,13 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE TupleSections #-}
+module Language.Syrup.Chk where
 
-module Syrup.SRC.Chk where
-
-import Data.Void
-import Data.Char
-import Data.List
-import Data.Traversable
-import Data.Foldable
+import Data.Void (Void)
+import Data.Char (isAlpha)
+import Data.List (intercalate)
+import Data.Traversable (for)
+import Data.Foldable ()
 import Control.Arrow
 import Control.Monad.State
 import Control.Monad.Reader
@@ -20,12 +18,12 @@ import Data.Monoid
 
 import Debug.Trace
 
-import Syrup.SRC.Bwd
-import Syrup.SRC.Va
-import Syrup.SRC.Ty
-import Syrup.SRC.Syn
-import Syrup.SRC.BigArray
-import Syrup.SRC.Utils
+import Language.Syrup.Bwd
+import Language.Syrup.Va
+import Language.Syrup.Ty
+import Language.Syrup.Syn
+import Language.Syrup.BigArray
+import Language.Syrup.Utils
 
 
 ------------------------------------------------------------------------------
@@ -416,6 +414,7 @@ emptyTyEnv = emptyArr
 myTyEnv :: TyEnv
 myTyEnv = emptyTyEnv
 
+env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
 (_, _, env1) = mkComponent myCoEnv
   (DEC ("not", [BIT]) [BIT], "!<Bit> -> <Bit>") $ Just
   (Def ("not", [PVar "x"]) [Var "y"] $ Just

@@ -6,24 +6,25 @@
 
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE DefaultSignatures          #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Syrup.SRC.Scp where
+module Language.Syrup.Scp where
 
-import Control.Monad
+import Control.Monad (foldM, unless, when)
 
-import Data.Bifunctor
-import Data.Char
-import Data.List
-import Data.Monoid
-import Data.Foldable
+import Data.Bifunctor ()
+import Data.Char (toLower)
+import Data.List (intersperse)
+import Data.Monoid ()
+import Data.Foldable ()
 
-import Syrup.SRC.Syn
-import Syrup.SRC.BigArray
+import Language.Syrup.Syn
+import Language.Syrup.BigArray
 
 type Name  = String
 type Names = Set Name

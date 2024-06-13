@@ -4,16 +4,14 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE GADTs             #-}
 
-module Syrup.SRC.Lnt where
+module Language.Syrup.Lnt where
 
-import Data.List
+import Data.List (intercalate)
 
-import Syrup.SRC.Syn
-import Syrup.SRC.BigArray
+import Language.Syrup.Syn
+import Language.Syrup.BigArray
 
 class Lint t where
   linters :: [t -> [[String]]]

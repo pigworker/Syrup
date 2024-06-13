@@ -8,7 +8,7 @@
 {-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Syrup.SRC.Pty
+module Language.Syrup.Pty
        ( Doc
        , render
        , empty

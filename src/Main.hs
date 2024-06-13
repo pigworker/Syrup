@@ -6,21 +6,21 @@
 
 {-# LANGUAGE LambdaCase #-}
 
-module Syrup.SRC.Main where
+module Main where
 
 import Control.Arrow
 import Data.Functor
 import Data.List
 
-import Syrup.SRC.Syn
-import Syrup.SRC.Par
-import Syrup.SRC.Ty
-import Syrup.SRC.Chk
-import Syrup.SRC.Expt
-import Syrup.SRC.Sub
-import Syrup.SRC.Scp
-import Syrup.SRC.Lnt
-import Syrup.SRC.Utils
+import Language.Syrup.Syn
+import Language.Syrup.Par
+import Language.Syrup.Ty
+import Language.Syrup.Chk
+import Language.Syrup.Expt
+import Language.Syrup.Sub
+import Language.Syrup.Scp
+import Language.Syrup.Lnt
+import Language.Syrup.Utils
 
 getDefsOf :: String -> [Either [String] (Source, String)] -> [(Def, String)]
 getDefsOf f src = src >>= \case
