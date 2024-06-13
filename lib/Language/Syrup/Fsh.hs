@@ -10,7 +10,7 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Syrup.SRC.Fsh where
+module Language.Syrup.Fsh where
 
 import Control.Monad.Identity
 import Control.Monad.State

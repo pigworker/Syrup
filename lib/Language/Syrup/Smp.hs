@@ -4,9 +4,9 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-module Syrup.SRC.Smp where
+module Language.Syrup.Smp where
 
-import Syrup.SRC.Syn
+import Language.Syrup.Syn
 
 nand :: Def
 nand =

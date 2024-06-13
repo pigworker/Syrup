@@ -4,26 +4,21 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE LambdaCase    #-}
+module Language.Syrup.Expt where
 
-module Syrup.SRC.Expt where
+import Data.List (find, intercalate, partition, sortBy)
+import Data.Monoid (Endo(Endo), appEndo)
+import Data.Traversable (for)
+import Control.Monad.State (StateT(StateT), execStateT, get, put, runStateT)
+import Data.Function (on)
+import Control.Arrow ((***))
+import Data.Maybe (fromJust)
+import Data.Void (Void)
 
-import Data.List
-import Data.Monoid
-import Data.Traversable
-import Control.Monad.Identity
-import Control.Monad.State
-import Data.Function
-import Control.Arrow
-import Data.Maybe
-import Data.Void
-
-import Syrup.SRC.BigArray
-import Syrup.SRC.Syn
-import Syrup.SRC.Ty
-import Syrup.SRC.Va
-import Syrup.SRC.Utils
+import Language.Syrup.BigArray
+import Language.Syrup.Syn
+import Language.Syrup.Ty
+import Language.Syrup.Utils
 
 ------------------------------------------------------------------------------
 -- experiments
@@ -615,7 +610,7 @@ bisimReport cl cr
               -- (l, r) free to be added to simulation
             (Nothing, Nothing) -> do
               put (Bisim (insertArr (l, r) l2r) (insertArr (r, l) r2l))
-              for tab $ \ (vs, ((_, l), (_, r))) -> 
+              for tab $ \ (vs, ((_, l), (_, r))) ->
                 search vs $ growBis (l, r)
               return ()
 
@@ -703,4 +698,3 @@ bisimulations cl cr
             )
             (Just (l2r', r2l')) (zip (map snd lt) (map snd rt))
         mo l2r ls gl r2l rs gr
-

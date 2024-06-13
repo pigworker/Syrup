@@ -7,13 +7,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
 {-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE DeriveFunctor         #-}
-{-# LANGUAGE DeriveFoldable        #-}
-{-# LANGUAGE DeriveTraversable     #-}
-{-# LANGUAGE LambdaCase            #-}
-{-# LANGUAGE TupleSections         #-}
 
-module Syrup.SRC.Ty where
+module Language.Syrup.Ty where
 
 import Control.Monad
 import Control.Monad.Reader
@@ -26,10 +21,10 @@ import Data.Monoid
 import Data.Maybe
 import Control.Applicative
 
-import Syrup.SRC.BigArray
-import Syrup.SRC.Va
-import Syrup.SRC.Syn
-import Syrup.SRC.Bwd
+import Language.Syrup.BigArray
+import Language.Syrup.Va
+import Language.Syrup.Syn
+import Language.Syrup.Bwd
 
 
 ------------------------------------------------------------------------------
@@ -387,4 +382,3 @@ instance MonadState TySt TyM where
 instance MonadReader (Bwd TyClue) TyM where
   ask = TyM $ \ g s -> Right (g, s)
   local f a = TyM $ tyM a . f
-
