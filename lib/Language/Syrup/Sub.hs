@@ -4,13 +4,11 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE TupleSections #-}
+module Language.Syrup.Sub where
 
-module Syrup.SRC.Sub where
-
-import Syrup.SRC.BigArray
-import Syrup.SRC.Ty
-import Syrup.SRC.Syn
+import Language.Syrup.BigArray
+import Language.Syrup.Ty
+import Language.Syrup.Syn
 
 import Data.Void
 import Data.Maybe

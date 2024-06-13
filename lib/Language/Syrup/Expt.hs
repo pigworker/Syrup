@@ -4,32 +4,26 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE TupleSections             #-}
-{-# LANGUAGE PatternGuards             #-}
 {-# LANGUAGE StandaloneDeriving        #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE LambdaCase    #-}
 
-module Syrup.SRC.Expt where
+module Language.Syrup.Expt where
 
-import Data.List
-import Data.Monoid
-import Data.Traversable
-import Control.Monad.Identity
-import Control.Monad.State
-import Data.Function
-import Control.Arrow
-import Data.Maybe
+import Control.Arrow ((***))
+import Control.Monad.State (StateT(StateT), execStateT, get, put, runStateT)
+
 import qualified Data.Bifunctor as Bi
-import Data.Void
+import Data.Function (on)
+import Data.List (find, intercalate, partition, sortBy)
+import Data.Maybe (fromJust)
+import Data.Monoid (Endo(Endo), appEndo)
+import Data.Traversable (for)
+import Data.Void (Void)
 
-import Syrup.SRC.BigArray
-import Syrup.SRC.Syn
-import Syrup.SRC.Ty
-import Syrup.SRC.Va
-import Syrup.SRC.Utils
+import Language.Syrup.BigArray
+import Language.Syrup.Syn
+import Language.Syrup.Ty
+import Language.Syrup.Utils
 
 ------------------------------------------------------------------------------
 -- experiments

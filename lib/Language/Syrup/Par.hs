@@ -6,7 +6,7 @@
 
 {-# LANGUAGE PatternGuards, MultiParamTypeClasses #-}
 
-module Syrup.SRC.Par where
+module Language.Syrup.Par where
 
 import Data.Monoid
 import Control.Monad
@@ -14,10 +14,10 @@ import Control.Monad.State
 import Control.Monad.Reader
 import Control.Applicative
 
-import Syrup.SRC.BigArray
-import Syrup.SRC.Bwd
-import Syrup.SRC.Syn
-import Syrup.SRC.Lex
+import Language.Syrup.BigArray
+import Language.Syrup.Bwd
+import Language.Syrup.Syn
+import Language.Syrup.Lex
 
 
 ------------------------------------------------------------------------------
@@ -387,7 +387,7 @@ syntaxError (Explanation cz tzs y) = concat
     yelp (WantedIdSymbolic t) = concat
       ["I was hoping for a variable, but I found ", show t
       ," which doesn't look like a variable."]
-      
+
 
 
 ------------------------------------------------------------------------------
@@ -403,7 +403,7 @@ instance Functor Par where
 
 instance Semigroup (Par x) where
   (<>) = mappend
-  
+
 instance Alternative Par where
   empty = mempty
   (<|>) = (<>)

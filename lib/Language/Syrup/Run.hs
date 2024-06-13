@@ -1,26 +1,24 @@
 ------------------------------------------------------------------------------
 -----                                                                    -----
------     Main: Syrup Command Line                                       -----
+-----     Run: Running Syrup on a default environment                    -----
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE LambdaCase #-}
+module Language.Syrup.Run where
 
-module Syrup.SRC.Main where
+import Control.Arrow ((***))
+import Data.Functor (void)
+import Data.List (intercalate)
 
-import Control.Arrow
-import Data.Functor
-import Data.List
-
-import Syrup.SRC.Syn
-import Syrup.SRC.Par
-import Syrup.SRC.Ty
-import Syrup.SRC.Chk
-import Syrup.SRC.Expt
-import Syrup.SRC.Sub
-import Syrup.SRC.Scp
-import Syrup.SRC.Lnt
-import Syrup.SRC.Utils
+import Language.Syrup.Syn
+import Language.Syrup.Par
+import Language.Syrup.Ty
+import Language.Syrup.Chk
+import Language.Syrup.Expt
+import Language.Syrup.Sub
+import Language.Syrup.Scp
+import Language.Syrup.Lnt
+import Language.Syrup.Utils
 
 getDefsOf :: String -> [Either [String] (Source, String)] -> [(Def, String)]
 getDefsOf f src = src >>= \case
@@ -47,8 +45,8 @@ grokSy env (Right (Experiment expt, _) : src) =
   (id *** ((experiment env expt ++) . ("" :))) (grokSy env src)
 grokSy env (Right (Definition _, _) : src) = grokSy env src
 
-syrup :: TyEnv -> CoEnv -> String -> ((TyEnv, CoEnv), String)
-syrup t g txt =
+runSyrup :: (TyEnv, CoEnv) -> String -> ((TyEnv, CoEnv), String)
+runSyrup (t, g) txt =
   let ls          = syrupFile txt
       linted      = linter ls
       scps        = check (globalScope (void g)) linted
@@ -56,7 +54,5 @@ syrup t g txt =
       (g' , strs) = grokSy g srcs
   in ((t', g'), unlines strs)
 
-main :: IO ()
-main = do
-  src <- getContents
-  putStr (snd (syrup myTyEnv myCoEnv src))
+syrup :: String -> String
+syrup src = snd (runSyrup (myTyEnv, myCoEnv) src)

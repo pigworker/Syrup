@@ -7,10 +7,10 @@
 {-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Syrup.SRC.Gph where
+module Language.Syrup.Gph where
 
 import Data.Foldable
-import Syrup.SRC.BigArray
+import Language.Syrup.BigArray
 
 data Shape = Rectangle
   deriving (Eq, Show)

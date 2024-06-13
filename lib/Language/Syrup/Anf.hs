@@ -4,18 +4,14 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE LambdaCase                 #-}
-{-# LANGUAGE DeriveTraversable          #-}
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
-
-module Syrup.SRC.Anf where
+module Language.Syrup.Anf where
 
 import Control.Monad.State
 import Data.Maybe
 
-import Syrup.SRC.Syn
-import Syrup.SRC.Smp
-import Syrup.SRC.Fsh
+import Language.Syrup.Syn
+import Language.Syrup.Smp
+import Language.Syrup.Fsh
 
 ------------------------------------------------------------------------------
 -- Syntax of A normal forms

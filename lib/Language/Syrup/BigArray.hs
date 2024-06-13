@@ -1,18 +1,19 @@
-{-# LANGUAGE DataKinds, GADTs, KindSignatures, StandaloneDeriving, RankNTypes,
-    TypeSynonymInstances #-}
+{-# LANGUAGE StandaloneDeriving, RankNTypes, TypeSynonymInstances #-}
 
-module Syrup.SRC.BigArray where
+module Language.Syrup.BigArray where
 
-import Data.Monoid
-import Control.Applicative
-import Data.Functor.Identity
-import Data.Traversable
+import Control.Applicative ((<|>), Const(Const, getConst))
+
+import Data.Functor.Identity (Identity(Identity, runIdentity))
+import Data.Monoid (All(All, getAll), Endo(Endo, appEndo), Sum(Sum, getSum))
+import Data.Traversable (foldMapDefault, fmapDefault)
+import Data.Kind (Type)
 
 data Nat = Ze | Su Nat
 
 data Bnd k = Bot | Key k | Top deriving (Ord, Eq, Show)
 
-data T23 (n :: Nat) (k :: *) (v :: *) where
+data T23 (n :: Nat) (k :: Type) (v :: Type) where
   Leaf   :: T23 Ze k v
   Node2  :: T23 n k v -> (k, v) -> T23 n k v -> T23 (Su n) k v
   Node3  :: T23 n k v -> (k, v) -> T23 n k v -> (k, v) -> T23 n k v -> T23 (Su n) k v
@@ -135,7 +136,7 @@ delete23 k (Node3 ai i' ip p' pz) = case (compare k (fst i'), compare k (fst p')
       Node3 il l' ln n' np ->
         DSame (Node3 ai i' (Node2 il l' ln) n' (Node2 np p' pz))
 
-data Arr (k :: *)(v :: *) where
+data Arr (k :: Type)(v :: Type) where
   Arr :: T23 n k v -> Arr k v
 deriving instance (Show k, Show v) => Show (Arr k v)
 

@@ -4,18 +4,12 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE DeriveFunctor     #-}
-{-# LANGUAGE DeriveFoldable    #-}
-{-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE GADTs             #-}
+module Language.Syrup.Syn where
 
-module Syrup.SRC.Syn where
-
-import Data.List
+import Data.List (intercalate)
 import Data.Void
 
-import Syrup.SRC.BigArray
+import Language.Syrup.BigArray
 
 data Source' a
   = Declaration (DEC' a)

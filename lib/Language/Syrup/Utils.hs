@@ -4,9 +4,7 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE LambdaCase #-}
-
-module Syrup.SRC.Utils where
+module Language.Syrup.Utils where
 
 import Control.Arrow
 import Data.Bifunctor as Bi
