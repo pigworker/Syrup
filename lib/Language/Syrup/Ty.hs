@@ -10,22 +10,18 @@
 
 module Language.Syrup.Ty where
 
-import Control.Monad
-import Control.Monad.Reader
-import Control.Monad.State
-import Control.Arrow
-import Data.List
-import Data.Foldable
-import Data.Void
-import Data.Monoid
-import Data.Maybe
-import Control.Applicative
+import Control.Applicative ((<|>))
+import Control.Monad (ap, guard)
+import Control.Monad.Reader (MonadReader, ask, local)
+import Control.Monad.State (MonadState, get, gets, put)
+
+import Data.List (intercalate)
+import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Va
 import Language.Syrup.Syn
 import Language.Syrup.Bwd
-
 
 ------------------------------------------------------------------------------
 -- representing Syrup types

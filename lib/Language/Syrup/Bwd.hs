@@ -22,7 +22,8 @@ instance Applicative Bwd where
 
 instance HalfZip Bwd where
   halfZip B0 B0 = Just B0
-  halfZip (xz :< x) (yz :< y) = (:<) <$> halfZip xz yz <*> Just (x, y)
+  halfZip (xz :< x) (yz :< y) = (:< (x, y)) <$> halfZip xz yz
+  halfZip _ _ = Nothing
 
 instance Semigroup (Bwd x) where (<>) = mappend
 instance Monoid (Bwd x) where

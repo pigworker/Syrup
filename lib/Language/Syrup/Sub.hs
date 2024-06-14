@@ -11,7 +11,6 @@ import Language.Syrup.Ty
 import Language.Syrup.Syn
 
 import Data.Void
-import Data.Maybe
 
 class TySubst t where
   tySubst :: TyEnv -> t String -> Either String (t Void)

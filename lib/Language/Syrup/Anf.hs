@@ -6,7 +6,6 @@
 
 module Language.Syrup.Anf where
 
-import Control.Monad.State
 import Data.Maybe
 
 import Language.Syrup.Syn

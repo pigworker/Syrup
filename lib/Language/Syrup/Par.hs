@@ -64,10 +64,12 @@ instance Monoid ParErr where
         GT -> e1
         _  -> e2   -- ORLY?
     where
+      perplexity :: Bwd ParClue -> Int
       perplexity B0 = 0
       perplexity (g :< SEEKING _) = 1 + perplexity g
       perplexity (g :< _) = perplexity g
 
+measure :: Bwd ParClue -> Bwd Token -> Int
 measure B0 tz1 = sum (fmap tokSize tz1)
 measure (g :< BRACKET _ tz _) tz1 =
   sum (fmap tokSize tz1) + 1 + measure g tz
@@ -338,6 +340,7 @@ syrupSource (s, ts) = case par pSource en st of
       , toksAhead = ts
       }
 
+syrupKeywords :: Set String
 syrupKeywords = foldMap singleton
   ["where", "experiment", "type"]
 

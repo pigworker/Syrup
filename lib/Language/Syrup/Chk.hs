@@ -6,24 +6,21 @@
 
 module Language.Syrup.Chk where
 
-import Data.Void (Void)
+
+import Control.Monad.Reader (local)
+import Control.Monad.State (get, gets, put)
+
 import Data.Char (isAlpha)
 import Data.List (intercalate)
+import Data.Monoid (Last(Last))
 import Data.Traversable (for)
-import Data.Foldable ()
-import Control.Arrow
-import Control.Monad.State
-import Control.Monad.Reader
-import Data.Monoid
-
-import Debug.Trace
+import Data.Void (Void, absurd)
 
 import Language.Syrup.Bwd
 import Language.Syrup.Va
 import Language.Syrup.Ty
 import Language.Syrup.Syn
 import Language.Syrup.BigArray
-import Language.Syrup.Utils
 
 
 ------------------------------------------------------------------------------
@@ -63,7 +60,7 @@ mkComponent env (dec, decSrc) mdef =
                         , stage1 = plan (Plan (mI ++ ps) ta1 (mO ++ qs1))
                         }
                   in insertArr (g, gc) env
-                e -> trace (show (sched st)) $
+                e -> -- trace (show (sched st)) $
                   let sin = case e of
                         (_, False, _) ->
                           Stage0 (foldMapSet (yank (sched st))
@@ -231,6 +228,7 @@ yield (s : ss) []  = tyErr ShortPats
 yield (s : ss) ((t , q) : tqs) = tyEq (s, t) >> yield ss tqs
 
 stage :: Ty2 -> TyM ([Pat], ([Pat], [Pat]))
+stage (TyV x) = absurd x
 stage (Bit t) = do
   w <- wiF
   defineWire (Just (Bit ())) w
@@ -482,7 +480,7 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
   (Def ("one", []) [App "not" [App "zero" []]] Nothing
   ,"one() = !zero()")
 
-(_, bah, env9) = mkComponent env8
+(_, _, env9) = mkComponent env8
   (DEC ("tff2", [BIT]) [OLD BIT], "tff2(<Bit>) -> @<Bit>") $ Just
   (Def ("tff2", [PVar "t"]) [App "xor" [Var "q2",Var "q1"]] $ Just
     [[PVar "q2"] :=: [App "tff" [App "or" [App "not" [Var "t"],Var "q1"]]]

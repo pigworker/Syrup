@@ -60,10 +60,12 @@ common warnings
 
 library
     -- Silence some flags
-    ghc-options:  -Wno-name-shadowing
+    ghc-options:  -Wall
+                  -Wno-name-shadowing
                   -Wno-noncanonical-monad-instances
                   -Wno-noncanonical-monoid-instances
                   -Wno-unused-do-bind
+                  -Wno-unused-local-binds
                   -Wno-unused-matches
 
 

@@ -9,7 +9,6 @@
 
 module Language.Syrup.Gph where
 
-import Data.Foldable
 import Language.Syrup.BigArray
 
 data Shape = Rectangle
