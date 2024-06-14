@@ -129,7 +129,8 @@ toWhitebox nm (Gate is os defs) env p = do
      tellEdge vnode node True
      pure node
 
-  let (iports, oports) = declarePorts 20 is os
+  let iports = declarePorts 20 (inputName <$> is)
+  let oports = declarePorts 20 (outputName <$> os)
   let iPorts = unlines
          [ concat [ gateNode, "__INPUTS" ]
          , "    [ shape = none"
@@ -170,7 +171,7 @@ toWhitebox nm (Gate is os defs) env p = do
           pure (circuitGraph dotG)
       FanIn args -> do
         id <- fresh
-        let dotG = toBlackbox (extend id p) args "fanin" os
+        let dotG = fanIn (extend id p) args os
         for_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
           tellEdge (mkNode p (inputName arg)) (iport ++ ":n") True
         for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
@@ -178,7 +179,7 @@ toWhitebox nm (Gate is os defs) env p = do
         pure (circuitGraph dotG)
       FanOut arg -> do
         id <- fresh
-        let dotG = toBlackbox (extend id p) [arg] "fanout" os
+        let dotG = fanOut (extend id p) [arg] os
         for_ (zip [arg] (inputPorts dotG)) $ \ (arg, iport) ->
           tellEdge (mkNode p (inputName arg)) (iport ++ ":n") True
         for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
@@ -220,10 +221,11 @@ gate nm g@Gate{..} env p =
 
 toBlackbox :: Path -> [Input] -> String -> [Output] -> Circuit
 toBlackbox p is nm os =
-  let gateNode         = "GATE_" ++ nm ++ "_" ++ show p
-      iportNames       = map (\ i -> gateNode ++ ":" ++ inputName i) is
-      oportNames       = map (\ o -> gateNode ++ ":" ++ outputName o) os
-      (iports, oports) = declarePorts 7 is os
+  let gateNode   = "GATE_" ++ nm ++ "_" ++ show p
+      iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
+      oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
+      iports     = declarePorts 7 (inputName <$> is)
+      oports     = declarePorts 7 (outputName <$> os)
   in Circuit iportNames oportNames $
     [ "subgraph gate_" ++ show p ++ " {"
     , "  style = invis;"
@@ -243,15 +245,52 @@ toBlackbox p is nm os =
     , "}"
     ]
 
-declarePorts :: Int -> [Input] -> [Output] -> ([String], [String])
-declarePorts size is os =
-  ( map (\ i -> declarePort (inputName i))  is
-  , map (\ (Output _ nm) -> declarePort nm) os
-  ) where
+fanIn :: Path -> [Input] -> [Output] -> Circuit
+fanIn p is os =
+  let gateNode   = "FANIN_" ++ show p
+      iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
+      iports     = declarePorts 7 (inputName <$> is)
+  in Circuit iportNames [gateNode] $
+    [ "subgraph fanin_" ++ show p ++ " {"
+    , "  style = invis;"
+    , indent 2 $ gateNode
+    , "    [ shape = invtriangle"
+    , "    , width = .75"
+    , "    , height = .75"
+    , "    , fixedsize = true"
+    , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"4\">"
+    , indent 15 $ "<TR>" ++ unlines iports ++ "</TR>"
+    , "              </TABLE>>"
+    , "    ];"
+    , "}"
+    ]
+
+fanOut :: Path -> [Input] -> [Output] -> Circuit
+fanOut p is os =
+  let gateNode   = "FANOUT_" ++ show p
+      oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
+      oports     = declarePorts 7 (outputName <$> os)
+  in Circuit [gateNode] oportNames $
+    [ "subgraph fanout_" ++ show p ++ " {"
+    , "  style = invis;"
+    , indent 2 $ gateNode
+    , "    [ shape = triangle"
+    , "    , width = .75"
+    , "    , height = .75"
+    , "    , fixedsize = true"
+    , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"4\">"
+    , indent 15 $ "<TR>" ++ unlines oports ++ "</TR>"
+    , "              </TABLE>>"
+    , "    ];"
+    , "}"
+    ]
+
+declarePorts :: Int -> [String] -> [String]
+declarePorts size = map declarePort where
 
   declarePort :: String -> String
   declarePort lb = concat
-    [ "<TD PORT=\"", lb, "\">"
+    [ "<TD PORT=", show lb, ">"
     , if head lb == '_'
       then ""
       else concat ["<FONT POINT-SIZE=", show (show size), ">", lb, "</FONT>" ]
