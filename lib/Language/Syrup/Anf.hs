@@ -6,7 +6,7 @@
 
 module Language.Syrup.Anf where
 
-import Data.Maybe
+import Data.Maybe (fromMaybe)
 
 import Language.Syrup.Syn
 import Language.Syrup.Smp
@@ -14,8 +14,16 @@ import Language.Syrup.Fsh
 
 ------------------------------------------------------------------------------
 -- Syntax of A normal forms
+-- Outputs may be virtual i.e. introduced by the machine but not
+-- present in the source code.
+-- For instance when we elaborate "f ([X,Y,Z]) = rhs"
+-- we obtain "f A = rhs where [X,Y,Z] = A".
+-- Here A is a virtual wire and we should not display this name back
+-- to users (e.g. if we produce a circuit diagram for their source code).
 
-newtype Input' nm = Input { inputName :: nm }
+data Input' nm = Input
+  { isVirtualInput :: Bool
+  , inputName :: nm }
   deriving (Functor, Foldable, Traversable)
 
 -- Outputs may be virtual i.e. introduced by the machine but not
@@ -25,9 +33,15 @@ newtype Input' nm = Input { inputName :: nm }
 -- to users (e.g. if we produce a circuit diagram for their source code).
 
 data Output' nm = Output
-  { isVirtual  :: Bool
+  { isVirtualOutput  :: Bool
   , outputName :: nm
   } deriving (Eq, Ord, Functor, Foldable, Traversable)
+
+wire :: Input' nm -> Output' nm
+wire (Input v x) = Output v x
+
+cowire :: Output' nm -> Input' nm
+cowire (Output v x) = Input v x
 
 -- Expressions in A normal form: either a variable or a function applied
 -- to a bunch of variables. Nothing more complex than that.
@@ -35,16 +49,20 @@ data Output' nm = Output
 data Expr' nm
   = Alias nm
   | Call nm [Input' nm]
+  | FanIn [Input' nm]
+  | FanOut (Input' nm)
   deriving (Functor, Foldable, Traversable)
 
 type Input  = Input' String
 type Output = Output' String
 type Expr   = Expr' String
 
+type LetBinding = ([Output], Expr)
+
 data Gate = Gate
   { inputs      :: [Input]
   , outputs     :: [Output]
-  , definitions :: [([Output], Expr)]
+  , letBindings :: [LetBinding]
   }
 
 -- Needed to merge the successive results.
@@ -65,18 +83,27 @@ freshVirtualName = do
 
 ------------------------------------------------------------------------------
 -- Elaboration
-
-elabPat :: Pat -> String
-elabPat = \case
-  PVar x -> x
-  PCab{} -> error "not supported yet"
-
+--
 -- If the Exp is already a variable name then we can simply return it.
 -- Otherwise we have an arbitrary expression so we introduce a virtual
 -- name for it and return a delayed "equation" connecting this virtual
 -- name to the expression. We do not reuse the type Eqn because we want
 -- to remember that the name on the LHS is virtual.
+
 type Assignment = ([Output], Exp)
+
+-- Return an input name for the pattern, a list of inputs
+-- corresponding to the names bound in the pattern, and
+-- a list of assignments in A-normal form representing
+-- the successive fan-outs
+elabPat :: Pat -> ANF (Input, [Input], [LetBinding])
+elabPat = \case
+  PVar x -> pure (Input False x, [Input False x], [])
+  PCab ps -> do
+    x <- Input True <$> freshVirtualName
+    ias <- mapM elabPat ps
+    let (is, iss, eqnss) = unzip3 ias
+    pure (x, concat iss, (wire <$> is, FanOut x) : concat eqnss)
 
 declareAlias :: Exp -> ANF (Output, [Assignment])
 declareAlias e = do
@@ -92,7 +119,7 @@ elabExp = \case
 -- If an expression on the RHS is a variable corresponding to an input
 -- wire, we introduce a virtual name for it an do aliasing. This allows
 -- us to assume that the named inputs & outputs are always distinct
--- which a really useful invariant when producing a diagram.
+-- which is a really useful invariant when producing a diagram.
 
 elabRHS :: [Input] -> Exp -> ANF (Output, [Assignment])
 elabRHS inputs e =
@@ -109,15 +136,23 @@ elabRHS inputs e =
 elabDef :: Def -> ANF (Maybe (String, Gate))
 elabDef Stub{} = pure Nothing
 elabDef (Def (nm, ps) rhs eqns) = Just <$> do
-  let ins = map (Input . elabPat) ps
-  os <- mapM (elabRHS ins) rhs
-  let (ous, oeqns) = unzip os
+  -- obtain
+  --  ins:   the definition's inputs
+  --  inss:  the definition's bound names on the LHS
+  --  lcs0:  the fanouts turning ins into inss
+  (ins, inss, lcs0) <- unzip3 <$> mapM elabPat ps
+  -- obtain
+  --  ous:    the right hand side's outputs
+  --  oeqns:  the equations defining the outputs
+  (ous, oeqns) <- unzip <$> mapM (elabRHS (concat inss)) rhs
+  -- Elaborate the `where`-bound equations
   lcs1 <- mapM elabEqn  (fromMaybe [] eqns)
+  -- Elaborate the assignments
   lcs2 <- mapM elabAss  (concat oeqns)
   let gate = Gate
        { inputs      = ins
        , outputs     = ous
-       , definitions = concat (lcs1 ++ lcs2)
+       , letBindings = concat (lcs0 ++ lcs1 ++ lcs2)
        }
   pure (nm, gate)
 
@@ -126,10 +161,11 @@ elabDef (Def (nm, ps) rhs eqns) = Just <$> do
 -- or A,B,C = d,e,f
 -- The first case can be reduced to the notion of assignment we introduced earlier
 -- The second case can be reduced to solving (A = d, B = e, C = f)
-elabEqn :: Eqn -> ANF ([([Output], Expr)])
+elabEqn :: Eqn -> ANF [LetBinding]
 elabEqn (ps :=: [rhs]) = do
-  let ous = map (Output False . elabPat) ps
-  elabAss (ous, rhs)
+  (is, iss, fanouts) <- unzip3 <$> mapM elabPat ps
+  defs <- elabAss (wire <$> is, rhs)
+  pure (concat fanouts ++ defs)
 elabEqn (ps :=: rhs) = do
   eqns <- mapM elabEqn (zipWith (\ p e -> [p] :=: [e]) ps rhs)
   pure $ concat eqns
@@ -140,15 +176,17 @@ elabEqn (ps :=: rhs) = do
 --     expression it has as arguments i.e. we want variable names for them
 --     and we are ready to pay for it by generating additional assignments.
 --     Finally we elaborate these additional assignments
-
-elabAss :: Assignment -> ANF ([([Output], Expr)])
+elabAss :: Assignment -> ANF [LetBinding]
 elabAss (ous, e) = case e of
   Var x    -> pure [(ous, Alias x)]
   App f es -> do
-    aes <- mapM elabExp es
-    let (args, eqs) = unzip aes
+    (args, eqs) <- unzip <$> mapM elabExp es
     ih <- mapM elabAss $ concat eqs
-    pure $ (ous, Call f (map (Input . outputName) args)) : concat ih
+    pure $ (ous, Call f (cowire <$> args)) : concat ih
+  Cab es -> do
+    (args, eqs) <- unzip <$> mapM elabExp es
+    ih <- mapM elabAss $ concat eqs
+    pure $ (ous, FanIn (cowire <$> args)) : concat ih
 
 toGate :: Def -> Maybe (String, Gate)
 toGate = evalFresh . elabDef
@@ -163,7 +201,7 @@ fromGate :: String -> Gate -> Def
 fromGate nm g =
   Def (nm, map (PVar . inputName) (inputs g))
       (map (Var . outputName) (outputs g))
-  $ case definitions g of
+  $ case letBindings g of
       []   -> Nothing
       eqns -> Just $ map (\ (os, rhs) ->
                            (map (PVar . outputName) os)
@@ -171,6 +209,8 @@ fromGate nm g =
                            [case rhs of
                               Alias x   -> Var x
                               Call f es -> App f (map (Var . inputName) es)
+                              FanIn os  -> Cab (map (Var . inputName) os)
+                              FanOut i  -> Var (inputName i)
                            ])
                      eqns
 

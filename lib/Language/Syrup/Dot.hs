@@ -20,12 +20,6 @@ import Data.Traversable (for)
 import Language.Syrup.BigArray
 import Language.Syrup.Syn
 import Language.Syrup.Anf
-  ( Input'(..), Input
-  , Output'(..), Output
-  , Expr'(..)
-  , Gate(..)
-  , toGate
-  )
 import Language.Syrup.Smp
 import Language.Syrup.Fsh
 import Language.Syrup.Gph
@@ -121,7 +115,7 @@ toWhitebox :: String -> Gate -> Arr String (Path -> DotGate)
 toWhitebox nm (Gate is os defs) env p = do
   let gateNode   = mkGate p nm
 
-  ins <- for is $ \ (Input i) -> do
+  ins <- for is $ \ (Input _ i) -> do
      let node  = concat [gateNode, "__INPUTS:", i]
      let vnode = mkNode p i
      tellVirtual vnode
@@ -165,7 +159,7 @@ toWhitebox nm (Gate is os defs) env p = do
         [y] -> [] <$ tellEdge (mkNode p x) (mkNode p $ outputName y) True
         _   -> error "not yet supported"
       Call f args -> case findArr f env of
-        Nothing   -> error "This should never happen"
+        Nothing   -> error ("This should never happen: could not find " ++ f ++ ".")
         Just repr -> do
           id <- fresh
           let dotG = blackbox $ repr (extend id p)
@@ -174,6 +168,23 @@ toWhitebox nm (Gate is os defs) env p = do
           for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
             tellEdge (oport ++ ":s") (mkNode p $ outputName out) False
           pure (circuitGraph dotG)
+      FanIn args -> do
+        id <- fresh
+        let dotG = toBlackbox (extend id p) args "fanin" os
+        for_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
+          tellEdge (mkNode p (inputName arg)) (iport ++ ":n") True
+        for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
+          tellEdge (oport ++ ":s") (mkNode p $ outputName out) False
+        pure (circuitGraph dotG)
+      FanOut arg -> do
+        id <- fresh
+        let dotG = toBlackbox (extend id p) [arg] "fanout" os
+        for_ (zip [arg] (inputPorts dotG)) $ \ (arg, iport) ->
+          tellEdge (mkNode p (inputName arg)) (iport ++ ":n") True
+        for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
+          tellEdge (oport ++ ":s") (mkNode p $ outputName out) False
+        pure (circuitGraph dotG)
+
 
   pure $ Circuit { inputPorts   = ins
                  , outputPorts  = ous
