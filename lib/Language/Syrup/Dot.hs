@@ -9,8 +9,11 @@
 
 module Language.Syrup.Dot where
 
+import Control.Applicative ((<|>))
+import Control.Monad (guard)
 import Control.Monad.Writer (MonadWriter, WriterT, tell, runWriterT)
 import Control.Monad.State (StateT, evalStateT, execStateT, get, modify, put)
+
 import Data.List (intercalate)
 import Data.Maybe (fromMaybe)
 import Data.Char (isAlphaNum)
@@ -34,6 +37,14 @@ data DotGate = DotGate
   { blackbox    :: Circuit
   , whitebox    :: Circuit
   }
+
+type Port = (Bool, Maybe String, String)
+
+inputToPort :: Input -> Port
+inputToPort (Input b dn n) = (b, dn, n)
+
+outputToPort :: Output -> Port
+outputToPort (Output b dn n) = (b, dn, n)
 
 indent :: Int -> String -> String
 indent n str = replicate n ' ' ++ str
@@ -115,22 +126,22 @@ toWhitebox :: String -> Gate -> Arr String (Path -> DotGate)
 toWhitebox nm (Gate is os defs) env p = do
   let gateNode   = mkGate p nm
 
-  ins <- for is $ \ (Input _ i) -> do
+  ins <- for is $ \ (Input _ _ i) -> do
      let node  = concat [gateNode, "__INPUTS:", i]
      let vnode = mkNode p i
      tellVirtual vnode
      tellEdge node vnode False
      pure node
 
-  ous <- for os $ \ (Output _ o) -> do
+  ous <- for os $ \ (Output _ _ o) -> do
      let node  = concat [gateNode, "__OUTPUTS:", o]
      let vnode = mkNode p o
      tellVirtual vnode
      tellEdge vnode node True
      pure node
 
-  let iports = declarePorts 20 (inputName <$> is)
-  let oports = declarePorts 20 (outputName <$> os)
+  let iports = map (declarePort 20 True . inputToPort) is
+  let oports = map (declarePort 20 True . outputToPort) os
   let iPorts = unlines
          [ concat [ gateNode, "__INPUTS" ]
          , "    [ shape = none"
@@ -224,8 +235,8 @@ toBlackbox p is nm os =
   let gateNode   = "GATE_" ++ nm ++ "_" ++ show p
       iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
-      iports     = declarePorts 7 (inputName <$> is)
-      oports     = declarePorts 7 (outputName <$> os)
+      iports     = map (declarePort 7 False . inputToPort) is
+      oports     = map (declarePort 7 False . outputToPort) os
   in Circuit iportNames oportNames $
     [ "subgraph gate_" ++ show p ++ " {"
     , "  style = invis;"
@@ -249,7 +260,7 @@ fanIn :: Path -> [Input] -> [Output] -> Circuit
 fanIn p is os =
   let gateNode   = "FANIN_" ++ show p
       iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
-      iports     = declarePorts 7 (inputName <$> is)
+      iports     = map (declarePort 7 False . inputToPort) is
   in Circuit iportNames [gateNode] $
     [ "subgraph fanin_" ++ show p ++ " {"
     , "  style = invis;"
@@ -269,7 +280,7 @@ fanOut :: Path -> [Input] -> [Output] -> Circuit
 fanOut p is os =
   let gateNode   = "FANOUT_" ++ show p
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
-      oports     = declarePorts 7 (outputName <$> os)
+      oports     = map (declarePort 7 False . outputToPort) os
   in Circuit [gateNode] oportNames $
     [ "subgraph fanout_" ++ show p ++ " {"
     , "  style = invis;"
@@ -285,15 +296,11 @@ fanOut p is os =
     , "}"
     ]
 
-declarePorts :: Int -> [String] -> [String]
-declarePorts size = map declarePort where
-
-  declarePort :: String -> String
-  declarePort lb = concat
-    [ "<TD PORT=", show lb, ">"
-    , if head lb == '_'
-      then ""
-      else concat ["<FONT POINT-SIZE=", show (show size), ">", lb, "</FONT>" ]
+declarePort :: Int -> Bool -> Port -> String
+declarePort size b (isv, dn, n) = concat
+    [ "<TD PORT=", show n, ">"
+    , let mn = n <$ guard (not isv) <|> dn <* guard b in
+      maybe "" (\ lb -> concat ["<FONT POINT-SIZE=", show (show size), ">", lb, "</FONT>" ]) mn
     , "</TD>"
     ]
 

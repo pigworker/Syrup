@@ -23,6 +23,7 @@ import Language.Syrup.Fsh
 
 data Input' nm = Input
   { isVirtualInput :: Bool
+  , inputDisplayName :: Maybe String
   , inputName :: nm }
   deriving (Functor, Foldable, Traversable)
 
@@ -34,14 +35,15 @@ data Input' nm = Input
 
 data Output' nm = Output
   { isVirtualOutput  :: Bool
+  , outputDisplayName :: Maybe String
   , outputName :: nm
   } deriving (Eq, Ord, Functor, Foldable, Traversable)
 
 wire :: Input' nm -> Output' nm
-wire (Input v x) = Output v x
+wire (Input v dn x) = Output v dn x
 
 cowire :: Output' nm -> Input' nm
-cowire (Output v x) = Input v x
+cowire (Output v dn x) = Input v dn x
 
 -- Expressions in A normal form: either a variable or a function applied
 -- to a bunch of variables. Nothing more complex than that.
@@ -97,10 +99,10 @@ type Assignment = ([Output], Exp)
 -- a list of assignments in A-normal form representing
 -- the successive fan-outs
 elabPat :: Pat -> ANF (Input, [Input], [LetBinding])
-elabPat = \case
-  PVar x -> pure (Input False x, [Input False x], [])
+elabPat p = case p of
+  PVar x -> let vx = Input False Nothing x in pure (vx, [vx], [])
   PCab ps -> do
-    x <- Input True <$> freshVirtualName
+    x <- Input True (Just $ show p) <$> freshVirtualName
     ias <- mapM elabPat ps
     let (is, iss, eqnss) = unzip3 ias
     pure (x, concat iss, (wire <$> is, FanOut x) : concat eqnss)
@@ -108,12 +110,12 @@ elabPat = \case
 declareAlias :: Exp -> ANF (Output, [Assignment])
 declareAlias e = do
   vn <- freshVirtualName
-  let out = Output True vn
+  let out = Output True (show <$> exPat e) vn
   pure (out, [([out], e)])
 
 elabExp :: Exp -> ANF (Output, [Assignment])
 elabExp = \case
-  Var x -> pure (Output False x, [])
+  Var x -> pure (Output False Nothing x, [])
   e     -> declareAlias e
 
 -- If an expression on the RHS is a variable corresponding to an input
