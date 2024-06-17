@@ -305,63 +305,24 @@ def d = case toGate d of
     Dot $ modify $ \ s ->
       s { gates = insertArr (nm, gate nm g (gates s) . extend id) (gates s) }
 
-dotDef :: Def -> Maybe DotGate
-dotDef d = do
-  st <- flip execStateT initDotSt $ runDot $ do
-    -- we throw in some basic definitions so that whitebox has a
-    -- chance to succeed. In practice we will only need 'nand'
-    -- and 'dff'.
-    def nand
-    def notG
-    def andG
-    def orG
-    def dff
-    def xor
-    def mux
-    def hadd
-    def fadd
-    def d
+addDef :: DotSt -> Def -> DotSt
+addDef st d = fromMaybe st $ flip execStateT st $ runDot $ def d
+
+whiteBoxDef :: DotSt -> Def -> [String]
+whiteBoxDef st d = fromMaybe [] $ do
   nm <- case d of { Stub{} -> Nothing; Def (nm, _) _ _ -> Just nm }
   ga <- findArr nm (gates st)
-  pure (ga empty)
-
-blackBoxDef :: Def -> [String]
-blackBoxDef d = fromMaybe [] $ do
-  ga <- dotDef d
-  pure $
-    [ "digraph blackbox {"
-    , "  rankdir = TB;"
-    ]
-    ++ circuitGraph (blackbox ga)
-    ++ ["}"]
-
-whiteBoxDef :: Def -> [String]
-whiteBoxDef d = fromMaybe [] $ do
-  ga <- dotDef d
   pure $
     [ "digraph whitebox {"
     , "  rankdir = TB;"
     , "  nodesep = 0.2;"
     ]
-    ++ circuitGraph (whitebox ga)
+    ++ circuitGraph (whitebox (ga empty))
     ++ ["}"]
 
-runner :: String -> Def -> IO ()
-runner nm d = do
-  let content = unlines $ whiteBoxDef d
-  writeFile ("whitebox-" ++ nm ++ ".dot") content
-
-test :: IO ()
-test = do
-  runner "swap"       swapG
-  runner "and"        andG
-  runner "and4-prime" and4'
-  runner "mux"        mux2
-  runner "not"        notG
-  runner "and4"       and4
-  runner "tff"        tff
-  runner "xor"        xor
-  runner "hadd"       hadd
-  runner "fadd"       fadd
-  runner "rca4"       rca4
-  runner "andnot"     andnot
+myDotSt :: DotSt
+myDotSt
+  = foldl addDef initDotSt
+  [ nand
+  , dff
+  ]

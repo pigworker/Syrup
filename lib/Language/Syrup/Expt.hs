@@ -33,25 +33,25 @@ import System.Process (readProcess)
 -- experiments
 ------------------------------------------------------------------------------
 
-experiment :: CoEnv -> EXPT -> [String]
-experiment g (Tabulate x) = case findArr x g of
+experiment :: (CoEnv, DotSt) -> EXPT -> [String]
+experiment (g, _) (Tabulate x) = case findArr x g of
   Nothing -> ["I don't know what " ++ x ++ " is."]
   Just c ->  ["Truth table for " ++ x ++ ":"] ++
              displayTabulation (tabulate c)
-experiment g (Simulate x m0 iss) = case findArr x g of
+experiment (g, _) (Simulate x m0 iss) = case findArr x g of
   Nothing -> ["I don't know what " ++ x ++ " is."]
   Just c ->  ["Simulation for " ++ x ++ ":"] ++
              runCompo c m0 iss
-experiment g (Bisimilarity l r) = case (findArr l g, findArr r g) of
+experiment (g, _) (Bisimilarity l r) = case (findArr l g, findArr r g) of
   (Nothing, _) -> ["I don't know what " ++ l ++ " is."]
   (_, Nothing) -> ["I don't know what " ++ r ++ " is."]
   (Just lc, Just rc) -> report (l, r) (bisimReport lc rc)
-experiment g (Display x) = case findArr x g of
+experiment (g, st) (Display x) = case findArr x g of
  Nothing -> ["I don't know what " ++ x ++ " is."]
  Just c -> case defn c of
    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
    Just d -> lines $ unsafePerformIO $
-     readProcess "dot" ["-Tsvg"] (unlines $ whiteBoxDef d)
+     readProcess "dot" ["-Tsvg"] (unlines $ whiteBoxDef st d)
 
 ------------------------------------------------------------------------------
 -- running tine sequences
