@@ -79,19 +79,19 @@ mkComponent env (dec, decSrc) mdef =
       , ["", g ++ " has been stubbed out."]
       , insertArr (g, stubOut dec) env)
 
-guts :: Dec -> Def -> TyM (([Pat], [Exp]), ([Pat], [Pat]), Def)
+guts :: Dec -> Def -> TyM (([Pat], [Exp]), ([Pat], [Pat]), TypedDef)
 guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   | f /= g = tyErr (DecDef f g)
   | otherwise = do
   let ss' = map stanTy ss
   let ts' = map stanTy ts
-  ps <- local (:< TyINPUTS ss' ps) $ decPats ss' ps
-  (qs, es) <- local (:< TyOUTPUTS ts' es) $ chkExps (map (, Nothing) ts') es
+  typs <- local (:< TyINPUTS ss' ps) $ decPats ss' ps
+  (qs, tyes) <- local (:< TyOUTPUTS ts' es) $ chkExps (map (, Nothing) ts') es
   st <- get
   eqs <- traverse (traverse (\ eq -> local (:< TyEQN eq) $ chkEqn eq)) eqs
   (qs', (qs0, qs1)) <- foldMap stage ts
   solders qs' qs
-  return ((ps, es), (qs0, qs1), Def (f, ps) es eqs)
+  return ((ps, es), (qs0, qs1), Def (f, typs) tyes eqs)
 guts (Dec (g, ss) ts) (Stub f msg)
   | f /= g    = tyErr (DecDef f g)
   | otherwise = tyErr (Stubbed msg)
@@ -108,16 +108,16 @@ stubOut (Dec (g, ss) ts) = Compo
   } where (ts0, ts1) = foldMap splitTy2 ts
 
 
-decPats :: [Typ] -> [Pat] -> TyM [Pat]
+decPats :: [Typ] -> [Pat] -> TyM [TypedPat]
 decPats [] [] = return []
 decPats [] ps = tyErr LongPats
 decPats ss [] = tyErr ShortPats
 decPats (s : ss) (p : ps) = (:) <$> decPat s p <*> decPats ss ps
 
-decPat :: Typ -> Pat -> TyM Pat
-decPat s (PVar () x) = PVar () x <$ defineWire (Just s) x
-decPat (Cable ss) (PCab () ps)
-  | length ss == length ps = PCab () <$> decPats ss ps
+decPat :: Typ -> Pat -> TyM TypedPat
+decPat s (PVar () x) = PVar s x <$ defineWire (Just s) x
+decPat s@(Cable ss) (PCab () ps)
+  | length ss == length ps = PCab s <$> decPats ss ps
   | otherwise = tyErr CableWidth
 decPat _ (PCab _ _) = tyErr BitCable
 
@@ -126,18 +126,23 @@ decPat _ (PCab _ _) = tyErr BitCable
 -- where-equations
 ------------------------------------------------------------------------------
 
-chkEqn :: Eqn -> TyM Eqn
+chkEqn :: Eqn -> TyM TypedEqn
 chkEqn eqn@(qs :=: es) = do
   tqs <- traverse defPat qs
   (ps, es) <- chkExps (map (fmap Just) tqs) es
   solders qs ps
   pure (map snd tqs :=: es)
 
-defPat :: Pat -> TyM (Typ, Pat)
-defPat (PVar () x)  = (, PVar () x) <$> defineWire Nothing x
-defPat (PCab () ps) =  bimap Cable (PCab ()) . unzip <$> traverse defPat ps
+defPat :: Pat -> TyM (Typ, TypedPat)
+defPat (PVar () x)  = do
+  ty <- defineWire Nothing x
+  pure (ty, PVar ty x)
+defPat (PCab () ps) = do
+  (tys, pats) <- unzip <$> traverse defPat ps
+  let ty = Cable tys
+  pure (ty, PCab ty pats)
 
-chkExps :: [(Typ, Maybe Pat)] -> [Exp] -> TyM ([Pat], [Exp])
+chkExps :: [(Typ, Maybe TypedPat)] -> [Exp] -> TyM ([Pat], [TypedExp])
 chkExps []  []       = return ([], [])
 chkExps tqs []       = tyErr LongPats
 chkExps tqs (e : es) = do
@@ -153,31 +158,30 @@ solder :: Pat -> Pat -> TyM ()
 solder (PCab () qs) (PCab () ps) = solders qs ps
 solder q p = schedule ([q] :<- (id, [p]))
 
-
 ------------------------------------------------------------------------------
 -- expressions
 ------------------------------------------------------------------------------
 
-memRenaming :: Maybe Pat -> OutputWire -> [(CellName, String)]
+memRenaming :: Maybe (Pat' ty String) -> OutputWire -> [(CellName, String)]
 memRenaming p (OutputWire mop _) = maybe [] (uncurry go) ((,) <$> p <*> mop) where
 
-  go :: Pat -> OPat -> [(CellName, String)]
-  go (PVar () p)  (PVar () (cn , b)) = if b then [(CellName cn, p)] else []
-  go (PCab () ps) (PCab () qs)       = concat $ zipWith go ps qs
+  go :: Pat' ty String -> OPat -> [(CellName, String)]
+  go (PVar _ p)  (PVar _ (cn , b)) = if b then [(CellName cn, p)] else []
+  go (PCab _ ps) (PCab _ qs)       = concat $ zipWith go ps qs
 
-memRenamings :: [Maybe Pat] -> [OutputWire] -> [(CellName, String)]
+memRenamings :: [Maybe (Pat' ty String)] -> [OutputWire] -> [(CellName, String)]
 memRenamings ps os = concat $ zipWith memRenaming ps os
 
 renameMem :: [(CellName, String)] -> MemoryCell -> MemoryCell
 renameMem rho (MemoryCell mc t) = MemoryCell (fmap CellName $ mc >>= flip lookup rho) t
 
-chkExp :: [(Typ, Maybe Pat)]
+chkExp :: [(Typ, Maybe TypedPat)]
        -> Exp
-       -> TyM ([Pat], [(Typ, Maybe Pat)], Exp)
+       -> TyM ([Pat], [(Typ, Maybe TypedPat)], TypedExp)
 chkExp ((t,_) : ts) (Var () x) = do
   s <- useWire x
   local (:< TyWIRE x s t) $ tyEq (s, t)
-  return ([PVar () x], ts, Var () x)
+  return ([PVar () x], ts, Var s x)
 chkExp tqs e@(App fn es) = do
   env <- gets coEnv
   f <- case findArr fn env of
@@ -211,7 +215,7 @@ chkExp tqs e@(App fn es) = do
   (qs,,App fn es) <$> yield (map stanTy oTy) tqs
 chkExp (tq : tqs) (Cab () es) = do
   sqs <- case tq of
-    (Cable ss, Just (PCab () qs))
+    (Cable ss, Just (PCab _ qs))
       | length ss == length qs -> return (zipWith (\ s q -> (s, Just q)) ss qs)
       | otherwise              -> return (map (, Nothing) ss)
     (Cable ss, Nothing)        -> return (map (, Nothing) ss)
@@ -221,10 +225,10 @@ chkExp (tq : tqs) (Cab () es) = do
       tyEq (Cable ss, TyV x)
       return (map (, Nothing) ss)
   (ps, es) <- local (:< TyCAB es (fst <$> sqs)) $ chkExps sqs es
-  return ([PCab () ps], tqs, Cab () es)
+  return ([PCab () ps], tqs, Cab (Cable (map fst sqs)) es)
 chkExp [] _ = tyErr ShortPats
 
-yield :: [Typ] -> [(Typ, Maybe Pat)] -> TyM [(Typ, Maybe Pat)]
+yield :: [Typ] -> [(Typ, a)] -> TyM [(Typ, a)]
 yield []       tqs = return tqs
 yield (s : ss) []  = tyErr ShortPats
 yield (s : ss) ((t , q) : tqs) = tyEq (s, t) >> yield ss tqs
@@ -238,7 +242,6 @@ stage (Bit t) = do
 stage (Cable ts) = do
   (qs, (qs0, qs1)) <- foldMap stage ts
   return ([PCab () qs], ([PCab () qs0], [PCab () qs1]))
-
 
 ------------------------------------------------------------------------------
 -- from raw to cooked Syrup types
@@ -256,7 +259,6 @@ cookTY :: t -> (t -> t) -> TY -> Ty t Void
 cookTY t old BIT         = Bit t
 cookTY t old (OLD ty)    = cookTY (old t) old ty
 cookTY t old (CABLE tys) = Cable (fmap (cookTY t old) tys)
-
 
 ------------------------------------------------------------------------------
 -- error reporting

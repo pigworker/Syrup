@@ -37,6 +37,11 @@ type Ty1 = Ty () Void
 type Ty2 = Ty Ti Void
 type Typ = Ty () TyNom
 
+type TypedPat = Pat' Typ String
+type TypedExp = Exp' Typ
+type TypedEqn = Eqn' Typ
+type TypedDef = Def' Typ
+
 data Ti = T0 | T1 deriving (Show, Eq)
 
 sizeTy :: Ty a Void -> Int
@@ -81,7 +86,7 @@ mkOutputWire ms e ty = flip OutputWire ty $ do
 
 data Compo = Compo
   { monick :: String
-  , defn   :: Maybe Def
+  , defn   :: Maybe TypedDef
   , memTys :: [MemoryCell]
   , inpTys :: [InputWire]
   , oupTys :: [OutputWire]
@@ -301,7 +306,6 @@ norm :: Typ -> TyM Typ
 norm t = hnf t >>= \ t -> case t of
   Cable ts -> Cable <$> traverse norm ts
   _ -> return t
-
 
 ------------------------------------------------------------------------------
 -- unification

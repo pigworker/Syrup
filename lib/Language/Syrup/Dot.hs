@@ -20,12 +20,13 @@ import Data.Char (isAlphaNum)
 import Data.Foldable (for_)
 import Data.Traversable (for)
 
-import Language.Syrup.BigArray
-import Language.Syrup.Syn
 import Language.Syrup.Anf
-import Language.Syrup.Smp
+import Language.Syrup.BigArray
 import Language.Syrup.Fsh
 import Language.Syrup.Gph
+import Language.Syrup.Smp
+import Language.Syrup.Syn
+import Language.Syrup.Ty
 
 data Circuit = Circuit
   { inputPorts   :: [String]
@@ -315,7 +316,7 @@ def d = case toGate d of
 addDef :: DotSt -> Def -> DotSt
 addDef st d = fromMaybe st $ flip execStateT st $ runDot $ def d
 
-whiteBoxDef :: DotSt -> Def -> [String]
+whiteBoxDef :: DotSt -> TypedDef -> [String]
 whiteBoxDef st d = fromMaybe [] $ do
   nm <- case d of { Stub{} -> Nothing; Def (nm, _) _ _ -> Just nm }
   ga <- findArr nm (gates st)
