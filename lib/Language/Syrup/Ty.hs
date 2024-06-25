@@ -58,7 +58,7 @@ data InputWire = InputWire
   , getInputType :: Ty1
   }
 
-type OPat = Pat' (String, Bool)
+type OPat = Pat' () (String, Bool)
 data OutputWire = OutputWire
   { getOutputPat  :: Maybe OPat
   , getOutputType :: Ty2

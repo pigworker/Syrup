@@ -22,33 +22,36 @@ data Source' a
 type SourceC = Source' String
 type Source  = Source' Void
 
-data Exp
-  = Var String
-  | App String [Exp]
-  | Cab [Exp]
+type Exp = Exp' ()
+data Exp' ty
+  = Var ty String
+  | App String [Exp' ty]
+  | Cab ty [Exp' ty]
   deriving (Eq)
 
-type Pat = Pat' String
-data Pat' a
-  = PVar a
-  | PCab [Pat' a]
+type Pat = Pat' () String
+data Pat' ty a
+  = PVar ty a
+  | PCab ty [Pat' ty a]
   deriving (Functor, Traversable, Foldable)
 
-exPat :: Exp -> Maybe Pat
-exPat (Var x)   = return (PVar x)
-exPat (Cab es)  = PCab <$> traverse exPat es
-exPat _         = Nothing
+exPat :: Exp' ty -> Maybe (Pat' ty String)
+exPat (Var ty x)  = return (PVar ty x)
+exPat (Cab ty es) = PCab ty <$> traverse exPat es
+exPat _           = Nothing
 
-patToExp :: Pat -> Exp
+patToExp :: Pat' ty String -> Exp' ty
 patToExp = \case
-  PVar x  -> Var x
-  PCab ps -> Cab $ map patToExp ps
+  PVar ty x  -> Var ty x
+  PCab ty ps -> Cab ty $ map patToExp ps
 
-data Eqn = [Pat] :=: [Exp]
-data Def
+type Eqn = Eqn' ()
+data Eqn' ty = [Pat' ty String] :=: [Exp' ty]
+type Def = Def' ()
+data Def' ty
   = Stub String [String]
   -- stubbed out definition together with error msg
-  | Def (String,[Pat]) [Exp] (Maybe [Eqn])
+  | Def (String,[Pat' ty String]) [Exp' ty] (Maybe [Eqn' ty])
 
 data TY' a
   = BIT
@@ -91,28 +94,28 @@ instance Show Va where
 -- operations on syntax
 ------------------------------------------------------------------------------
 
-support :: Pat -> Set String
-support (PVar x)  = singleton x
-support (PCab ps) = foldMap support ps
+support :: Pat' ty String -> Set String
+support (PVar _ x)  = singleton x
+support (PCab _ ps) = foldMap support ps
 
 
 ------------------------------------------------------------------------------
 -- ugly-printing
 ------------------------------------------------------------------------------
 
-instance Show Exp where
-  show (Var x)    = x
+instance Show (Exp' ty) where
+  show (Var _ x)  = x
   show (App f es) = concat [f, "(", csepShow es, ")"]
-  show (Cab es)   = concat ["[", csepShow es, "]"]
+  show (Cab _ es) = concat ["[", csepShow es, "]"]
 
-instance a ~ String => Show (Pat' a) where
-  show (PVar x)  = x
-  show (PCab ps) = concat ["[", csepShow ps, "]"]
+instance a ~ String => Show (Pat' ty a) where
+  show (PVar _ x)  = x
+  show (PCab _ ps) = concat ["[", csepShow ps, "]"]
 
-instance Show Eqn where
+instance Show (Eqn' ty) where
   show (ps :=: es) = concat [csepShow ps, " = ", csepShow es]
 
-instance Show Def where
+instance Show (Def' ty) where
   show = \case
     Stub{} -> "Stubbed out definition"
     Def (nm, ps) rhs eqns ->

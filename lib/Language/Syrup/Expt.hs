@@ -132,8 +132,8 @@ data RowTemplate = RowTemplate
 
 -- Generate a template from a pattern and its type
 template :: Pat -> Ty a Void -> Template
-template (PVar v)  t          = TyV (max (length v) (sizeTy t))
-template (PCab ps) (Cable ts) = Cable (zipWith template ps ts)
+template (PVar _ v)  t          = TyV (max (length v) (sizeTy t))
+template (PCab _ ps) (Cable ts) = Cable (zipWith template ps ts)
 
 mTemplate :: Maybe Pat -> Ty a Void -> Template
 mTemplate Nothing  t = TyV (sizeTy t)
@@ -143,7 +143,7 @@ inputTemplate :: InputWire -> Template
 inputTemplate (InputWire p t) = mTemplate p t
 
 getCellPat :: MemoryCell -> Maybe Pat
-getCellPat = fmap (PVar . cellName) . getCellName
+getCellPat = fmap (PVar () . cellName) . getCellName
 
 cellTemplate :: MemoryCell -> Template
 cellTemplate c@(MemoryCell _ t) = mTemplate (getCellPat c) t
@@ -153,8 +153,8 @@ outputTemplate (OutputWire p t) = mTemplate (fmap (fst <$>) p) t
 
 -- `displayPat ts ps` PRECONDITION: ts was generated using ps
 displayPat :: Template -> Pat -> String
-displayPat (TyV s)    (PVar n)  = padRight (s - length n) n
-displayPat (Cable ts) (PCab ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
+displayPat (TyV s)    (PVar _ n)  = padRight (s - length n) n
+displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
 
 displayMPat :: Template -> Maybe Pat -> String
 displayMPat t = maybe (displayEmpty t) (displayPat t)

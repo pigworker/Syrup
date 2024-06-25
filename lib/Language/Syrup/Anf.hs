@@ -100,8 +100,8 @@ type Assignment = ([Output], Exp)
 -- the successive fan-outs
 elabPat :: Pat -> ANF (Input, [Input], [LetBinding])
 elabPat p = case p of
-  PVar x -> let vx = Input False Nothing x in pure (vx, [vx], [])
-  PCab ps -> do
+  PVar () x -> let vx = Input False Nothing x in pure (vx, [vx], [])
+  PCab () ps -> do
     x <- Input True (Just $ show p) <$> freshVirtualName
     ias <- mapM elabPat ps
     let (is, iss, eqnss) = unzip3 ias
@@ -115,7 +115,7 @@ declareAlias e = do
 
 elabExp :: Exp -> ANF (Output, [Assignment])
 elabExp = \case
-  Var x -> pure (Output False Nothing x, [])
+  Var () x -> pure (Output False Nothing x, [])
   e     -> declareAlias e
 
 -- If an expression on the RHS is a variable corresponding to an input
@@ -128,7 +128,7 @@ elabRHS inputs e =
   let dflt = elabExp e
       ins  = map inputName inputs
   in case e of
-    Var x | x `elem` ins -> declareAlias e
+    Var () x | x `elem` ins -> declareAlias e
           | otherwise    -> dflt
     _ -> dflt
 
@@ -180,12 +180,12 @@ elabEqn (ps :=: rhs) = do
 --     Finally we elaborate these additional assignments
 elabAss :: Assignment -> ANF [LetBinding]
 elabAss (ous, e) = case e of
-  Var x    -> pure [(ous, Alias x)]
+  Var () x -> pure [(ous, Alias x)]
   App f es -> do
     (args, eqs) <- unzip <$> mapM elabExp es
     ih <- mapM elabAss $ concat eqs
     pure $ (ous, Call f (cowire <$> args)) : concat ih
-  Cab es -> do
+  Cab () es -> do
     (args, eqs) <- unzip <$> mapM elabExp es
     ih <- mapM elabAss $ concat eqs
     pure $ (ous, FanIn (cowire <$> args)) : concat ih
@@ -201,18 +201,18 @@ toGate = evalFresh . elabDef
 -- `d` and `toANF d` are bisimilar!
 fromGate :: String -> Gate -> Def
 fromGate nm g =
-  Def (nm, map (PVar . inputName) (inputs g))
-      (map (Var . outputName) (outputs g))
+  Def (nm, map (PVar () . inputName) (inputs g))
+      (map (Var () . outputName) (outputs g))
   $ case letBindings g of
       []   -> Nothing
       eqns -> Just $ map (\ (os, rhs) ->
-                           (map (PVar . outputName) os)
+                           (map (PVar () . outputName) os)
                            :=:
                            [case rhs of
-                              Alias x   -> Var x
-                              Call f es -> App f (map (Var . inputName) es)
-                              FanIn os  -> Cab (map (Var . inputName) os)
-                              FanOut i  -> Var (inputName i)
+                              Alias x   -> Var () x
+                              Call f es -> App f (map (Var () . inputName) es)
+                              FanIn os  -> Cab () (map (Var () . inputName) os)
+                              FanOut i  -> Var () (inputName i)
                            ])
                      eqns
 

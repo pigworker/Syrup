@@ -115,11 +115,11 @@ decPats ss [] = tyErr ShortPats
 decPats (s : ss) (p : ps) = (:) <$> decPat s p <*> decPats ss ps
 
 decPat :: Typ -> Pat -> TyM Pat
-decPat s (PVar x) = PVar x <$ defineWire (Just s) x
-decPat (Cable ss) (PCab ps)
-  | length ss == length ps = PCab <$> decPats ss ps
+decPat s (PVar () x) = PVar () x <$ defineWire (Just s) x
+decPat (Cable ss) (PCab () ps)
+  | length ss == length ps = PCab () <$> decPats ss ps
   | otherwise = tyErr CableWidth
-decPat _ (PCab _) = tyErr BitCable
+decPat _ (PCab _ _) = tyErr BitCable
 
 
 ------------------------------------------------------------------------------
@@ -134,8 +134,8 @@ chkEqn eqn@(qs :=: es) = do
   pure (map snd tqs :=: es)
 
 defPat :: Pat -> TyM (Typ, Pat)
-defPat (PVar x)  = (, PVar x) <$> defineWire Nothing x
-defPat (PCab ps) =  bimap Cable PCab . unzip <$> traverse defPat ps
+defPat (PVar () x)  = (, PVar () x) <$> defineWire Nothing x
+defPat (PCab () ps) =  bimap Cable (PCab ()) . unzip <$> traverse defPat ps
 
 chkExps :: [(Typ, Maybe Pat)] -> [Exp] -> TyM ([Pat], [Exp])
 chkExps []  []       = return ([], [])
@@ -150,7 +150,7 @@ solders (q : qs) (p : ps) = solder q p >> solders qs ps
 solders _ _ = tyErr BUGSolderMismatch
 
 solder :: Pat -> Pat -> TyM ()
-solder (PCab qs) (PCab ps) = solders qs ps
+solder (PCab () qs) (PCab () ps) = solders qs ps
 solder q p = schedule ([q] :<- (id, [p]))
 
 
@@ -162,8 +162,8 @@ memRenaming :: Maybe Pat -> OutputWire -> [(CellName, String)]
 memRenaming p (OutputWire mop _) = maybe [] (uncurry go) ((,) <$> p <*> mop) where
 
   go :: Pat -> OPat -> [(CellName, String)]
-  go (PVar p)  (PVar (cn , b)) = if b then [(CellName cn, p)] else []
-  go (PCab ps) (PCab qs)       = concat $ zipWith go ps qs
+  go (PVar () p)  (PVar () (cn , b)) = if b then [(CellName cn, p)] else []
+  go (PCab () ps) (PCab () qs)       = concat $ zipWith go ps qs
 
 memRenamings :: [Maybe Pat] -> [OutputWire] -> [(CellName, String)]
 memRenamings ps os = concat $ zipWith memRenaming ps os
@@ -174,10 +174,10 @@ renameMem rho (MemoryCell mc t) = MemoryCell (fmap CellName $ mc >>= flip lookup
 chkExp :: [(Typ, Maybe Pat)]
        -> Exp
        -> TyM ([Pat], [(Typ, Maybe Pat)], Exp)
-chkExp ((t,_) : ts) (Var x) = do
+chkExp ((t,_) : ts) (Var () x) = do
   s <- useWire x
   local (:< TyWIRE x s t) $ tyEq (s, t)
-  return ([PVar x], ts, Var x)
+  return ([PVar () x], ts, Var () x)
 chkExp tqs e@(App fn es) = do
   env <- gets coEnv
   f <- case findArr fn env of
@@ -192,11 +192,11 @@ chkExp tqs e@(App fn es) = do
   mIn <- for mTy $ \ ty -> do
     w <- wiF
     defineWire (Just (stanTy ty)) w
-    return (PVar w)
+    return (PVar () w)
   mOu <- for mTy $ \ ty -> do
     w <- wiF
     defineWire (Just (stanTy ty)) w
-    return (PVar w)
+    return (PVar () w)
   st <- get
   put $ st { memTy = memTys : memTy st
            , memIn = memIn st ++ mIn
@@ -209,9 +209,9 @@ chkExp tqs e@(App fn es) = do
   schedule (qs0 :<- (stage0 f, mIn))
   schedule ((mOu ++ qs1) :<- (stage1 f, mIn ++ ps))
   (qs,,App fn es) <$> yield (map stanTy oTy) tqs
-chkExp (tq : tqs) (Cab es) = do
+chkExp (tq : tqs) (Cab () es) = do
   sqs <- case tq of
-    (Cable ss, Just (PCab qs))
+    (Cable ss, Just (PCab () qs))
       | length ss == length qs -> return (zipWith (\ s q -> (s, Just q)) ss qs)
       | otherwise              -> return (map (, Nothing) ss)
     (Cable ss, Nothing)        -> return (map (, Nothing) ss)
@@ -221,7 +221,7 @@ chkExp (tq : tqs) (Cab es) = do
       tyEq (Cable ss, TyV x)
       return (map (, Nothing) ss)
   (ps, es) <- local (:< TyCAB es (fst <$> sqs)) $ chkExps sqs es
-  return ([PCab ps], tqs, Cab es)
+  return ([PCab () ps], tqs, Cab () es)
 chkExp [] _ = tyErr ShortPats
 
 yield :: [Typ] -> [(Typ, Maybe Pat)] -> TyM [(Typ, Maybe Pat)]
@@ -234,10 +234,10 @@ stage (TyV x) = absurd x
 stage (Bit t) = do
   w <- wiF
   defineWire (Just (Bit ())) w
-  return ([PVar w], case t of {T0 -> ([PVar w], []); T1 -> ([], [PVar w])})
+  return ([PVar () w], case t of {T0 -> ([PVar () w], []); T1 -> ([], [PVar () w])})
 stage (Cable ts) = do
   (qs, (qs0, qs1)) <- foldMap stage ts
-  return ([PCab qs], ([PCab qs0], [PCab qs1]))
+  return ([PCab () qs], ([PCab () qs0], [PCab () qs1]))
 
 
 ------------------------------------------------------------------------------
@@ -379,8 +379,8 @@ myCoEnv = foldr insertArr emptyCoEnv
       { monick = "nand"
       , defn = Nothing
       , memTys = []
-      , inpTys = [ InputWire (Just (PVar "X")) (Bit ())
-                 , InputWire (Just (PVar "Y")) (Bit ())
+      , inpTys = [ InputWire (Just (PVar () "X")) (Bit ())
+                 , InputWire (Just (PVar () "Y")) (Bit ())
                  ]
       , oupTys = [ OutputWire Nothing (Bit T1) ]
       , stage0 = \ [] -> []
@@ -395,8 +395,8 @@ myCoEnv = foldr insertArr emptyCoEnv
       { monick = "dff"
       , defn = Nothing
       , memTys = [MemoryCell (Just $ CellName "Q") (Bit ())]
-      , inpTys = [InputWire  (Just (PVar "D")) (Bit ())]
-      , oupTys = [OutputWire (Just (PVar ("Q", True))) (Bit T0)]
+      , inpTys = [InputWire  (Just (PVar () "D")) (Bit ())]
+      , oupTys = [OutputWire (Just (PVar () ("Q", True))) (Bit T0)]
       , stage0 = \ [q] -> [q]
       , stage1 = \ [_, d] -> [d]
       }
@@ -422,58 +422,58 @@ myTyEnv = emptyTyEnv
 env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
 (_, _, env1) = mkComponent myCoEnv
   (DEC ("not", [BIT]) [BIT], "!<Bit> -> <Bit>") $ Just
-  (Def ("not", [PVar "x"]) [Var "y"] $ Just
-   [[PVar "y"] :=: [App "nand" [Var "x", Var "x"]]]
+  (Def ("not", [PVar () "x"]) [Var () "y"] $ Just
+   [[PVar () "y"] :=: [App "nand" [Var () "x", Var () "x"]]]
   ,"!x = y where  y = nand(x,x)")
 
 (_, _, env2) = mkComponent env1
   (DEC ("and", [BIT, BIT]) [BIT], "<Bit> & <Bit> -> <Bit>") $ Just
-  (Def ("and", [PVar "x", PVar "y"]) [Var "b"] $ Just
-    [[PVar "a"] :=: [App "nand" [Var "x", Var "y"]]
-    ,[PVar "b"] :=: [App "not" [Var "a"]]
+  (Def ("and", [PVar () "x", PVar () "y"]) [Var () "b"] $ Just
+    [[PVar () "a"] :=: [App "nand" [Var () "x", Var () "y"]]
+    ,[PVar () "b"] :=: [App "not" [Var () "a"]]
     ]
   ,"x & y = b where  a = nand(x,y)  b = not(a)")
 
 (_, _, env3) = mkComponent env2
   (DEC ("or", [BIT, BIT]) [BIT], "<Bit> | <Bit> -> <Bit>") $ Just
-  (Def ("or", [PVar "x", PVar "y"]) [Var "c"] $ Just
-    [[PVar "c"] :=: [App "nand" [Var "a", Var "b"]]
-    ,[PVar "a",PVar "b"] :=: [App "not" [Var "x"],App "not" [Var "y"]]
+  (Def ("or", [PVar () "x", PVar () "y"]) [Var () "c"] $ Just
+    [[PVar () "c"] :=: [App "nand" [Var () "a", Var () "b"]]
+    ,[PVar () "a",PVar () "b"] :=: [App "not" [Var () "x"],App "not" [Var () "y"]]
     ]
   ,"x | y = c where  c = nand(a,b)  a,b = !x,!y")
 
 (_, _, env4) = mkComponent env3
   (DEC ("jkff", [BIT, BIT]) [OLD BIT], "jkff(<Bit>,<Bit>) -> @<Bit>") $ Just
-  (Def ("jkff", [PVar "j", PVar "k"]) [Var "q"] $ Just
-    [[PVar "q"] :=: [App "dff" [Var "d"]]
-    ,[PVar "d"] :=: [App "or"
-       [  App "and" [Var "j", App "not" [Var "q"]]
-       ,  App "and" [Var "q", App "not" [Var "k"]]
+  (Def ("jkff", [PVar () "j", PVar () "k"]) [Var () "q"] $ Just
+    [[PVar () "q"] :=: [App "dff" [Var () "d"]]
+    ,[PVar () "d"] :=: [App "or"
+       [  App "and" [Var () "j", App "not" [Var () "q"]]
+       ,  App "and" [Var () "q", App "not" [Var () "k"]]
        ]]
     ]
   ,"jkff(j,k) = q where  q = dff(d)  d = j & !q | q & !k")
 
 (_, _, env5) = mkComponent env4
   (DEC ("ndnff", [BIT]) [OLD BIT], "ndnff(<Bit>) -> @<Bit>") $ Just
-  (Def ("ndnff", [PVar "d"]) [App "not" [Var "q"]] $ Just
-    [[PVar "q"] :=: [App "dff" [App "not" [Var "d"]]]
+  (Def ("ndnff", [PVar () "d"]) [App "not" [Var () "q"]] $ Just
+    [[PVar () "q"] :=: [App "dff" [App "not" [Var () "d"]]]
     ]
   ,"ndnff(d) = !q where  q = dff(!d)")
 
 (_, _, env6) = mkComponent env5
   (DEC ("xor", [BIT,BIT]) [BIT], "xor(<Bit>,<Bit>) -> <Bit>") $ Just
-  (Def ("xor", [PVar "x", PVar "y"])
-       [App "or" [ App "and" [App "not" [Var "x"], Var "y"]
-                 , App "and" [Var "x", App "not" [Var "y"]]
+  (Def ("xor", [PVar () "x", PVar () "y"])
+       [App "or" [ App "and" [App "not" [Var () "x"], Var () "y"]
+                 , App "and" [Var () "x", App "not" [Var () "y"]]
                  ]]
        Nothing
   ,"xor(x,y) = !x & y | x & !y")
 
 (_, _, env7) = mkComponent env6
   (DEC ("tff", [BIT]) [OLD BIT], "tff(<Bit>) -> @<Bit>") $ Just
-  (Def ("tff", [PVar "t"]) [Var "q"] $ Just
-    [[PVar "q"] :=: [App "dff" [Var "d"]]
-    ,[PVar "d"] :=: [App "xor" [Var "t", Var "q"]]
+  (Def ("tff", [PVar () "t"]) [Var () "q"] $ Just
+    [[PVar () "q"] :=: [App "dff" [Var () "d"]]
+    ,[PVar () "d"] :=: [App "xor" [Var () "t", Var () "q"]]
     ]
   ,"tff(t) = q where q = dff(d) d = xor(t,q)")
 
@@ -484,8 +484,8 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
 
 (_, _, env9) = mkComponent env8
   (DEC ("tff2", [BIT]) [OLD BIT], "tff2(<Bit>) -> @<Bit>") $ Just
-  (Def ("tff2", [PVar "t"]) [App "xor" [Var "q2",Var "q1"]] $ Just
-    [[PVar "q2"] :=: [App "tff" [App "or" [App "not" [Var "t"],Var "q1"]]]
-    ,[PVar "q1"] :=: [App "tff" [App "one" []]]
+  (Def ("tff2", [PVar () "t"]) [App "xor" [Var () "q2",Var () "q1"]] $ Just
+    [[PVar () "q2"] :=: [App "tff" [App "or" [App "not" [Var () "t"],Var () "q1"]]]
+    ,[PVar () "q1"] :=: [App "tff" [App "one" []]]
     ]
   ,"tff2(T) = xor(Q2,Q1) where Q2 = tff(!T | Q1) Q1 = tff(one())")

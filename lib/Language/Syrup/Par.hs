@@ -242,8 +242,8 @@ pTYA = pTokIs (Id "type") *> pSpc *>
 
 pPat :: Par Pat
 pPat = pClue (SEEKING "a pattern") $
-  PVar <$> pVar
-  <|> PCab <$> pBrk Square (SEEKING "cable contents")
+  PVar () <$> pVar
+  <|> PCab () <$> pBrk Square (SEEKING "cable contents")
          (pAllSep (pTokIs (Sym ",")) pPat)
   <|> pYelp AARGH
 
@@ -257,8 +257,8 @@ pWee :: Par Exp
 pWee = pClue (SEEKING "an expression") $
       (pVar >>= \ f -> App f <$ pSpc <*> pBrk Round
         (SEEKING $ "input for " ++ f) (pAllSep (pTokIs (Sym ",")) pExp))
-  <|> Var <$> pVar <* pPeek notApp
-  <|> Cab <$> pBrk Square (SEEKING "cable contents")
+  <|> Var () <$> pVar <* pPeek notApp
+  <|> Cab () <$> pBrk Square (SEEKING "cable contents")
                  (pSep (pTokIs (Sym ",")) pExp)
   <|> (App "not" . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
   <|> pBrk Round (SEEKING "an expression in parentheses") pExp
