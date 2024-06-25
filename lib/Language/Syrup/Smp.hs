@@ -7,11 +7,12 @@
 module Language.Syrup.Smp where
 
 import Language.Syrup.Syn
+import Language.Syrup.Ty
 
-nand :: Def
-nand =
-  Def ("nand", PVar () <$> ["X", "Y"]) [Var () "Z"] $ Just $
-  [ ([PVar () "Z"] :=: [App "nand" (Var () <$> ["X", "Y"])]) ]
+nand :: TypedDef
+nand = let ty = Bit () in
+  Def ("nand", PVar ty <$> ["X", "Y"]) [Var ty "Z"] $ Just $
+  [ ([PVar ty "Z"] :=: [App "nand" (Var ty <$> ["X", "Y"])]) ]
 
 notG :: Def
 notG = Def ("not", [PVar () "X"]) [Var () "Z"] $ Just $
@@ -26,10 +27,10 @@ orG :: Def
 orG = Def ("or", PVar () <$> ["X", "Y"]) [Var () "Z"] $ Just $
   [ ([PVar () "Z"] :=: [App "nand" (App "not" . pure . Var () <$> ["X", "Y"])]) ]
 
-dff :: Def
-dff =
-  Def ("dff", [PVar () "D"]) [Var () "Q"] $ Just $
-  [ ([PVar () "Q"] :=: [App "dff" [Var () "D"]]) ]
+dff :: TypedDef
+dff = let ty = Bit () in
+  Def ("dff", [PVar ty "D"]) [Var ty "Q"] $ Just $
+  [ ([PVar ty "Q"] :=: [App "dff" [Var ty "D"]]) ]
 
 xor :: Def
 xor =
@@ -47,23 +48,24 @@ tff =
   , ([PVar () "Q"] :=: [App "dff" [Var () "D"]])
   ]
 
-foo :: Def
-foo =
-  Def ("foo", PVar () <$> ["A", "B", "C"])
-      ([App "and" [Var () "A", Var () "B"], Var () "Z"])
-      $ Just [([PVar () "Z"] :=: [App "or" [Var () "A"
-                                        , App "and" [Var () "B", Var () "C"]]])]
+foo :: TypedDef
+foo = let ty = Bit () in
+  Def ("foo", PVar ty <$> ["A", "B", "C"])
+      ([App "and" [Var ty "A", Var ty "B"], Var ty "Z"])
+      $ Just [([PVar ty "Z"] :=: [App "or" [Var ty "A"
+                                 , App "and" [Var ty "B", Var ty "C"]]])]
 
-and4 :: Def
-and4 = Def ("and4", PVar () <$> ["A", "B", "C", "D"])
-           [foldr1 (\ a b -> App "and" [a, b]) $ Var () <$> ["A", "B", "C", "D"]]
+and4 :: TypedDef
+and4 = let ty = Bit () in
+  Def ("and4", PVar ty <$> ["A", "B", "C", "D"])
+           [foldr1 (\ a b -> App "and" [a, b]) $ Var ty <$> ["A", "B", "C", "D"]]
            Nothing
 
-and4' :: Def
-and4' =
-  Def ("and4'", PVar () <$> ["A", "B", "C", "D"])
-  [App "and" [ App "and" (Var () <$> ["A", "B"])
-             , App "and" (Var () <$> ["C", "D"])
+and4' :: TypedDef
+and4' = let ty = Bit () in
+  Def ("and4'", PVar ty <$> ["A", "B", "C", "D"])
+  [App "and" [ App "and" (Var ty <$> ["A", "B"])
+             , App "and" (Var ty <$> ["C", "D"])
              ]
   ]
   Nothing

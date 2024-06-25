@@ -24,7 +24,7 @@ instance Semigroup Vertex where
     | a == b    = a
     | otherwise = error "This should never happen"
 
-data Edge = Edge Bool -- directed?
+data Edge = Edge Int Bool -- directed?
   deriving (Eq)
 
 instance Semigroup Edge where
@@ -63,7 +63,7 @@ shrinkInvisible g@(Graph vs es) = loop g es where
     Nothing                 -> g
     Just ((src, ts), queue) ->
       let (vs', es') = case foldMapArr pure ts of
-            [(t, Edge False)] -> case (findArr t vs, findArr t es) of
+            [(t, Edge size False)] -> case (findArr t vs, findArr t es) of
               (Just (Invisible False), Just next) -> ( deleteArr t vs
                                                      , insertArr (src, next)
                                                      $ deleteArr src
@@ -86,11 +86,12 @@ fromGraph Graph{..} =
 
   , -- then add edges
     flip foldMapArr edges $ \ (src, es) ->
-      flip foldMapArr es $ \ (tgt, Edge dir) ->
+      flip foldMapArr es $ \ (tgt, Edge size dir) ->
         pure $ concat [ src
                       , " -> "
                       , tgt
                       , " [label=", show " ", ", arrowsize = .5"
+                      , " penwidth= ", show (2 * size)
                       , if dir then "];" else " , dir = none];"
                       ]
   )

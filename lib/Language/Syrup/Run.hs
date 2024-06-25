@@ -34,8 +34,9 @@ grokSy env [] = (env, [])
 grokSy env (Left ss : src) = (id *** ((ss ++) . ("" :))) (grokSy env src)
 grokSy (env, st) (Right (Declaration dec@(DEC (f, _) _), s) : src) =
   (id *** ((concatMap (++ [""]) warn ++) . (drept ++) . (trept ++) . ("" :)))
-  (grokSy (env', st) rest) where
-    (_, trept, env') = mkComponent env (dec, s) mdef
+  (grokSy (env', st') rest) where
+    st' = maybe st (addDef st) mtydef
+    (_, trept, env', mtydef) = mkComponent env (dec, s) mdef
     (warn, rest)  = spanMaybe isLeft src
     (drept, mdef) = case getDefsOf f rest of
       [defs] -> ([], Just defs)
@@ -48,7 +49,7 @@ grokSy (env, st) (Right (Declaration dec@(DEC (f, _) _), s) : src) =
 grokSy env (Right (Experiment expt, _) : src) =
   (id *** ((experiment env expt ++) . ("" :))) (grokSy env src)
 grokSy (env, st) (Right (Definition d, _) : src) =
-  let st' = addDef st d in grokSy (env, st') src
+  grokSy (env, st) src
 
 runSyrup :: (TyEnv, (CoEnv, DotSt))
          -> String

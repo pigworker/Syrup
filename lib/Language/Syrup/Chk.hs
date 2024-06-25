@@ -29,7 +29,7 @@ import Language.Syrup.BigArray
 ------------------------------------------------------------------------------
 
 mkComponent :: CoEnv -> (DEC, String) -> Maybe (Def, String)
-            -> (Bool, [String], CoEnv)
+            -> (Bool, [String], CoEnv, Maybe TypedDef)
 mkComponent env (dec, decSrc) mdef =
   case (cookDec dec, mdef) of
     (dec@(Dec (g, ss) ts), Just (def, defSrc)) ->
@@ -39,7 +39,8 @@ mkComponent env (dec, decSrc) mdef =
         Left e ->
           ( False
           , typeErrorReport e ++ ["", g ++ " has been stubbed out."]
-          , insertArr (g, stubOut dec) env)
+          , insertArr (g, stubOut dec) env
+          , Nothing)
         Right (((ps, rhs), (qs0, qs1), def), st) ->
           let mI  = memIn st
               mO  = memOu st
@@ -49,7 +50,7 @@ mkComponent env (dec, decSrc) mdef =
                 glom ([], foldMap support (mI ++ ps)) (sched st)
           in  case (tat, foldMap support qs0 `subSet` k1,
                          foldMap support (mO ++ qs1) `subSet` k2) of
-                ([], True, True) -> (,,) True [g ++ " is defined."] $
+                ([], True, True) -> (True, [g ++ " is defined."],,Just def) $
                   let mems = concat $ reverse $ memTy st in
                   let gc = Compo
                         { monick = g
@@ -73,11 +74,13 @@ mkComponent env (dec, decSrc) mdef =
                   in  ( False
                       , typeErrorReport (B0 :< TySOURCE decSrc defSrc, sin)
                         ++ ["", g ++ " has been stubbed out."]
-                      , insertArr (g, stubOut dec) env)
+                      , insertArr (g, stubOut dec) env
+                      , Nothing)
     (dec@(Dec (g, ss) ts), Nothing) ->
       ( False
       , ["", g ++ " has been stubbed out."]
-      , insertArr (g, stubOut dec) env)
+      , insertArr (g, stubOut dec) env
+      , Nothing)
 
 guts :: Dec -> Def -> TyM (([Pat], [Exp]), ([Pat], [Pat]), TypedDef)
 guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
@@ -422,13 +425,13 @@ myTyEnv :: TyEnv
 myTyEnv = emptyTyEnv
 
 env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
-(_, _, env1) = mkComponent myCoEnv
+(_, _, env1, _) = mkComponent myCoEnv
   (DEC ("not", [BIT]) [BIT], "!<Bit> -> <Bit>") $ Just
   (Def ("not", [PVar () "x"]) [Var () "y"] $ Just
    [[PVar () "y"] :=: [App "nand" [Var () "x", Var () "x"]]]
   ,"!x = y where  y = nand(x,x)")
 
-(_, _, env2) = mkComponent env1
+(_, _, env2, _) = mkComponent env1
   (DEC ("and", [BIT, BIT]) [BIT], "<Bit> & <Bit> -> <Bit>") $ Just
   (Def ("and", [PVar () "x", PVar () "y"]) [Var () "b"] $ Just
     [[PVar () "a"] :=: [App "nand" [Var () "x", Var () "y"]]
@@ -436,7 +439,7 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
     ]
   ,"x & y = b where  a = nand(x,y)  b = not(a)")
 
-(_, _, env3) = mkComponent env2
+(_, _, env3, _) = mkComponent env2
   (DEC ("or", [BIT, BIT]) [BIT], "<Bit> | <Bit> -> <Bit>") $ Just
   (Def ("or", [PVar () "x", PVar () "y"]) [Var () "c"] $ Just
     [[PVar () "c"] :=: [App "nand" [Var () "a", Var () "b"]]
@@ -444,7 +447,7 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
     ]
   ,"x | y = c where  c = nand(a,b)  a,b = !x,!y")
 
-(_, _, env4) = mkComponent env3
+(_, _, env4, _) = mkComponent env3
   (DEC ("jkff", [BIT, BIT]) [OLD BIT], "jkff(<Bit>,<Bit>) -> @<Bit>") $ Just
   (Def ("jkff", [PVar () "j", PVar () "k"]) [Var () "q"] $ Just
     [[PVar () "q"] :=: [App "dff" [Var () "d"]]
@@ -455,14 +458,14 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
     ]
   ,"jkff(j,k) = q where  q = dff(d)  d = j & !q | q & !k")
 
-(_, _, env5) = mkComponent env4
+(_, _, env5, _) = mkComponent env4
   (DEC ("ndnff", [BIT]) [OLD BIT], "ndnff(<Bit>) -> @<Bit>") $ Just
   (Def ("ndnff", [PVar () "d"]) [App "not" [Var () "q"]] $ Just
     [[PVar () "q"] :=: [App "dff" [App "not" [Var () "d"]]]
     ]
   ,"ndnff(d) = !q where  q = dff(!d)")
 
-(_, _, env6) = mkComponent env5
+(_, _, env6, _) = mkComponent env5
   (DEC ("xor", [BIT,BIT]) [BIT], "xor(<Bit>,<Bit>) -> <Bit>") $ Just
   (Def ("xor", [PVar () "x", PVar () "y"])
        [App "or" [ App "and" [App "not" [Var () "x"], Var () "y"]
@@ -471,7 +474,7 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
        Nothing
   ,"xor(x,y) = !x & y | x & !y")
 
-(_, _, env7) = mkComponent env6
+(_, _, env7, _) = mkComponent env6
   (DEC ("tff", [BIT]) [OLD BIT], "tff(<Bit>) -> @<Bit>") $ Just
   (Def ("tff", [PVar () "t"]) [Var () "q"] $ Just
     [[PVar () "q"] :=: [App "dff" [Var () "d"]]
@@ -479,12 +482,12 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
     ]
   ,"tff(t) = q where q = dff(d) d = xor(t,q)")
 
-(_, _, env8) = mkComponent env7
+(_, _, env8, _) = mkComponent env7
   (DEC ("one", []) [OLD BIT], "one() -> @<Bit>") $ Just
   (Def ("one", []) [App "not" [App "zero" []]] Nothing
   ,"one() = !zero()")
 
-(_, _, env9) = mkComponent env8
+(_, _, env9, _) = mkComponent env8
   (DEC ("tff2", [BIT]) [OLD BIT], "tff2(<Bit>) -> @<Bit>") $ Just
   (Def ("tff2", [PVar () "t"]) [App "xor" [Var () "q2",Var () "q1"]] $ Just
     [[PVar () "q2"] :=: [App "tff" [App "or" [App "not" [Var () "t"],Var () "q1"]]]
