@@ -10,6 +10,7 @@ module Language.Syrup.Chk where
 import Control.Monad.Reader (local)
 import Control.Monad.State (get, gets, put)
 
+import Data.Bifunctor (bimap)
 import Data.Char (isAlpha)
 import Data.List (intercalate)
 import Data.Monoid (Last(Last))
@@ -39,7 +40,7 @@ mkComponent env (dec, decSrc) mdef =
           ( False
           , typeErrorReport e ++ ["", g ++ " has been stubbed out."]
           , insertArr (g, stubOut dec) env)
-        Right (((ps, rhs), (qs0, qs1)), st) ->
+        Right (((ps, rhs), (qs0, qs1), def), st) ->
           let mI  = memIn st
               mO  = memOu st
               ((ta0, k1), tar) =
@@ -78,19 +79,19 @@ mkComponent env (dec, decSrc) mdef =
       , ["", g ++ " has been stubbed out."]
       , insertArr (g, stubOut dec) env)
 
-guts :: Dec -> Def -> TyM (([Pat], [Exp]), ([Pat], [Pat]))
+guts :: Dec -> Def -> TyM (([Pat], [Exp]), ([Pat], [Pat]), Def)
 guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   | f /= g = tyErr (DecDef f g)
   | otherwise = do
   let ss' = map stanTy ss
   let ts' = map stanTy ts
-  local (:< TyINPUTS ss' ps) $ decPats ss' ps
-  qs <- local (:< TyOUTPUTS ts' es) $ chkExps (map (, Nothing) ts') es
+  ps <- local (:< TyINPUTS ss' ps) $ decPats ss' ps
+  (qs, es) <- local (:< TyOUTPUTS ts' es) $ chkExps (map (, Nothing) ts') es
   st <- get
-  foldMap (foldMap (\ eq -> local (:< TyEQN eq) $ chkEqn eq)) eqs
+  eqs <- traverse (traverse (\ eq -> local (:< TyEQN eq) $ chkEqn eq)) eqs
   (qs', (qs0, qs1)) <- foldMap stage ts
   solders qs' qs
-  return ((ps, es), (qs0, qs1))
+  return ((ps, es), (qs0, qs1), Def (f, ps) es eqs)
 guts (Dec (g, ss) ts) (Stub f msg)
   | f /= g    = tyErr (DecDef f g)
   | otherwise = tyErr (Stubbed msg)
@@ -107,18 +108,16 @@ stubOut (Dec (g, ss) ts) = Compo
   } where (ts0, ts1) = foldMap splitTy2 ts
 
 
-decPats :: [Typ] -> [Pat] -> TyM ()
-decPats [] [] = return ()
+decPats :: [Typ] -> [Pat] -> TyM [Pat]
+decPats [] [] = return []
 decPats [] ps = tyErr LongPats
 decPats ss [] = tyErr ShortPats
-decPats (s : ss) (p : ps) = do
-  decPat s p
-  decPats ss ps
+decPats (s : ss) (p : ps) = (:) <$> decPat s p <*> decPats ss ps
 
-decPat :: Typ -> Pat -> TyM ()
-decPat s (PVar x) = () <$ defineWire (Just s) x
+decPat :: Typ -> Pat -> TyM Pat
+decPat s (PVar x) = PVar x <$ defineWire (Just s) x
 decPat (Cable ss) (PCab ps)
-  | length ss == length ps = decPats ss ps
+  | length ss == length ps = PCab <$> decPats ss ps
   | otherwise = tyErr CableWidth
 decPat _ (PCab _) = tyErr BitCable
 
@@ -127,22 +126,23 @@ decPat _ (PCab _) = tyErr BitCable
 -- where-equations
 ------------------------------------------------------------------------------
 
-chkEqn :: Eqn -> TyM ()
+chkEqn :: Eqn -> TyM Eqn
 chkEqn eqn@(qs :=: es) = do
-  ts <- traverse defPat qs
-  ps <- chkExps (zipWith (\ t q -> (t, Just q)) ts qs) es
+  tqs <- traverse defPat qs
+  (ps, es) <- chkExps (map (fmap Just) tqs) es
   solders qs ps
+  pure (map snd tqs :=: es)
 
-defPat :: Pat -> TyM Typ
-defPat (PVar x)  = defineWire Nothing x
-defPat (PCab ps) = Cable <$> traverse defPat ps
+defPat :: Pat -> TyM (Typ, Pat)
+defPat (PVar x)  = (, PVar x) <$> defineWire Nothing x
+defPat (PCab ps) =  bimap Cable PCab . unzip <$> traverse defPat ps
 
-chkExps :: [(Typ, Maybe Pat)] -> [Exp] -> TyM [Pat]
-chkExps []  []       = return []
+chkExps :: [(Typ, Maybe Pat)] -> [Exp] -> TyM ([Pat], [Exp])
+chkExps []  []       = return ([], [])
 chkExps tqs []       = tyErr LongPats
 chkExps tqs (e : es) = do
-  (ps, tqs) <- local (:< TyEXP e (fst <$> tqs)) $ chkExp tqs e
-  (ps ++) <$> chkExps tqs es
+  (ps, tqs, e) <- local (:< TyEXP e (fst <$> tqs)) $ chkExp tqs e
+  bimap (ps ++) (e :) <$> chkExps tqs es
 
 solders :: [Pat] -> [Pat] -> TyM ()
 solders [] [] = return ()
@@ -171,15 +171,17 @@ memRenamings ps os = concat $ zipWith memRenaming ps os
 renameMem :: [(CellName, String)] -> MemoryCell -> MemoryCell
 renameMem rho (MemoryCell mc t) = MemoryCell (fmap CellName $ mc >>= flip lookup rho) t
 
-chkExp :: [(Typ, Maybe Pat)] -> Exp -> TyM ([Pat], [(Typ, Maybe Pat)])
+chkExp :: [(Typ, Maybe Pat)]
+       -> Exp
+       -> TyM ([Pat], [(Typ, Maybe Pat)], Exp)
 chkExp ((t,_) : ts) (Var x) = do
   s <- useWire x
   local (:< TyWIRE x s t) $ tyEq (s, t)
-  return ([PVar x], ts)
-chkExp tqs e@(App f es) = do
+  return ([PVar x], ts, Var x)
+chkExp tqs e@(App fn es) = do
   env <- gets coEnv
-  f <- case findArr f env of
-    Nothing -> tyErr (Don'tKnow f)
+  f <- case findArr fn env of
+    Nothing -> tyErr (Don'tKnow fn)
     Just f  -> return f
   -- rename the memory cells brought into scope by f
   let (ts, qs) = unzip tqs
@@ -201,12 +203,12 @@ chkExp tqs e@(App f es) = do
            , memOu = memOu st ++ mOu
            }
   let iTy = getInputType <$> inpTys f
-  ps <- local (:< TyAPP f es) $ chkExps (map (\t -> (stanTy t, Nothing)) iTy) es
+  (ps, es) <- local (:< TyAPP f es) $ chkExps (map (\t -> (stanTy t, Nothing)) iTy) es
   let oTy = getOutputType <$> oupTys f
   (qs, (qs0, qs1)) <- foldMap stage oTy
   schedule (qs0 :<- (stage0 f, mIn))
   schedule ((mOu ++ qs1) :<- (stage1 f, mIn ++ ps))
-  (,) qs <$> yield (map stanTy oTy) tqs
+  (qs,,App fn es) <$> yield (map stanTy oTy) tqs
 chkExp (tq : tqs) (Cab es) = do
   sqs <- case tq of
     (Cable ss, Just (PCab qs))
@@ -218,8 +220,8 @@ chkExp (tq : tqs) (Cab es) = do
       ss <- traverse (const tyF) es
       tyEq (Cable ss, TyV x)
       return (map (, Nothing) ss)
-  ps <- local (:< TyCAB es (fst <$> sqs)) $ chkExps sqs es
-  return ([PCab ps], tqs)
+  (ps, es) <- local (:< TyCAB es (fst <$> sqs)) $ chkExps sqs es
+  return ([PCab ps], tqs, Cab es)
 chkExp [] _ = tyErr ShortPats
 
 yield :: [Typ] -> [(Typ, Maybe Pat)] -> TyM [(Typ, Maybe Pat)]
