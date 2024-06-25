@@ -239,6 +239,9 @@ instance Scoped EXPT where
       isGlobalVar ga nm
       isGlobalVar ga nm'
       pure emptyExtension
+    Display nm -> do
+      isGlobalVar ga nm
+      pure emptyExtension
 
 instance Scoped (Source' a) where
   scopecheck ga = \case

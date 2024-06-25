@@ -9,7 +9,6 @@
 
 module Language.Syrup.Gph where
 
-import Data.Foldable
 import Language.Syrup.BigArray
 
 data Shape = Rectangle
@@ -91,7 +90,7 @@ fromGraph Graph{..} =
         pure $ concat [ src
                       , " -> "
                       , tgt
-                      , " [arrowsize = .5"
+                      , " [label=", show " ", ", arrowsize = .5"
                       , if dir then "];" else " , dir = none];"
                       ]
   )

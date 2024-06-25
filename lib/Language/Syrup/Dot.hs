@@ -9,8 +9,11 @@
 
 module Language.Syrup.Dot where
 
+import Control.Applicative ((<|>))
+import Control.Monad (guard)
 import Control.Monad.Writer (MonadWriter, WriterT, tell, runWriterT)
 import Control.Monad.State (StateT, evalStateT, execStateT, get, modify, put)
+
 import Data.List (intercalate)
 import Data.Maybe (fromMaybe)
 import Data.Char (isAlphaNum)
@@ -20,12 +23,6 @@ import Data.Traversable (for)
 import Language.Syrup.BigArray
 import Language.Syrup.Syn
 import Language.Syrup.Anf
-  ( Input'(..), Input
-  , Output'(..), Output
-  , Expr'(..)
-  , Gate(..)
-  , toGate
-  )
 import Language.Syrup.Smp
 import Language.Syrup.Fsh
 import Language.Syrup.Gph
@@ -40,6 +37,14 @@ data DotGate = DotGate
   { blackbox    :: Circuit
   , whitebox    :: Circuit
   }
+
+type Port = (Bool, Maybe String, String)
+
+inputToPort :: Input -> Port
+inputToPort (Input b dn n) = (b, dn, n)
+
+outputToPort :: Output -> Port
+outputToPort (Output b dn n) = (b, dn, n)
 
 indent :: Int -> String -> String
 indent n str = replicate n ' ' ++ str
@@ -121,21 +126,22 @@ toWhitebox :: String -> Gate -> Arr String (Path -> DotGate)
 toWhitebox nm (Gate is os defs) env p = do
   let gateNode   = mkGate p nm
 
-  ins <- for is $ \ (Input i) -> do
+  ins <- for is $ \ (Input _ _ i) -> do
      let node  = concat [gateNode, "__INPUTS:", i]
      let vnode = mkNode p i
      tellVirtual vnode
      tellEdge node vnode False
      pure node
 
-  ous <- for os $ \ (Output _ o) -> do
+  ous <- for os $ \ (Output _ _ o) -> do
      let node  = concat [gateNode, "__OUTPUTS:", o]
      let vnode = mkNode p o
      tellVirtual vnode
      tellEdge vnode node True
      pure node
 
-  let (iports, oports) = declarePorts 20 is os
+  let iports = map (declarePort 20 True . inputToPort) is
+  let oports = map (declarePort 20 True . outputToPort) os
   let iPorts = unlines
          [ concat [ gateNode, "__INPUTS" ]
          , "    [ shape = none"
@@ -165,7 +171,7 @@ toWhitebox nm (Gate is os defs) env p = do
         [y] -> [] <$ tellEdge (mkNode p x) (mkNode p $ outputName y) True
         _   -> error "not yet supported"
       Call f args -> case findArr f env of
-        Nothing   -> error "This should never happen"
+        Nothing   -> error ("This should never happen: could not find " ++ f ++ ".")
         Just repr -> do
           id <- fresh
           let dotG = blackbox $ repr (extend id p)
@@ -174,6 +180,23 @@ toWhitebox nm (Gate is os defs) env p = do
           for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
             tellEdge (oport ++ ":s") (mkNode p $ outputName out) False
           pure (circuitGraph dotG)
+      FanIn args -> do
+        id <- fresh
+        let dotG = fanIn (extend id p) args os
+        for_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
+          tellEdge (mkNode p (inputName arg)) (iport ++ ":n") True
+        for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
+          tellEdge (oport ++ ":s") (mkNode p $ outputName out) False
+        pure (circuitGraph dotG)
+      FanOut arg -> do
+        id <- fresh
+        let dotG = fanOut (extend id p) [arg] os
+        for_ (zip [arg] (inputPorts dotG)) $ \ (arg, iport) ->
+          tellEdge (mkNode p (inputName arg)) (iport ++ ":n") True
+        for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
+          tellEdge (oport ++ ":s") (mkNode p $ outputName out) False
+        pure (circuitGraph dotG)
+
 
   pure $ Circuit { inputPorts   = ins
                  , outputPorts  = ous
@@ -209,10 +232,11 @@ gate nm g@Gate{..} env p =
 
 toBlackbox :: Path -> [Input] -> String -> [Output] -> Circuit
 toBlackbox p is nm os =
-  let gateNode         = "GATE_" ++ nm ++ "_" ++ show p
-      iportNames       = map (\ i -> gateNode ++ ":" ++ inputName i) is
-      oportNames       = map (\ o -> gateNode ++ ":" ++ outputName o) os
-      (iports, oports) = declarePorts 7 is os
+  let gateNode   = "GATE_" ++ nm ++ "_" ++ show p
+      iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
+      oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
+      iports     = map (declarePort 7 False . inputToPort) is
+      oports     = map (declarePort 7 False . outputToPort) os
   in Circuit iportNames oportNames $
     [ "subgraph gate_" ++ show p ++ " {"
     , "  style = invis;"
@@ -232,18 +256,51 @@ toBlackbox p is nm os =
     , "}"
     ]
 
-declarePorts :: Int -> [Input] -> [Output] -> ([String], [String])
-declarePorts size is os =
-  ( map (\ i -> declarePort (inputName i))  is
-  , map (\ (Output _ nm) -> declarePort nm) os
-  ) where
+fanIn :: Path -> [Input] -> [Output] -> Circuit
+fanIn p is os =
+  let gateNode   = "FANIN_" ++ show p
+      iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
+      iports     = map (declarePort 7 False . inputToPort) is
+  in Circuit iportNames [gateNode] $
+    [ "subgraph fanin_" ++ show p ++ " {"
+    , "  style = invis;"
+    , indent 2 $ gateNode
+    , "    [ shape = invtriangle"
+    , "    , width = .75"
+    , "    , height = .75"
+    , "    , fixedsize = true"
+    , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"4\">"
+    , indent 15 $ "<TR>" ++ unlines iports ++ "</TR>"
+    , "              </TABLE>>"
+    , "    ];"
+    , "}"
+    ]
 
-  declarePort :: String -> String
-  declarePort lb = concat
-    [ "<TD PORT=\"", lb, "\">"
-    , if head lb == '_'
-      then ""
-      else concat ["<FONT POINT-SIZE=", show (show size), ">", lb, "</FONT>" ]
+fanOut :: Path -> [Input] -> [Output] -> Circuit
+fanOut p is os =
+  let gateNode   = "FANOUT_" ++ show p
+      oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
+      oports     = map (declarePort 7 False . outputToPort) os
+  in Circuit [gateNode] oportNames $
+    [ "subgraph fanout_" ++ show p ++ " {"
+    , "  style = invis;"
+    , indent 2 $ gateNode
+    , "    [ shape = triangle"
+    , "    , width = .75"
+    , "    , height = .75"
+    , "    , fixedsize = true"
+    , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"4\">"
+    , indent 15 $ "<TR>" ++ unlines oports ++ "</TR>"
+    , "              </TABLE>>"
+    , "    ];"
+    , "}"
+    ]
+
+declarePort :: Int -> Bool -> Port -> String
+declarePort size b (isv, dn, n) = concat
+    [ "<TD PORT=", show n, ">"
+    , let mn = n <$ guard (not isv) <|> dn <* guard b in
+      maybe "" (\ lb -> concat ["<FONT POINT-SIZE=", show (show size), ">", lb, "</FONT>" ]) mn
     , "</TD>"
     ]
 
@@ -255,63 +312,24 @@ def d = case toGate d of
     Dot $ modify $ \ s ->
       s { gates = insertArr (nm, gate nm g (gates s) . extend id) (gates s) }
 
-dotDef :: Def -> Maybe DotGate
-dotDef d = do
-  st <- flip execStateT initDotSt $ runDot $ do
-    -- we throw in some basic definitions so that whitebox has a
-    -- chance to succeed. In practice we will only need 'nand'
-    -- and 'dff'.
-    def nand
-    def notG
-    def andG
-    def orG
-    def dff
-    def xor
-    def mux
-    def hadd
-    def fadd
-    def d
+addDef :: DotSt -> Def -> DotSt
+addDef st d = fromMaybe st $ flip execStateT st $ runDot $ def d
+
+whiteBoxDef :: DotSt -> Def -> [String]
+whiteBoxDef st d = fromMaybe [] $ do
   nm <- case d of { Stub{} -> Nothing; Def (nm, _) _ _ -> Just nm }
   ga <- findArr nm (gates st)
-  pure (ga empty)
-
-blackBoxDef :: Def -> [String]
-blackBoxDef d = fromMaybe [] $ do
-  ga <- dotDef d
-  pure $
-    [ "digraph blackbox {"
-    , "  rankdir = TB;"
-    ]
-    ++ circuitGraph (blackbox ga)
-    ++ ["}"]
-
-whiteBoxDef :: Def -> [String]
-whiteBoxDef d = fromMaybe [] $ do
-  ga <- dotDef d
   pure $
     [ "digraph whitebox {"
     , "  rankdir = TB;"
     , "  nodesep = 0.2;"
     ]
-    ++ circuitGraph (whitebox ga)
+    ++ circuitGraph (whitebox (ga empty))
     ++ ["}"]
 
-runner :: String -> Def -> IO ()
-runner nm d = do
-  let content = unlines $ whiteBoxDef d
-  writeFile ("whitebox-" ++ nm ++ ".dot") content
-
-test :: IO ()
-test = do
-  runner "swap"       swapG
-  runner "and"        andG
-  runner "and4-prime" and4'
-  runner "mux"        mux2
-  runner "not"        notG
-  runner "and4"       and4
-  runner "tff"        tff
-  runner "xor"        xor
-  runner "hadd"       hadd
-  runner "fadd"       fadd
-  runner "rca4"       rca4
-  runner "andnot"     andnot
+myDotSt :: DotSt
+myDotSt
+  = foldl addDef initDotSt
+  [ nand
+  , dff
+  ]

@@ -122,6 +122,7 @@ commaSep = foldDoc (\ d e -> d <> comma <+> e)
 -- Special characters
 
 -- punctuation
+semi, colon, comma, space, dot, exclamation, question, suspension :: Doc
 semi = char ';'
 colon = char ':'
 comma = char ','
@@ -132,18 +133,22 @@ question = char '?'
 suspension = text "..."
 
 -- separators
+equal, pipe :: Doc
 equal = char '='
 pipe = char '|'
 
 -- slashes
+backslash, forwardslash :: Doc
 backslash = char '\\'
 forwardslash = char '/'
 
 -- quotes
+squote, dquote :: Doc
 squote = char '\''
 dquote = char '"'
 
 -- parentheses and brackets
+lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket :: Doc
 lparen = char '('
 rparen = char ')'
 langle = char '<'

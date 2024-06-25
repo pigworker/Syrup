@@ -60,10 +60,12 @@ common warnings
 
 library
     -- Silence some flags
-    ghc-options:  -Wno-name-shadowing
+    ghc-options:  -Wall
+                  -Wno-name-shadowing
                   -Wno-noncanonical-monad-instances
                   -Wno-noncanonical-monoid-instances
                   -Wno-unused-do-bind
+                  -Wno-unused-local-binds
                   -Wno-unused-matches
 
 
@@ -109,6 +111,7 @@ library
     -- Other library packages from which modules are imported.
     build-depends:    base >=4.16 && <=4.21
                     , mtl >=2.2 && <2.4
+                    , process >=1.6 && <1.7
 
     -- Directories containing source files.
     hs-source-dirs:   lib

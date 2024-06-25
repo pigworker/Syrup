@@ -72,6 +72,7 @@ data EXPT
   = Tabulate String
   | Simulate String [Va] [[Va]]
   | Bisimilarity String String
+  | Display String
   deriving Show
 
 data Va
