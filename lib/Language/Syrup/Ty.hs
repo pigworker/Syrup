@@ -37,6 +37,11 @@ type Ty1 = Ty () Void
 type Ty2 = Ty Ti Void
 type Typ = Ty () TyNom
 
+type TypedPat = Pat' Typ String
+type TypedExp = Exp' Typ
+type TypedEqn = Eqn' Typ
+type TypedDef = Def' Typ
+
 data Ti = T0 | T1 deriving (Show, Eq)
 
 sizeTy :: Ty a Void -> Int
@@ -58,7 +63,7 @@ data InputWire = InputWire
   , getInputType :: Ty1
   }
 
-type OPat = Pat' (String, Bool)
+type OPat = Pat' () (String, Bool)
 data OutputWire = OutputWire
   { getOutputPat  :: Maybe OPat
   , getOutputType :: Ty2
@@ -81,7 +86,7 @@ mkOutputWire ms e ty = flip OutputWire ty $ do
 
 data Compo = Compo
   { monick :: String
-  , defn   :: Maybe Def
+  , defn   :: Maybe TypedDef
   , memTys :: [MemoryCell]
   , inpTys :: [InputWire]
   , oupTys :: [OutputWire]
@@ -302,6 +307,27 @@ norm t = hnf t >>= \ t -> case t of
   Cable ts -> Cable <$> traverse norm ts
   _ -> return t
 
+actOnTypedPat :: Applicative f => (ty -> f ty') -> Pat' ty a -> f (Pat' ty' a)
+actOnTypedPat f = \case
+ PVar ty a  -> PVar <$> f ty <*> pure a
+ PCab ty ps -> PCab <$> f ty <*> traverse (actOnTypedPat f) ps
+
+actOnTypedEqn :: Applicative f => (ty -> f ty') -> Eqn' ty -> f (Eqn' ty')
+actOnTypedEqn f (ps :=: es)
+  = (:=:)
+  <$> traverse (actOnTypedPat f) ps
+  <*> traverse (traverse f) es
+
+actOnTypedDef :: Applicative f => (ty -> f ty') -> Def' ty -> f (Def' ty')
+actOnTypedDef f (Def (fn, ps) es meqns)
+  = Def . (fn,)
+  <$> traverse (actOnTypedPat f) ps
+  <*> traverse (traverse f) es
+  <*> traverse (traverse (actOnTypedEqn f)) meqns
+actOnTypedDef f (Stub n args) = pure (Stub n args)
+
+normDef :: TypedDef -> TyM TypedDef
+normDef = actOnTypedDef norm
 
 ------------------------------------------------------------------------------
 -- unification

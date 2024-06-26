@@ -193,16 +193,16 @@ instance Scoped a => Scoped (Maybe a)
 
 instance Scoped Pat where
   scopecheck ga = \case
-    PVar x  -> declareVar ga x
-    PCab ps -> scopecheck ga ps
+    PVar _ x  -> declareVar ga x
+    PCab _ ps -> scopecheck ga ps
 
 instance Scoped Exp where
   scopecheck ga = \case
-    Var s    -> emptyExtension <$ isLocalVar ga s
-    App f es -> do
+    Var _ s  -> emptyExtension <$ isLocalVar ga s
+    App _ f es -> do
       isGlobalVar ga f
       scopecheck ga es
-    Cab es    -> scopecheck ga es
+    Cab _ es -> scopecheck ga es
 
 instance Scoped [Pat]
 instance Scoped [Exp]

@@ -65,9 +65,9 @@ type Env = Arr String Va
 ------------------------------------------------------------------------------
 
 match :: [Pat] -> [Va] -> Env -> Env
-match (PVar x : ps) (v : vs) =
+match (PVar () x : ps) (v : vs) =
   match ps vs . insertArr (x, v)
-match (PCab ps : qs) (VC vs : us) =
+match (PCab () ps : qs) (VC vs : us) =
   match qs us . match ps vs
 match _ _ = id
 
@@ -77,10 +77,10 @@ match _ _ = id
 ------------------------------------------------------------------------------
 
 pval :: Env -> Pat -> Va
-pval g (PVar x) = case findArr x g of
+pval g (PVar () x) = case findArr x g of
   Nothing -> error "this isn't supposed to happen, you know"
   Just v  -> v
-pval g (PCab ps) = VC (fmap (pval g) ps)
+pval g (PCab () ps) = VC (fmap (pval g) ps)
 
 
 ------------------------------------------------------------------------------

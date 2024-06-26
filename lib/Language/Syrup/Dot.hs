@@ -20,12 +20,13 @@ import Data.Char (isAlphaNum)
 import Data.Foldable (for_)
 import Data.Traversable (for)
 
-import Language.Syrup.BigArray
-import Language.Syrup.Syn
 import Language.Syrup.Anf
-import Language.Syrup.Smp
+import Language.Syrup.BigArray
 import Language.Syrup.Fsh
 import Language.Syrup.Gph
+import Language.Syrup.Smp
+import Language.Syrup.Syn
+import Language.Syrup.Ty
 
 data Circuit = Circuit
   { inputPorts   :: [String]
@@ -41,10 +42,10 @@ data DotGate = DotGate
 type Port = (Bool, Maybe String, String)
 
 inputToPort :: Input -> Port
-inputToPort (Input b dn n) = (b, dn, n)
+inputToPort (Input b ty dn n) = (b, dn, n)
 
 outputToPort :: Output -> Port
-outputToPort (Output b dn n) = (b, dn, n)
+outputToPort (Output b ty dn n) = (b, dn, n)
 
 indent :: Int -> String -> String
 indent n str = replicate n ' ' ++ str
@@ -118,26 +119,33 @@ tellVirtual nm = tell (Graph (single (nm, Invisible False)) emptyArr)
 tellVertex :: String -> String -> Maybe Shape -> WhiteBox ()
 tellVertex nm lb sh = tell (Graph (single (nm, Visible lb sh)) emptyArr)
 
-tellEdge :: String -> String -> Bool -> WhiteBox ()
-tellEdge x y dir = tell (Graph emptyArr (single (x, single (y, Edge dir))))
+tellEdge :: Typ -> String -> String -> Bool -> WhiteBox ()
+tellEdge ty x y dir = tell (Graph emptyArr (single (x, single (y, Edge (size ty) dir))))
+
+  where
+    size :: Typ -> Int
+    size (Bit _) = 1
+    size (Cable ss) = sum (size <$> ss)
+    size (TyV _) = 1 -- should never happen
+
 
 toWhitebox :: String -> Gate -> Arr String (Path -> DotGate)
          -> Path -> WhiteBox Circuit
 toWhitebox nm (Gate is os defs) env p = do
   let gateNode   = mkGate p nm
 
-  ins <- for is $ \ (Input _ _ i) -> do
+  ins <- for is $ \ (Input _ ty _ i) -> do
      let node  = concat [gateNode, "__INPUTS:", i]
      let vnode = mkNode p i
      tellVirtual vnode
-     tellEdge node vnode False
+     tellEdge ty node vnode False
      pure node
 
-  ous <- for os $ \ (Output _ _ o) -> do
+  ous <- for os $ \ (Output _ ty _ o) -> do
      let node  = concat [gateNode, "__OUTPUTS:", o]
      let vnode = mkNode p o
      tellVirtual vnode
-     tellEdge vnode node True
+     tellEdge ty vnode node True
      pure node
 
   let iports = map (declarePort 20 True . inputToPort) is
@@ -167,34 +175,34 @@ toWhitebox nm (Gate is os defs) env p = do
   gph <- fmap concat $ for (reverse defs) $ \ (os, e) -> do
     for_ os $ tellVirtual . mkNode p . outputName -- TODO: use names of non-virtual vertices?
     case e of
-      Alias x     -> case os of
-        [y] -> [] <$ tellEdge (mkNode p x) (mkNode p $ outputName y) True
+      Alias ty x -> case os of
+        [y] -> [] <$ tellEdge ty (mkNode p x) (mkNode p $ outputName y) True
         _   -> error "not yet supported"
-      Call f args -> case findArr f env of
+      Call tys f args -> case findArr f env of
         Nothing   -> error ("This should never happen: could not find " ++ f ++ ".")
         Just repr -> do
           id <- fresh
           let dotG = blackbox $ repr (extend id p)
           for_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
-            tellEdge (mkNode p (inputName arg)) (iport ++ ":n") True
+            tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") True
           for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
-            tellEdge (oport ++ ":s") (mkNode p $ outputName out) False
+            tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
           pure (circuitGraph dotG)
       FanIn args -> do
         id <- fresh
         let dotG = fanIn (extend id p) args os
         for_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
-          tellEdge (mkNode p (inputName arg)) (iport ++ ":n") True
+          tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") False
         for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
-          tellEdge (oport ++ ":s") (mkNode p $ outputName out) False
+          tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
         pure (circuitGraph dotG)
       FanOut arg -> do
         id <- fresh
         let dotG = fanOut (extend id p) [arg] os
         for_ (zip [arg] (inputPorts dotG)) $ \ (arg, iport) ->
-          tellEdge (mkNode p (inputName arg)) (iport ++ ":n") True
+          tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") False
         for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
-          tellEdge (oport ++ ":s") (mkNode p $ outputName out) False
+          tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
         pure (circuitGraph dotG)
 
 
@@ -258,19 +266,25 @@ toBlackbox p is nm os =
 
 fanIn :: Path -> [Input] -> [Output] -> Circuit
 fanIn p is os =
-  let gateNode   = "FANIN_" ++ show p
+  let width = length is
+      gateNode   = "FANIN_" ++ show p
       iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
-      iports     = map (declarePort 7 False . inputToPort) is
-  in Circuit iportNames [gateNode] $
+      oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
+      iports     = map (declarePort 7 False . inputToPort . \ r -> r { isVirtualInput = True}) is
+      oports     = map (declarePort' (Just width) 7 False . outputToPort . \ r -> r { isVirtualOutput = True}) os
+  in Circuit iportNames oportNames $
     [ "subgraph fanin_" ++ show p ++ " {"
     , "  style = invis;"
     , indent 2 $ gateNode
-    , "    [ shape = invtriangle"
-    , "    , width = .75"
-    , "    , height = .75"
+    , "    [ shape = none"
+    , "    , style = filled"
+    , "    , fillcolor = red"
     , "    , fixedsize = true"
-    , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"4\">"
+    , "    , width = ", show (0.07 * fromIntegral width :: Double)
+    , "    , height = .1"
+    , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">"
     , indent 15 $ "<TR>" ++ unlines iports ++ "</TR>"
+    , indent 15 $ "<TR>" ++ unlines oports ++ "</TR>"
     , "              </TABLE>>"
     , "    ];"
     , "}"
@@ -278,33 +292,42 @@ fanIn p is os =
 
 fanOut :: Path -> [Input] -> [Output] -> Circuit
 fanOut p is os =
-  let gateNode   = "FANOUT_" ++ show p
+  let width = length os
+      gateNode   = "FANOUT_" ++ show p
+      iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
-      oports     = map (declarePort 7 False . outputToPort) os
-  in Circuit [gateNode] oportNames $
+      iports     = map (declarePort' (Just width) 7 False . inputToPort . \ r -> r { isVirtualInput = True}) is
+      oports     = map (declarePort 7 False . outputToPort . \ r -> r { isVirtualOutput = True}) os
+  in Circuit iportNames oportNames $
     [ "subgraph fanout_" ++ show p ++ " {"
     , "  style = invis;"
     , indent 2 $ gateNode
-    , "    [ shape = triangle"
-    , "    , width = .75"
-    , "    , height = .75"
+    , "    [ shape = none"
+    , "    , style = filled"
+    , "    , fillcolor = red"
     , "    , fixedsize = true"
-    , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"4\">"
+    , "    , width = ", show (0.07 * fromIntegral width :: Double)
+    , "    , height = .1"
+    , "    ,  label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">"
+    , indent 15 $ "<TR>" ++ unlines iports ++ "</TR>"
     , indent 15 $ "<TR>" ++ unlines oports ++ "</TR>"
     , "              </TABLE>>"
     , "    ];"
     , "}"
     ]
 
-declarePort :: Int -> Bool -> Port -> String
-declarePort size b (isv, dn, n) = concat
-    [ "<TD PORT=", show n, ">"
+declarePort' :: Maybe Int -> Int -> Bool -> Port -> String
+declarePort' mb size b (isv, dn, n) = concat
+    [ "<TD PORT=", show n, maybe "" (\ i -> " COLSPAN=" ++ show (show i)) mb, ">"
     , let mn = n <$ guard (not isv) <|> dn <* guard b in
       maybe "" (\ lb -> concat ["<FONT POINT-SIZE=", show (show size), ">", lb, "</FONT>" ]) mn
     , "</TD>"
     ]
 
-def :: Def -> Dot ()
+declarePort :: Int -> Bool -> Port -> String
+declarePort = declarePort' Nothing
+
+def :: TypedDef -> Dot ()
 def d = case toGate d of
   Nothing      -> pure ()
   Just (nm, g) -> do
@@ -312,10 +335,10 @@ def d = case toGate d of
     Dot $ modify $ \ s ->
       s { gates = insertArr (nm, gate nm g (gates s) . extend id) (gates s) }
 
-addDef :: DotSt -> Def -> DotSt
+addDef :: DotSt -> TypedDef -> DotSt
 addDef st d = fromMaybe st $ flip execStateT st $ runDot $ def d
 
-whiteBoxDef :: DotSt -> Def -> [String]
+whiteBoxDef :: DotSt -> TypedDef -> [String]
 whiteBoxDef st d = fromMaybe [] $ do
   nm <- case d of { Stub{} -> Nothing; Def (nm, _) _ _ -> Just nm }
   ga <- findArr nm (gates st)

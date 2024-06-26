@@ -20,7 +20,7 @@ class Lint t where
 lint :: Lint t => t -> [[String]]
 lint t = foldMap ($ t) linters
 
-instance Lint Def where
+instance ty ~ () => Lint (Def' ty) where
   linters = [ emptyWhere
             , needlessSplits
             ] where
@@ -75,27 +75,27 @@ class AllVars t where
 
 instance AllVars a => AllVars [a]
 
-instance a ~ String => AllVars (Pat' a) where
+instance a ~ String => AllVars (Pat' ty a) where
   allVars = \case
-    PVar s -> singleton s
-    PCab c -> allVars c
+    PVar _ s -> singleton s
+    PCab _ c -> allVars c
 
 abstractThisCable :: [Pat] -> Exp -> Bool
 abstractThisCable ps e = isEmptyArr (allVars ps `intersectSet` go e) where
 
-  cable = Cab (map patToExp ps)
+  cable = Cab () (map patToExp ps)
 
   go :: Exp -> Set String
   go e | e == cable = mempty
        | otherwise  = case e of
-    Var x    -> singleton x
-    App _ es -> foldMap go es
-    Cab es   -> foldMap go es
+    Var _ x    -> singleton x
+    App _ _ es -> foldMap go es
+    Cab _ es   -> foldMap go es
 
 abstractAnyCable :: Pat -> [Exp] -> [[Pat]]
 abstractAnyCable p es = case p of
-  PVar{}  -> []
-  PCab ps ->
+  PVar{}    -> []
+  PCab _ ps ->
     if all (abstractThisCable ps) es
     then [ps]
     else foldMap (`abstractAnyCable` es) ps

@@ -31,15 +31,15 @@ not is defined.
 <!-- NODE_x_2&#45;&gt;GATE_nand_2__0__0 -->
 <g id="edge3" class="edge">
 <title>NODE_x_2&#45;&gt;GATE_nand_2__0__0:n</title>
-<path fill="none" stroke="black" d="M59.6,-213.98C57.3,-209.13 45.7,-183.66 44.17,-160.01"/>
-<polygon fill="black" stroke="black" points="45.92,-159.94 44,-155 42.42,-160.06 45.92,-159.94"/>
+<path fill="none" stroke="black" stroke-width="2" d="M59.6,-213.98C57.3,-209.13 45.7,-183.66 44.17,-160.01"/>
+<polygon fill="black" stroke="black" stroke-width="2" points="45.92,-159.94 44,-155 42.42,-160.06 45.92,-159.94"/>
 <text text-anchor="middle" x="54.5" y="-184.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
 <!-- NODE_x_2&#45;&gt;GATE_nand_2__0__0 -->
 <g id="edge4" class="edge">
 <title>NODE_x_2&#45;&gt;GATE_nand_2__0__0:n</title>
-<path fill="none" stroke="black" d="M60.4,-213.98C62.7,-209.13 74.3,-183.66 75.83,-160.01"/>
-<polygon fill="black" stroke="black" points="77.58,-160.06 76,-155 74.08,-159.94 77.58,-160.06"/>
+<path fill="none" stroke="black" stroke-width="2" d="M60.4,-213.98C62.7,-209.13 74.3,-183.66 75.83,-160.01"/>
+<polygon fill="black" stroke="black" stroke-width="2" points="77.58,-160.06 76,-155 74.08,-159.94 77.58,-160.06"/>
 <text text-anchor="middle" x="74.5" y="-184.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
 <!-- GATE_not_2__INPUTS -->
@@ -50,7 +50,7 @@ not is defined.
 <!-- GATE_not_2__INPUTS&#45;&gt;NODE_x_2 -->
 <g id="edge2" class="edge">
 <title>GATE_not_2__INPUTS:x&#45;&gt;NODE_x_2</title>
-<path fill="none" stroke="black" d="M60,-282.44C60,-262.61 60,-224.81 60,-217.9"/>
+<path fill="none" stroke="black" stroke-width="2" d="M60,-282.44C60,-262.61 60,-224.81 60,-217.9"/>
 <text text-anchor="middle" x="62.5" y="-239.4" font-family="Times,serif" font-size="14.00"> </text>
 </g>
 <!-- GATE_not_2__OUTPUTS -->
@@ -60,8 +60,8 @@ not is defined.
 <!-- GATE_nand_2__0__0&#45;&gt;GATE_not_2__OUTPUTS -->
 <g id="edge1" class="edge">
 <title>GATE_nand_2__0__0:s&#45;&gt;GATE_not_2__OUTPUTS:__VIRTUAL__0</title>
-<path fill="none" stroke="black" d="M44,-95C44,-69.17 44,-38.41 44,-25.36"/>
-<polygon fill="black" stroke="black" points="45.75,-25.07 44,-20.07 42.25,-25.07 45.75,-25.07"/>
+<path fill="none" stroke="black" stroke-width="2" d="M44,-95C44,-69.17 44,-38.41 44,-25.36"/>
+<polygon fill="black" stroke="black" stroke-width="2" points="45.75,-25.07 44,-20.07 42.25,-25.07 45.75,-25.07"/>
 <text text-anchor="middle" x="46.5" y="-57.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
 </g>
