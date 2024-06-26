@@ -88,9 +88,9 @@ abstractThisCable ps e = isEmptyArr (allVars ps `intersectSet` go e) where
   go :: Exp -> Set String
   go e | e == cable = mempty
        | otherwise  = case e of
-    Var _ x  -> singleton x
-    App _ es -> foldMap go es
-    Cab _ es -> foldMap go es
+    Var _ x    -> singleton x
+    App _ _ es -> foldMap go es
+    Cab _ es   -> foldMap go es
 
 abstractAnyCable :: Pat -> [Exp] -> [[Pat]]
 abstractAnyCable p es = case p of

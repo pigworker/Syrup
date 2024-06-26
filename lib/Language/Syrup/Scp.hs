@@ -199,7 +199,7 @@ instance Scoped Pat where
 instance Scoped Exp where
   scopecheck ga = \case
     Var _ s  -> emptyExtension <$ isLocalVar ga s
-    App f es -> do
+    App _ f es -> do
       isGlobalVar ga f
       scopecheck ga es
     Cab _ es -> scopecheck ga es

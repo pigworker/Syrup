@@ -17,7 +17,8 @@ getTyp :: TypedExp -> Typ
 getTyp = \case
   Var ty _ -> ty
   Cab ty _ -> ty
-  App _ _ -> _a
+  App [ty] _ _ -> ty
+  e -> Bit () -- default value :(
 
 ------------------------------------------------------------------------------
 -- Syntax of A normal forms
@@ -59,7 +60,7 @@ cowire (Output v ty dn x) = Input v ty dn x
 
 data Expr' nm
   = Alias Typ nm
-  | Call nm [Input' nm]
+  | Call [Typ] nm [Input' nm]
   | FanIn [Input' nm]
   | FanOut (Input' nm)
   deriving (Functor, Foldable, Traversable)
@@ -192,10 +193,10 @@ elabEqn (ps :=: rhs) = do
 elabAss :: Assignment -> ANF [LetBinding]
 elabAss (ous, e) = case e of
   Var ty x -> pure [(ous, Alias ty x)]
-  App f es -> do
+  App tys f es -> do
     (args, eqs) <- unzip <$> mapM elabExp es
     ih <- mapM elabAss $ concat eqs
-    pure $ (ous, Call f (cowire <$> args)) : concat ih
+    pure $ (ous, Call tys f (cowire <$> args)) : concat ih
   Cab ty es -> do
     (args, eqs) <- unzip <$> mapM elabExp es
     ih <- mapM elabAss $ concat eqs
@@ -221,7 +222,7 @@ fromGate nm g =
                 :=:
                 [case rhs of
                    Alias ty x -> Var ty x
-                   Call f es  -> App f (map (\ i -> Var (inputType i) (inputName i)) es)
+                   Call tys f es -> App tys f (map (\ i -> Var (inputType i) (inputName i)) es)
                    FanIn os   -> let ty = Cable (map inputType os) in
                                  Cab ty (map (\ i -> Var (inputType i) (inputName i)) os)
                    FanOut i   -> Var (inputType i) (inputName i)

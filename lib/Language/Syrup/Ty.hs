@@ -307,6 +307,28 @@ norm t = hnf t >>= \ t -> case t of
   Cable ts -> Cable <$> traverse norm ts
   _ -> return t
 
+actOnTypedPat :: Applicative f => (ty -> f ty') -> Pat' ty a -> f (Pat' ty' a)
+actOnTypedPat f = \case
+ PVar ty a  -> PVar <$> f ty <*> pure a
+ PCab ty ps -> PCab <$> f ty <*> traverse (actOnTypedPat f) ps
+
+actOnTypedEqn :: Applicative f => (ty -> f ty') -> Eqn' ty -> f (Eqn' ty')
+actOnTypedEqn f (ps :=: es)
+  = (:=:)
+  <$> traverse (actOnTypedPat f) ps
+  <*> traverse (traverse f) es
+
+actOnTypedDef :: Applicative f => (ty -> f ty') -> Def' ty -> f (Def' ty')
+actOnTypedDef f (Def (fn, ps) es meqns)
+  = Def . (fn,)
+  <$> traverse (actOnTypedPat f) ps
+  <*> traverse (traverse f) es
+  <*> traverse (traverse (actOnTypedEqn f)) meqns
+actOnTypedDef f (Stub n args) = pure (Stub n args)
+
+normDef :: TypedDef -> TyM TypedDef
+normDef = actOnTypedDef norm
+
 ------------------------------------------------------------------------------
 -- unification
 ------------------------------------------------------------------------------

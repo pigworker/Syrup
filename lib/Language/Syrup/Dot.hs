@@ -125,8 +125,8 @@ tellEdge ty x y dir = tell (Graph emptyArr (single (x, single (y, Edge (size ty)
   where
     size :: Typ -> Int
     size (Bit _) = 1
-    size (TyV _) = 1
     size (Cable ss) = sum (size <$> ss)
+    size (TyV _) = 1 -- should never happen
 
 
 toWhitebox :: String -> Gate -> Arr String (Path -> DotGate)
@@ -178,7 +178,7 @@ toWhitebox nm (Gate is os defs) env p = do
       Alias ty x -> case os of
         [y] -> [] <$ tellEdge ty (mkNode p x) (mkNode p $ outputName y) True
         _   -> error "not yet supported"
-      Call f args -> case findArr f env of
+      Call tys f args -> case findArr f env of
         Nothing   -> error ("This should never happen: could not find " ++ f ++ ".")
         Just repr -> do
           id <- fresh

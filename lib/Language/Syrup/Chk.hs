@@ -94,7 +94,8 @@ guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   eqs <- traverse (traverse (\ eq -> local (:< TyEQN eq) $ chkEqn eq)) eqs
   (qs', (qs0, qs1)) <- foldMap stage ts
   solders qs' qs
-  return ((ps, es), (qs0, qs1), Def (f, typs) tyes eqs)
+  def <- normDef (Def (f, typs) tyes eqs)
+  return ((ps, es), (qs0, qs1), def)
 guts (Dec (g, ss) ts) (Stub f msg)
   | f /= g    = tyErr (DecDef f g)
   | otherwise = tyErr (Stubbed msg)
@@ -185,7 +186,7 @@ chkExp ((t,_) : ts) (Var () x) = do
   s <- useWire x
   local (:< TyWIRE x s t) $ tyEq (s, t)
   return ([PVar () x], ts, Var s x)
-chkExp tqs e@(App fn es) = do
+chkExp tqs e@(App _ fn es) = do
   env <- gets coEnv
   f <- case findArr fn env of
     Nothing -> tyErr (Don'tKnow fn)
@@ -215,7 +216,8 @@ chkExp tqs e@(App fn es) = do
   (qs, (qs0, qs1)) <- foldMap stage oTy
   schedule (qs0 :<- (stage0 f, mIn))
   schedule ((mOu ++ qs1) :<- (stage1 f, mIn ++ ps))
-  (qs,,App fn es) <$> yield (map stanTy oTy) tqs
+  let oTy' = map stanTy oTy
+  (qs,,App oTy' fn es) <$> yield oTy' tqs
 chkExp (tq : tqs) (Cab () es) = do
   sqs <- case tq of
     (Cable ss, Just (PCab _ qs))
@@ -428,48 +430,48 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
 (_, _, env1, _) = mkComponent myCoEnv
   (DEC ("not", [BIT]) [BIT], "!<Bit> -> <Bit>") $ Just
   (Def ("not", [PVar () "x"]) [Var () "y"] $ Just
-   [[PVar () "y"] :=: [App "nand" [Var () "x", Var () "x"]]]
+   [[PVar () "y"] :=: [App [] "nand" [Var () "x", Var () "x"]]]
   ,"!x = y where  y = nand(x,x)")
 
 (_, _, env2, _) = mkComponent env1
   (DEC ("and", [BIT, BIT]) [BIT], "<Bit> & <Bit> -> <Bit>") $ Just
   (Def ("and", [PVar () "x", PVar () "y"]) [Var () "b"] $ Just
-    [[PVar () "a"] :=: [App "nand" [Var () "x", Var () "y"]]
-    ,[PVar () "b"] :=: [App "not" [Var () "a"]]
+    [[PVar () "a"] :=: [App [] "nand" [Var () "x", Var () "y"]]
+    ,[PVar () "b"] :=: [App [] "not" [Var () "a"]]
     ]
   ,"x & y = b where  a = nand(x,y)  b = not(a)")
 
 (_, _, env3, _) = mkComponent env2
   (DEC ("or", [BIT, BIT]) [BIT], "<Bit> | <Bit> -> <Bit>") $ Just
   (Def ("or", [PVar () "x", PVar () "y"]) [Var () "c"] $ Just
-    [[PVar () "c"] :=: [App "nand" [Var () "a", Var () "b"]]
-    ,[PVar () "a",PVar () "b"] :=: [App "not" [Var () "x"],App "not" [Var () "y"]]
+    [[PVar () "c"] :=: [App [] "nand" [Var () "a", Var () "b"]]
+    ,[PVar () "a",PVar () "b"] :=: [App [] "not" [Var () "x"],App [] "not" [Var () "y"]]
     ]
   ,"x | y = c where  c = nand(a,b)  a,b = !x,!y")
 
 (_, _, env4, _) = mkComponent env3
   (DEC ("jkff", [BIT, BIT]) [OLD BIT], "jkff(<Bit>,<Bit>) -> @<Bit>") $ Just
   (Def ("jkff", [PVar () "j", PVar () "k"]) [Var () "q"] $ Just
-    [[PVar () "q"] :=: [App "dff" [Var () "d"]]
-    ,[PVar () "d"] :=: [App "or"
-       [  App "and" [Var () "j", App "not" [Var () "q"]]
-       ,  App "and" [Var () "q", App "not" [Var () "k"]]
+    [[PVar () "q"] :=: [App [] "dff" [Var () "d"]]
+    ,[PVar () "d"] :=: [App [] "or"
+       [  App [] "and" [Var () "j", App [] "not" [Var () "q"]]
+       ,  App [] "and" [Var () "q", App [] "not" [Var () "k"]]
        ]]
     ]
   ,"jkff(j,k) = q where  q = dff(d)  d = j & !q | q & !k")
 
 (_, _, env5, _) = mkComponent env4
   (DEC ("ndnff", [BIT]) [OLD BIT], "ndnff(<Bit>) -> @<Bit>") $ Just
-  (Def ("ndnff", [PVar () "d"]) [App "not" [Var () "q"]] $ Just
-    [[PVar () "q"] :=: [App "dff" [App "not" [Var () "d"]]]
+  (Def ("ndnff", [PVar () "d"]) [App [] "not" [Var () "q"]] $ Just
+    [[PVar () "q"] :=: [App [] "dff" [App [] "not" [Var () "d"]]]
     ]
   ,"ndnff(d) = !q where  q = dff(!d)")
 
 (_, _, env6, _) = mkComponent env5
   (DEC ("xor", [BIT,BIT]) [BIT], "xor(<Bit>,<Bit>) -> <Bit>") $ Just
   (Def ("xor", [PVar () "x", PVar () "y"])
-       [App "or" [ App "and" [App "not" [Var () "x"], Var () "y"]
-                 , App "and" [Var () "x", App "not" [Var () "y"]]
+       [App [] "or" [ App [] "and" [App [] "not" [Var () "x"], Var () "y"]
+                 , App [] "and" [Var () "x", App [] "not" [Var () "y"]]
                  ]]
        Nothing
   ,"xor(x,y) = !x & y | x & !y")
@@ -477,20 +479,20 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
 (_, _, env7, _) = mkComponent env6
   (DEC ("tff", [BIT]) [OLD BIT], "tff(<Bit>) -> @<Bit>") $ Just
   (Def ("tff", [PVar () "t"]) [Var () "q"] $ Just
-    [[PVar () "q"] :=: [App "dff" [Var () "d"]]
-    ,[PVar () "d"] :=: [App "xor" [Var () "t", Var () "q"]]
+    [[PVar () "q"] :=: [App [] "dff" [Var () "d"]]
+    ,[PVar () "d"] :=: [App [] "xor" [Var () "t", Var () "q"]]
     ]
   ,"tff(t) = q where q = dff(d) d = xor(t,q)")
 
 (_, _, env8, _) = mkComponent env7
   (DEC ("one", []) [OLD BIT], "one() -> @<Bit>") $ Just
-  (Def ("one", []) [App "not" [App "zero" []]] Nothing
+  (Def ("one", []) [App [] "not" [App [] "zero" []]] Nothing
   ,"one() = !zero()")
 
 (_, _, env9, _) = mkComponent env8
   (DEC ("tff2", [BIT]) [OLD BIT], "tff2(<Bit>) -> @<Bit>") $ Just
-  (Def ("tff2", [PVar () "t"]) [App "xor" [Var () "q2",Var () "q1"]] $ Just
-    [[PVar () "q2"] :=: [App "tff" [App "or" [App "not" [Var () "t"],Var () "q1"]]]
-    ,[PVar () "q1"] :=: [App "tff" [App "one" []]]
+  (Def ("tff2", [PVar () "t"]) [App [] "xor" [Var () "q2",Var () "q1"]] $ Just
+    [[PVar () "q2"] :=: [App [] "tff" [App [] "or" [App [] "not" [Var () "t"],Var () "q1"]]]
+    ,[PVar () "q1"] :=: [App [] "tff" [App [] "one" []]]
     ]
   ,"tff2(T) = xor(Q2,Q1) where Q2 = tff(!T | Q1) Q1 = tff(one())")

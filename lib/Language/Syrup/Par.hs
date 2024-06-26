@@ -255,12 +255,12 @@ pExpPrec prec = pWee >>= pMore prec
 
 pWee :: Par Exp
 pWee = pClue (SEEKING "an expression") $
-      (pVar >>= \ f -> App f <$ pSpc <*> pBrk Round
+      (pVar >>= \ f -> App [] f <$ pSpc <*> pBrk Round
         (SEEKING $ "input for " ++ f) (pAllSep (pTokIs (Sym ",")) pExp))
   <|> Var () <$> pVar <* pPeek notApp
   <|> Cab () <$> pBrk Square (SEEKING "cable contents")
                  (pSep (pTokIs (Sym ",")) pExp)
-  <|> (App "not" . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
+  <|> (App [] "not" . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
   <|> pBrk Round (SEEKING "an expression in parentheses") pExp
   <|> pYelp AARGH
 
@@ -271,10 +271,10 @@ notApp _ = True
 
 pMore :: Int -> Exp -> Par Exp
 pMore prec e = ( pSpc *> (
-  (App "or" <$ guard (prec <= 1) <* pTokIs (Sym "|") <* pSpc
+  (App [] "or" <$ guard (prec <= 1) <* pTokIs (Sym "|") <* pSpc
      <*> (((e:) . (:[])) <$> pExpPrec 1) >>= pMore prec)
   <|>
-  (App "and" <$ guard (prec <= 2) <* pTokIs (Sym "&") <* pSpc
+  (App [] "and" <$ guard (prec <= 2) <* pTokIs (Sym "&") <* pSpc
      <*> (((e:) . (:[])) <$> pExpPrec 2) >>= pMore prec)
   ) ) <|> pure e
 

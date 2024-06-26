@@ -25,9 +25,9 @@ type Source  = Source' Void
 type Exp = Exp' ()
 data Exp' ty
   = Var ty String
-  | App String [Exp' ty]
+  | App [ty] String [Exp' ty]
   | Cab ty [Exp' ty]
-  deriving (Eq)
+  deriving (Eq, Functor, Foldable, Traversable)
 
 type Pat = Pat' () String
 data Pat' ty a
@@ -104,9 +104,9 @@ support (PCab _ ps) = foldMap support ps
 ------------------------------------------------------------------------------
 
 instance Show (Exp' ty) where
-  show (Var _ x)  = x
-  show (App f es) = concat [f, "(", csepShow es, ")"]
-  show (Cab _ es) = concat ["[", csepShow es, "]"]
+  show (Var _ x)    = x
+  show (App _ f es) = concat [f, "(", csepShow es, ")"]
+  show (Cab _ es)   = concat ["[", csepShow es, "]"]
 
 instance a ~ String => Show (Pat' ty a) where
   show (PVar _ x)  = x

@@ -1122,8 +1122,8 @@ Truth table for adc4:
 <!-- GATE_adc2_20__1__12&#45;&gt;FANIN_20__0 -->
 <g id="edge7" class="edge">
 <title>GATE_adc2_20__1__12:s&#45;&gt;FANIN_20__0:n</title>
-<path fill="none" stroke="black" stroke-width="2" d="M144.5,-218C144.5,-178.9 187.55,-179.7 191.25,-144.03"/>
-<polygon fill="black" stroke="black" stroke-width="2" points="193,-144.08 191.5,-139 189.5,-143.91 193,-144.08"/>
+<path fill="none" stroke="black" stroke-width="4" d="M144.5,-218C144.5,-178.9 187.55,-179.7 191.25,-144.03"/>
+<polygon fill="black" stroke="black" stroke-width="4" points="193,-144.08 191.5,-139 189.5,-143.91 193,-144.08"/>
 <text text-anchor="middle" x="171" y="-180.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
 <!-- GATE_adc2_20__1__12&#45;&gt;GATE_adc4_20__OUTPUTS -->
@@ -1136,8 +1136,8 @@ Truth table for adc4:
 <!-- GATE_adc2_20__2__12&#45;&gt;FANIN_20__0 -->
 <g id="edge9" class="edge">
 <title>GATE_adc2_20__2__12:s&#45;&gt;FANIN_20__0:n</title>
-<path fill="none" stroke="black" stroke-width="2" d="M210.5,-345C210.5,-255.13 213.39,-231.44 213.5,-144.03"/>
-<polygon fill="black" stroke="black" stroke-width="2" points="215.25,-144 213.5,-139 211.75,-144 215.25,-144"/>
+<path fill="none" stroke="black" stroke-width="4" d="M210.5,-345C210.5,-255.13 213.39,-231.44 213.5,-144.03"/>
+<polygon fill="black" stroke="black" stroke-width="4" points="215.25,-144 213.5,-139 211.75,-144 215.25,-144"/>
 <text text-anchor="middle" x="215" y="-244.3" font-family="Times,serif" font-size="14.00"> </text>
 </g>
 <!-- GATE_adc2_20__2__12&#45;&gt;GATE_adc2_20__1__12 -->
