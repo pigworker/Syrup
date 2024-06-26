@@ -192,7 +192,7 @@ toWhitebox nm (Gate is os defs) env p = do
         id <- fresh
         let dotG = fanIn (extend id p) args os
         for_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
-          tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") True
+          tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") False
         for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
           tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
         pure (circuitGraph dotG)
@@ -200,7 +200,7 @@ toWhitebox nm (Gate is os defs) env p = do
         id <- fresh
         let dotG = fanOut (extend id p) [arg] os
         for_ (zip [arg] (inputPorts dotG)) $ \ (arg, iport) ->
-          tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") True
+          tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") False
         for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
           tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
         pure (circuitGraph dotG)
@@ -266,19 +266,25 @@ toBlackbox p is nm os =
 
 fanIn :: Path -> [Input] -> [Output] -> Circuit
 fanIn p is os =
-  let gateNode   = "FANIN_" ++ show p
+  let width = length is
+      gateNode   = "FANIN_" ++ show p
       iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
-      iports     = map (declarePort 7 False . inputToPort) is
-  in Circuit iportNames [gateNode] $
+      oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
+      iports     = map (declarePort 7 False . inputToPort . \ r -> r { isVirtualInput = True}) is
+      oports     = map (declarePort' (Just width) 7 False . outputToPort . \ r -> r { isVirtualOutput = True}) os
+  in Circuit iportNames oportNames $
     [ "subgraph fanin_" ++ show p ++ " {"
     , "  style = invis;"
     , indent 2 $ gateNode
-    , "    [ shape = invtriangle"
-    , "    , width = .75"
-    , "    , height = .75"
+    , "    [ shape = none"
+    , "    , style = filled"
+    , "    , fillcolor = red"
     , "    , fixedsize = true"
-    , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"4\">"
+    , "    , width = ", show (0.07 * fromIntegral width :: Double)
+    , "    , height = .1"
+    , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">"
     , indent 15 $ "<TR>" ++ unlines iports ++ "</TR>"
+    , indent 15 $ "<TR>" ++ unlines oports ++ "</TR>"
     , "              </TABLE>>"
     , "    ];"
     , "}"
@@ -286,31 +292,40 @@ fanIn p is os =
 
 fanOut :: Path -> [Input] -> [Output] -> Circuit
 fanOut p is os =
-  let gateNode   = "FANOUT_" ++ show p
+  let width = length os
+      gateNode   = "FANOUT_" ++ show p
+      iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
-      oports     = map (declarePort 7 False . outputToPort) os
-  in Circuit [gateNode] oportNames $
+      iports     = map (declarePort' (Just width) 7 False . inputToPort . \ r -> r { isVirtualInput = True}) is
+      oports     = map (declarePort 7 False . outputToPort . \ r -> r { isVirtualOutput = True}) os
+  in Circuit iportNames oportNames $
     [ "subgraph fanout_" ++ show p ++ " {"
     , "  style = invis;"
     , indent 2 $ gateNode
-    , "    [ shape = triangle"
-    , "    , width = .75"
-    , "    , height = .75"
+    , "    [ shape = none"
+    , "    , style = filled"
+    , "    , fillcolor = red"
     , "    , fixedsize = true"
-    , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"4\">"
+    , "    , width = ", show (0.07 * fromIntegral width :: Double)
+    , "    , height = .1"
+    , "    ,  label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">"
+    , indent 15 $ "<TR>" ++ unlines iports ++ "</TR>"
     , indent 15 $ "<TR>" ++ unlines oports ++ "</TR>"
     , "              </TABLE>>"
     , "    ];"
     , "}"
     ]
 
-declarePort :: Int -> Bool -> Port -> String
-declarePort size b (isv, dn, n) = concat
-    [ "<TD PORT=", show n, ">"
+declarePort' :: Maybe Int -> Int -> Bool -> Port -> String
+declarePort' mb size b (isv, dn, n) = concat
+    [ "<TD PORT=", show n, maybe "" (\ i -> " COLSPAN=" ++ show (show i)) mb, ">"
     , let mn = n <$ guard (not isv) <|> dn <* guard b in
       maybe "" (\ lb -> concat ["<FONT POINT-SIZE=", show (show size), ">", lb, "</FONT>" ]) mn
     , "</TD>"
     ]
+
+declarePort :: Int -> Bool -> Port -> String
+declarePort = declarePort' Nothing
 
 def :: TypedDef -> Dot ()
 def d = case toGate d of
