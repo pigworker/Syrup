@@ -138,8 +138,9 @@ elabRHS inputs e =
   let dflt = elabExp e
       ins  = map inputName inputs
   in case e of
-    Var _ x | x `elem` ins -> declareAlias e
-          | otherwise    -> dflt
+    Var _ x
+      | x `elem` ins -> declareAlias e
+      | otherwise    -> dflt
     _ -> dflt
 
 -- Not much work done here: elaborate the LHS, elaborate the RHS and
