@@ -150,7 +150,7 @@ toWhitebox nm (Gate is os defs) env p = do
 
   let iports = map (declarePort 20 True . inputToPort) is
   let oports = map (declarePort 20 True . outputToPort) os
-  let iPorts = unlines
+  let iPorts = if null iports then "" else unlines
          [ concat [ gateNode, "__INPUTS" ]
          , "    [ shape = none"
          , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"10\">"
@@ -251,9 +251,9 @@ toBlackbox p is nm os =
     , indent 2 $ gateNode
     , "    [ shape = none"
     , "    , label = <<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"4\">"
-    , unlines $ map (\ s -> indent 15 $ "<TR>" ++ s ++ "</TR>")
-        [ unlines iports
-        , concat [ "<TD COLSPAN=\"", show (max (length iports) (length oports)), "\">"
+    , unlines $ map (\ s -> indent 15 $ "<TR>" ++ s ++ "</TR>") $
+        (if null iports then id else (unlines iports :))
+        [ concat [ "<TD COLSPAN=\"", show (max (length iports) (length oports)), "\">"
                  , "<FONT POINT-SIZE=\"20\">", nm, "</FONT>"
                  , "</TD>"
                  ]
@@ -355,4 +355,5 @@ myDotSt
   = foldl addDef initDotSt
   [ nand
   , dff
+  , zero
   ]

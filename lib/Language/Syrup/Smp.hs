@@ -9,6 +9,15 @@ module Language.Syrup.Smp where
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 
+zero :: TypedDef
+zero = let ty = Bit () in
+  Def ("zero", []) [Var ty "D"] $ Just $
+  [ ([PVar ty "D"] :=: [App [ty] "dff" [Var ty "E"]])
+  , ([PVar ty "E"] :=: [App [ty] "nand" [Var ty "F", Var ty "F"]])
+  , ([PVar ty "F"] :=: [App [ty] "nand" [Var ty "D", Var ty "G"]])
+  , ([PVar ty "G"] :=: [App [ty] "nand" [Var ty "D", Var ty "D"]])
+  ]
+
 nand :: TypedDef
 nand = let ty = Bit () in
   Def ("nand", PVar ty <$> ["X", "Y"]) [Var ty "Z"] $ Just $

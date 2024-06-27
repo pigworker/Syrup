@@ -14,52 +14,52 @@ not is defined.
 <g id="clust1" class="cluster">
 <title>cluster_circuit__</title>
 </g>
-<!-- NODE_x_2 -->
+<!-- NODE_x_3 -->
 <g id="node1" class="node">
-<title>NODE_x_2</title>
+<title>NODE_x_3</title>
 <ellipse fill="black" stroke="black" cx="60" cy="-215.8" rx="1.8" ry="1.8"/>
 </g>
-<!-- GATE_nand_2__0__0 -->
+<!-- GATE_nand_3__0__0 -->
 <g id="node3" class="node">
-<title>GATE_nand_2__0__0</title>
+<title>GATE_nand_3__0__0</title>
 <text text-anchor="start" x="41" y="-146.4" font-family="Times,serif" font-size="7.00">X</text>
 <text text-anchor="start" x="73" y="-146.4" font-family="Times,serif" font-size="7.00">Y</text>
 <text text-anchor="start" x="34" y="-120" font-family="Times,serif" font-size="20.00">nand</text>
 <text text-anchor="start" x="41.5" y="-100.4" font-family="Times,serif" font-size="7.00">Z</text>
 <polygon fill="none" stroke="black" points="24.5,-91 24.5,-159 93.5,-159 93.5,-91 24.5,-91"/>
 </g>
-<!-- NODE_x_2&#45;&gt;GATE_nand_2__0__0 -->
+<!-- NODE_x_3&#45;&gt;GATE_nand_3__0__0 -->
 <g id="edge3" class="edge">
-<title>NODE_x_2&#45;&gt;GATE_nand_2__0__0:n</title>
+<title>NODE_x_3&#45;&gt;GATE_nand_3__0__0:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M59.6,-213.98C57.3,-209.13 45.7,-183.66 44.17,-160.01"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="45.92,-159.94 44,-155 42.42,-160.06 45.92,-159.94"/>
 <text text-anchor="middle" x="54.5" y="-184.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- NODE_x_2&#45;&gt;GATE_nand_2__0__0 -->
+<!-- NODE_x_3&#45;&gt;GATE_nand_3__0__0 -->
 <g id="edge4" class="edge">
-<title>NODE_x_2&#45;&gt;GATE_nand_2__0__0:n</title>
+<title>NODE_x_3&#45;&gt;GATE_nand_3__0__0:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M60.4,-213.98C62.7,-209.13 74.3,-183.66 75.83,-160.01"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="77.58,-160.06 76,-155 74.08,-159.94 77.58,-160.06"/>
 <text text-anchor="middle" x="74.5" y="-184.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_not_2__INPUTS -->
+<!-- GATE_not_3__INPUTS -->
 <g id="node2" class="node">
-<title>GATE_not_2__INPUTS</title>
+<title>GATE_not_3__INPUTS</title>
 <text text-anchor="start" x="54" y="-290.6" font-family="Times,serif" font-size="20.00">x</text>
 </g>
-<!-- GATE_not_2__INPUTS&#45;&gt;NODE_x_2 -->
+<!-- GATE_not_3__INPUTS&#45;&gt;NODE_x_3 -->
 <g id="edge2" class="edge">
-<title>GATE_not_2__INPUTS:x&#45;&gt;NODE_x_2</title>
+<title>GATE_not_3__INPUTS:x&#45;&gt;NODE_x_3</title>
 <path fill="none" stroke="black" stroke-width="2" d="M60,-282.44C60,-262.61 60,-224.81 60,-217.9"/>
 <text text-anchor="middle" x="62.5" y="-239.4" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_not_2__OUTPUTS -->
+<!-- GATE_not_3__OUTPUTS -->
 <g id="node4" class="node">
-<title>GATE_not_2__OUTPUTS</title>
+<title>GATE_not_3__OUTPUTS</title>
 </g>
-<!-- GATE_nand_2__0__0&#45;&gt;GATE_not_2__OUTPUTS -->
+<!-- GATE_nand_3__0__0&#45;&gt;GATE_not_3__OUTPUTS -->
 <g id="edge1" class="edge">
-<title>GATE_nand_2__0__0:s&#45;&gt;GATE_not_2__OUTPUTS:__VIRTUAL__0</title>
+<title>GATE_nand_3__0__0:s&#45;&gt;GATE_not_3__OUTPUTS:__VIRTUAL__0</title>
 <path fill="none" stroke="black" stroke-width="2" d="M44,-95C44,-69.17 44,-38.41 44,-25.36"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="45.75,-25.07 44,-20.07 42.25,-25.07 45.75,-25.07"/>
 <text text-anchor="middle" x="46.5" y="-57.8" font-family="Times,serif" font-size="14.00"> </text>
