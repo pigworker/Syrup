@@ -769,16 +769,16 @@ Truth table for adc4:
 <g id="clust1" class="cluster">
 <title>cluster_circuit__</title>
 </g>
-<!-- GATE_fadd_10__INPUTS -->
+<!-- GATE_fadd_11__INPUTS -->
 <g id="node1" class="node">
-<title>GATE_fadd_10__INPUTS</title>
+<title>GATE_fadd_11__INPUTS</title>
 <text text-anchor="start" x="29" y="-508" font-family="Times,serif" font-size="20.00">X1</text>
 <text text-anchor="start" x="71" y="-508" font-family="Times,serif" font-size="20.00">Y1</text>
 <text text-anchor="start" x="112" y="-508" font-family="Times,serif" font-size="20.00">C1</text>
 </g>
-<!-- GATE_hadd_10__1__9 -->
+<!-- GATE_hadd_11__1__10 -->
 <g id="node3" class="node">
-<title>GATE_hadd_10__1__9</title>
+<title>GATE_hadd_11__1__10</title>
 <text text-anchor="start" x="71.5" y="-291.4" font-family="Times,serif" font-size="7.00">X1</text>
 <text text-anchor="start" x="103" y="-291.4" font-family="Times,serif" font-size="7.00">Y1</text>
 <text text-anchor="start" x="67" y="-265" font-family="Times,serif" font-size="20.00">hadd</text>
@@ -786,16 +786,16 @@ Truth table for adc4:
 <text text-anchor="start" x="103" y="-245.4" font-family="Times,serif" font-size="7.00">S1</text>
 <polygon fill="none" stroke="black" points="57.5,-236 57.5,-304 126.5,-304 126.5,-236 57.5,-236"/>
 </g>
-<!-- GATE_fadd_10__INPUTS&#45;&gt;GATE_hadd_10__1__9 -->
+<!-- GATE_fadd_11__INPUTS&#45;&gt;GATE_hadd_11__1__10 -->
 <g id="edge1" class="edge">
-<title>GATE_fadd_10__INPUTS:C1&#45;&gt;GATE_hadd_10__1__9:n</title>
+<title>GATE_fadd_11__INPUTS:C1&#45;&gt;GATE_hadd_11__1__10:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M126,-499C126,-411.93 108.7,-389.67 108.02,-305.13"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="109.77,-304.99 108,-300 106.27,-305.01 109.77,-304.99"/>
 <text text-anchor="middle" x="125.5" y="-393.3" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_hadd_10__2__9 -->
+<!-- GATE_hadd_11__2__10 -->
 <g id="node4" class="node">
-<title>GATE_hadd_10__2__9</title>
+<title>GATE_hadd_11__2__10</title>
 <text text-anchor="start" x="38.5" y="-418.4" font-family="Times,serif" font-size="7.00">X1</text>
 <text text-anchor="start" x="70" y="-418.4" font-family="Times,serif" font-size="7.00">Y1</text>
 <text text-anchor="start" x="34" y="-392" font-family="Times,serif" font-size="20.00">hadd</text>
@@ -803,66 +803,66 @@ Truth table for adc4:
 <text text-anchor="start" x="70" y="-372.4" font-family="Times,serif" font-size="7.00">S1</text>
 <polygon fill="none" stroke="black" points="24.5,-363 24.5,-431 93.5,-431 93.5,-363 24.5,-363"/>
 </g>
-<!-- GATE_fadd_10__INPUTS&#45;&gt;GATE_hadd_10__2__9 -->
+<!-- GATE_fadd_11__INPUTS&#45;&gt;GATE_hadd_11__2__10 -->
 <g id="edge2" class="edge">
-<title>GATE_fadd_10__INPUTS:X1&#45;&gt;GATE_hadd_10__2__9:n</title>
+<title>GATE_fadd_11__INPUTS:X1&#45;&gt;GATE_hadd_11__2__10:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M43,-499C43,-468.75 43,-459.95 43,-432.04"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="44.75,-432 43,-427 41.25,-432 44.75,-432"/>
 <text text-anchor="middle" x="46.5" y="-456.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_fadd_10__INPUTS&#45;&gt;GATE_hadd_10__2__9 -->
+<!-- GATE_fadd_11__INPUTS&#45;&gt;GATE_hadd_11__2__10 -->
 <g id="edge3" class="edge">
-<title>GATE_fadd_10__INPUTS:Y1&#45;&gt;GATE_hadd_10__2__9:n</title>
+<title>GATE_fadd_11__INPUTS:Y1&#45;&gt;GATE_hadd_11__2__10:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M85,-499C85,-468.46 76.06,-460.19 75.09,-432.08"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="76.83,-431.97 75,-427 73.34,-432.03 76.83,-431.97"/>
 <text text-anchor="middle" x="83.5" y="-456.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_xor_10__0__6 -->
+<!-- GATE_xor_11__0__7 -->
 <g id="node2" class="node">
-<title>GATE_xor_10__0__6</title>
+<title>GATE_xor_11__0__7</title>
 <text text-anchor="start" x="35.5" y="-164.4" font-family="Times,serif" font-size="7.00">X</text>
 <text text-anchor="start" x="59" y="-164.4" font-family="Times,serif" font-size="7.00">Y</text>
 <text text-anchor="start" x="33" y="-138" font-family="Times,serif" font-size="20.00">xor</text>
 <text text-anchor="start" x="36" y="-118.4" font-family="Times,serif" font-size="7.00">Z</text>
 <polygon fill="none" stroke="black" points="24,-109 24,-177 76,-177 76,-109 24,-109"/>
 </g>
-<!-- GATE_fadd_10__OUTPUTS -->
+<!-- GATE_fadd_11__OUTPUTS -->
 <g id="node5" class="node">
-<title>GATE_fadd_10__OUTPUTS</title>
+<title>GATE_fadd_11__OUTPUTS</title>
 <text text-anchor="start" x="48" y="-22" font-family="Times,serif" font-size="20.00">C2</text>
 <text text-anchor="start" x="90" y="-22" font-family="Times,serif" font-size="20.00">Z1</text>
 </g>
-<!-- GATE_xor_10__0__6&#45;&gt;GATE_fadd_10__OUTPUTS -->
+<!-- GATE_xor_11__0__7&#45;&gt;GATE_fadd_11__OUTPUTS -->
 <g id="edge8" class="edge">
-<title>GATE_xor_10__0__6:s&#45;&gt;GATE_fadd_10__OUTPUTS:C2</title>
+<title>GATE_xor_11__0__7:s&#45;&gt;GATE_fadd_11__OUTPUTS:C2</title>
 <path fill="none" stroke="black" stroke-width="2" d="M38,-113C38,-81.11 59.45,-75.31 61.79,-46.28"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="63.55,-46.06 62,-41 60.05,-45.93 63.55,-46.06"/>
 <text text-anchor="middle" x="54.5" y="-75.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_hadd_10__1__9&#45;&gt;GATE_xor_10__0__6 -->
+<!-- GATE_hadd_11__1__10&#45;&gt;GATE_xor_11__0__7 -->
 <g id="edge4" class="edge">
-<title>GATE_hadd_10__1__9:s&#45;&gt;GATE_xor_10__0__6:n</title>
+<title>GATE_hadd_11__1__10:s&#45;&gt;GATE_xor_11__0__7:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M76,-240C76,-211.36 63.59,-204.23 62.14,-178.11"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="63.89,-177.95 62,-173 60.39,-178.05 63.89,-177.95"/>
 <text text-anchor="middle" x="73.5" y="-202.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_hadd_10__1__9&#45;&gt;GATE_fadd_10__OUTPUTS -->
+<!-- GATE_hadd_11__1__10&#45;&gt;GATE_fadd_11__OUTPUTS -->
 <g id="edge5" class="edge">
-<title>GATE_hadd_10__1__9:s&#45;&gt;GATE_fadd_10__OUTPUTS:Z1</title>
+<title>GATE_hadd_11__1__10:s&#45;&gt;GATE_fadd_11__OUTPUTS:Z1</title>
 <path fill="none" stroke="black" stroke-width="2" d="M108,-240C108,-153.27 104.15,-130.35 104,-46.11"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="105.75,-46 104,-41 102.25,-46 105.75,-46"/>
 <text text-anchor="middle" x="109.5" y="-139.3" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_hadd_10__2__9&#45;&gt;GATE_xor_10__0__6 -->
+<!-- GATE_hadd_11__2__10&#45;&gt;GATE_xor_11__0__7 -->
 <g id="edge6" class="edge">
-<title>GATE_hadd_10__2__9:s&#45;&gt;GATE_xor_10__0__6:n</title>
+<title>GATE_hadd_11__2__10:s&#45;&gt;GATE_xor_11__0__7:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M43,-367C43,-340.64 38.34,-334.32 37,-308 34.05,-249.83 37.77,-233.92 37.99,-178.16"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="39.74,-178 38,-173 36.24,-178 39.74,-178"/>
 <text text-anchor="middle" x="39.5" y="-266.3" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_hadd_10__2__9&#45;&gt;GATE_hadd_10__1__9 -->
+<!-- GATE_hadd_11__2__10&#45;&gt;GATE_hadd_11__1__10 -->
 <g id="edge7" class="edge">
-<title>GATE_hadd_10__2__9:s&#45;&gt;GATE_hadd_10__1__9:n</title>
+<title>GATE_hadd_11__2__10:s&#45;&gt;GATE_hadd_11__1__10:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M75,-367C75,-338.96 75.89,-330.73 75.99,-305.01"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="77.74,-305 76,-300 74.24,-305 77.74,-305"/>
 <text text-anchor="middle" x="77.5" y="-329.8" font-family="Times,serif" font-size="14.00"> </text>
@@ -884,16 +884,16 @@ Truth table for adc4:
 <g id="clust1" class="cluster">
 <title>cluster_circuit__</title>
 </g>
-<!-- GATE_adc2_12__INPUTS -->
+<!-- GATE_adc2_13__INPUTS -->
 <g id="node1" class="node">
-<title>GATE_adc2_12__INPUTS</title>
+<title>GATE_adc2_13__INPUTS</title>
 <text text-anchor="start" x="20" y="-513" font-family="Times,serif" font-size="20.00">[X2, X1]</text>
 <text text-anchor="start" x="116" y="-513" font-family="Times,serif" font-size="20.00">[Y2, Y1]</text>
 <text text-anchor="start" x="210" y="-513" font-family="Times,serif" font-size="20.00">C1</text>
 </g>
-<!-- GATE_fadd_12__2__10 -->
+<!-- GATE_fadd_13__2__11 -->
 <g id="node4" class="node">
-<title>GATE_fadd_12__2__10</title>
+<title>GATE_fadd_13__2__11</title>
 <text text-anchor="start" x="152" y="-357.4" font-family="Times,serif" font-size="7.00">X1</text>
 <text text-anchor="start" x="173" y="-357.4" font-family="Times,serif" font-size="7.00">Y1</text>
 <text text-anchor="start" x="193" y="-357.4" font-family="Times,serif" font-size="7.00">C1</text>
@@ -902,56 +902,56 @@ Truth table for adc4:
 <text text-anchor="start" x="173" y="-311.4" font-family="Times,serif" font-size="7.00">Z1</text>
 <polygon fill="none" stroke="black" points="143,-302 143,-370 211,-370 211,-302 143,-302"/>
 </g>
-<!-- GATE_adc2_12__INPUTS&#45;&gt;GATE_fadd_12__2__10 -->
+<!-- GATE_adc2_13__INPUTS&#45;&gt;GATE_fadd_13__2__11 -->
 <g id="edge6" class="edge">
-<title>GATE_adc2_12__INPUTS:C1&#45;&gt;GATE_fadd_12__2__10:n</title>
+<title>GATE_adc2_13__INPUTS:C1&#45;&gt;GATE_fadd_13__2__11:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M224,-504C224,-443.29 199.4,-429.17 198.06,-371.01"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="199.81,-370.98 198,-366 196.31,-371.02 199.81,-370.98"/>
 <text text-anchor="middle" x="216.5" y="-428.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_12__3 -->
+<!-- FANOUT_13__3 -->
 <g id="node5" class="node">
-<title>FANOUT_12__3</title>
+<title>FANOUT_13__3</title>
 <polygon fill="red" stroke="transparent" points="161,-436 151,-436 151,-429 161,-429 161,-436"/>
 </g>
-<!-- GATE_adc2_12__INPUTS&#45;&gt;FANOUT_12__3 -->
+<!-- GATE_adc2_13__INPUTS&#45;&gt;FANOUT_13__3 -->
 <g id="edge8" class="edge">
-<title>GATE_adc2_12__INPUTS:__VIRTUAL__1&#45;&gt;FANOUT_12__3:n</title>
+<title>GATE_adc2_13__INPUTS:__VIRTUAL__1&#45;&gt;FANOUT_13__3:n</title>
 <path fill="none" stroke="black" stroke-width="4" d="M156,-504C156,-474.44 156,-467.06 156,-437.5"/>
 <text text-anchor="middle" x="158.5" y="-461.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_12__4 -->
+<!-- FANOUT_13__4 -->
 <g id="node6" class="node">
-<title>FANOUT_12__4</title>
+<title>FANOUT_13__4</title>
 <polygon fill="red" stroke="transparent" points="90,-436 80,-436 80,-429 90,-429 90,-436"/>
 </g>
-<!-- GATE_adc2_12__INPUTS&#45;&gt;FANOUT_12__4 -->
+<!-- GATE_adc2_13__INPUTS&#45;&gt;FANOUT_13__4 -->
 <g id="edge7" class="edge">
-<title>GATE_adc2_12__INPUTS:__VIRTUAL__0&#45;&gt;FANOUT_12__4:n</title>
+<title>GATE_adc2_13__INPUTS:__VIRTUAL__0&#45;&gt;FANOUT_13__4:n</title>
 <path fill="none" stroke="black" stroke-width="4" d="M61,-504C61,-472.58 85,-468.92 85,-437.5"/>
 <text text-anchor="middle" x="82.5" y="-461.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANIN_12__0 -->
+<!-- FANIN_13__0 -->
 <g id="node2" class="node">
-<title>FANIN_12__0</title>
+<title>FANIN_13__0</title>
 <polygon fill="red" stroke="transparent" points="167,-116 157,-116 157,-109 167,-109 167,-116"/>
 </g>
-<!-- GATE_adc2_12__OUTPUTS -->
+<!-- GATE_adc2_13__OUTPUTS -->
 <g id="node7" class="node">
-<title>GATE_adc2_12__OUTPUTS</title>
+<title>GATE_adc2_13__OUTPUTS</title>
 <text text-anchor="start" x="79" y="-22" font-family="Times,serif" font-size="20.00">C4</text>
 <text text-anchor="start" x="121" y="-22" font-family="Times,serif" font-size="20.00">[Z2, Z1]</text>
 </g>
-<!-- FANIN_12__0&#45;&gt;GATE_adc2_12__OUTPUTS -->
+<!-- FANIN_13__0&#45;&gt;GATE_adc2_13__OUTPUTS -->
 <g id="edge1" class="edge">
-<title>FANIN_12__0:s&#45;&gt;GATE_adc2_12__OUTPUTS:__VIRTUAL__2</title>
+<title>FANIN_13__0:s&#45;&gt;GATE_adc2_13__OUTPUTS:__VIRTUAL__2</title>
 <path fill="none" stroke="black" stroke-width="4" d="M162,-107.5C162,-79.79 162,-71.57 162,-46.29"/>
 <polygon fill="black" stroke="black" stroke-width="4" points="163.75,-46 162,-41 160.25,-46 163.75,-46"/>
 <text text-anchor="middle" x="164.5" y="-75.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_fadd_12__1__10 -->
+<!-- GATE_fadd_13__1__11 -->
 <g id="node3" class="node">
-<title>GATE_fadd_12__1__10</title>
+<title>GATE_fadd_13__1__11</title>
 <text text-anchor="start" x="88" y="-230.4" font-family="Times,serif" font-size="7.00">X1</text>
 <text text-anchor="start" x="109" y="-230.4" font-family="Times,serif" font-size="7.00">Y1</text>
 <text text-anchor="start" x="129" y="-230.4" font-family="Times,serif" font-size="7.00">C1</text>
@@ -960,56 +960,56 @@ Truth table for adc4:
 <text text-anchor="start" x="109" y="-184.4" font-family="Times,serif" font-size="7.00">Z1</text>
 <polygon fill="none" stroke="black" points="79,-175 79,-243 147,-243 147,-175 79,-175"/>
 </g>
-<!-- GATE_fadd_12__1__10&#45;&gt;FANIN_12__0 -->
+<!-- GATE_fadd_13__1__11&#45;&gt;FANIN_13__0 -->
 <g id="edge10" class="edge">
-<title>GATE_fadd_12__1__10:s&#45;&gt;FANIN_12__0:n</title>
+<title>GATE_fadd_13__1__11:s&#45;&gt;FANIN_13__0:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M114,-179C114,-144.87 160,-151.63 160,-117.5"/>
 <text text-anchor="middle" x="153.5" y="-141.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_fadd_12__1__10&#45;&gt;GATE_adc2_12__OUTPUTS -->
+<!-- GATE_fadd_13__1__11&#45;&gt;GATE_adc2_13__OUTPUTS -->
 <g id="edge9" class="edge">
-<title>GATE_fadd_12__1__10:s&#45;&gt;GATE_adc2_12__OUTPUTS:C4</title>
+<title>GATE_fadd_13__1__11:s&#45;&gt;GATE_adc2_13__OUTPUTS:C4</title>
 <path fill="none" stroke="black" stroke-width="2" d="M93,-179C93,-119.46 93,-103.27 93,-46.27"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="94.75,-46 93,-41 91.25,-46 94.75,-46"/>
 <text text-anchor="middle" x="95.5" y="-108.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_fadd_12__2__10&#45;&gt;FANIN_12__0 -->
+<!-- GATE_fadd_13__2__11&#45;&gt;FANIN_13__0 -->
 <g id="edge12" class="edge">
-<title>GATE_fadd_12__2__10:s&#45;&gt;FANIN_12__0:n</title>
+<title>GATE_fadd_13__2__11:s&#45;&gt;FANIN_13__0:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M178,-306C178,-221.99 164,-201.51 164,-117.5"/>
 <text text-anchor="middle" x="177.5" y="-205.3" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_fadd_12__2__10&#45;&gt;GATE_fadd_12__1__10 -->
+<!-- GATE_fadd_13__2__11&#45;&gt;GATE_fadd_13__1__11 -->
 <g id="edge11" class="edge">
-<title>GATE_fadd_12__2__10:s&#45;&gt;GATE_fadd_12__1__10:n</title>
+<title>GATE_fadd_13__2__11:s&#45;&gt;GATE_fadd_13__1__11:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M157,-306C157,-276.36 136.62,-271.05 134.23,-244.26"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="135.96,-243.92 134,-239 132.47,-244.07 135.96,-243.92"/>
 <text text-anchor="middle" x="151.5" y="-268.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_12__3&#45;&gt;GATE_fadd_12__1__10 -->
+<!-- FANOUT_13__3&#45;&gt;GATE_fadd_13__1__11 -->
 <g id="edge3" class="edge">
-<title>FANOUT_12__3:s&#45;&gt;GATE_fadd_12__1__10:n</title>
+<title>FANOUT_13__3:s&#45;&gt;GATE_fadd_13__1__11:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M154,-427.5C154,-410.23 129.7,-421.91 121,-407 84.21,-343.97 112.6,-315.1 113.95,-244.18"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="115.7,-244.02 114,-239 112.2,-243.98 115.7,-244.02"/>
 <text text-anchor="middle" x="109.5" y="-332.3" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_12__3&#45;&gt;GATE_fadd_12__2__10 -->
+<!-- FANOUT_13__3&#45;&gt;GATE_fadd_13__2__11 -->
 <g id="edge2" class="edge">
-<title>FANOUT_12__3:s&#45;&gt;GATE_fadd_12__2__10:n</title>
+<title>FANOUT_13__3:s&#45;&gt;GATE_fadd_13__2__11:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M158,-427.5C158,-400.55 175.58,-395.34 177.78,-371.11"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="179.53,-371.07 178,-366 176.03,-370.92 179.53,-371.07"/>
 <text text-anchor="middle" x="172.5" y="-395.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_12__4&#45;&gt;GATE_fadd_12__1__10 -->
+<!-- FANOUT_13__4&#45;&gt;GATE_fadd_13__1__11 -->
 <g id="edge5" class="edge">
-<title>FANOUT_12__4:s&#45;&gt;GATE_fadd_12__1__10:n</title>
+<title>FANOUT_13__4:s&#45;&gt;GATE_fadd_13__1__11:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M83,-427.5C83,-345.41 92.57,-323.81 92.99,-244.32"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="94.74,-244 93,-239 91.24,-244 94.74,-244"/>
 <text text-anchor="middle" x="92.5" y="-332.3" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_12__4&#45;&gt;GATE_fadd_12__2__10 -->
+<!-- FANOUT_13__4&#45;&gt;GATE_fadd_13__2__11 -->
 <g id="edge4" class="edge">
-<title>FANOUT_12__4:s&#45;&gt;GATE_fadd_12__2__10:n</title>
+<title>FANOUT_13__4:s&#45;&gt;GATE_fadd_13__2__11:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M87,-427.5C87,-387.87 151.11,-405.7 156.62,-371"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="158.37,-371.12 157,-366 154.88,-370.85 158.37,-371.12"/>
 <text text-anchor="middle" x="138.5" y="-395.8" font-family="Times,serif" font-size="14.00"> </text>
@@ -1031,126 +1031,126 @@ Truth table for adc4:
 <g id="clust1" class="cluster">
 <title>cluster_circuit__</title>
 </g>
-<!-- GATE_adc4_20__INPUTS -->
+<!-- GATE_adc4_21__INPUTS -->
 <g id="node1" class="node">
-<title>GATE_adc4_20__INPUTS</title>
+<title>GATE_adc4_21__INPUTS</title>
 <text text-anchor="start" x="20.5" y="-513" font-family="Times,serif" font-size="20.00">[X32, X10]</text>
 <text text-anchor="start" x="141.5" y="-513" font-family="Times,serif" font-size="20.00">[Y32, Y10]</text>
 <text text-anchor="start" x="261.5" y="-513" font-family="Times,serif" font-size="20.00">CI</text>
 </g>
-<!-- GATE_adc2_20__2__12 -->
+<!-- GATE_adc2_21__2__13 -->
 <g id="node4" class="node">
-<title>GATE_adc2_20__2__12</title>
+<title>GATE_adc2_21__2__13</title>
 <text text-anchor="start" x="243.5" y="-357.4" font-family="Times,serif" font-size="7.00">C1</text>
 <text text-anchor="start" x="203.5" y="-331" font-family="Times,serif" font-size="20.00">adc2</text>
 <text text-anchor="start" x="204.5" y="-311.4" font-family="Times,serif" font-size="7.00">C4</text>
 <polygon fill="none" stroke="black" points="192,-302 192,-370 263,-370 263,-302 192,-302"/>
 </g>
-<!-- GATE_adc4_20__INPUTS&#45;&gt;GATE_adc2_20__2__12 -->
+<!-- GATE_adc4_21__INPUTS&#45;&gt;GATE_adc2_21__2__13 -->
 <g id="edge10" class="edge">
-<title>GATE_adc4_20__INPUTS:CI&#45;&gt;GATE_adc2_20__2__12:n</title>
+<title>GATE_adc4_21__INPUTS:CI&#45;&gt;GATE_adc2_21__2__13:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M273.5,-504C273.5,-443.37 249.85,-429.1 248.56,-371.01"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="250.3,-370.98 248.5,-366 246.81,-371.02 250.3,-370.98"/>
 <text text-anchor="middle" x="266" y="-428.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_20__3 -->
+<!-- FANOUT_21__3 -->
 <g id="node5" class="node">
-<title>FANOUT_20__3</title>
+<title>FANOUT_21__3</title>
 <polygon fill="red" stroke="transparent" points="199.5,-436 189.5,-436 189.5,-429 199.5,-429 199.5,-436"/>
 </g>
-<!-- GATE_adc4_20__INPUTS&#45;&gt;FANOUT_20__3 -->
+<!-- GATE_adc4_21__INPUTS&#45;&gt;FANOUT_21__3 -->
 <g id="edge12" class="edge">
-<title>GATE_adc4_20__INPUTS:__VIRTUAL__1&#45;&gt;FANOUT_20__3:n</title>
+<title>GATE_adc4_21__INPUTS:__VIRTUAL__1&#45;&gt;FANOUT_21__3:n</title>
 <path fill="none" stroke="black" stroke-width="8" d="M194.5,-504C194.5,-474.44 194.5,-467.06 194.5,-437.5"/>
 <text text-anchor="middle" x="197" y="-461.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_20__4 -->
+<!-- FANOUT_21__4 -->
 <g id="node6" class="node">
-<title>FANOUT_20__4</title>
+<title>FANOUT_21__4</title>
 <polygon fill="red" stroke="transparent" points="138.5,-436 128.5,-436 128.5,-429 138.5,-429 138.5,-436"/>
 </g>
-<!-- GATE_adc4_20__INPUTS&#45;&gt;FANOUT_20__4 -->
+<!-- GATE_adc4_21__INPUTS&#45;&gt;FANOUT_21__4 -->
 <g id="edge11" class="edge">
-<title>GATE_adc4_20__INPUTS:__VIRTUAL__0&#45;&gt;FANOUT_20__4:n</title>
+<title>GATE_adc4_21__INPUTS:__VIRTUAL__0&#45;&gt;FANOUT_21__4:n</title>
 <path fill="none" stroke="black" stroke-width="8" d="M73.5,-504C73.5,-464.19 133.5,-477.31 133.5,-437.5"/>
 <text text-anchor="middle" x="127" y="-461.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANIN_20__0 -->
+<!-- FANIN_21__0 -->
 <g id="node2" class="node">
-<title>FANIN_20__0</title>
+<title>FANIN_21__0</title>
 <polygon fill="red" stroke="transparent" points="232.5,-116 222.5,-116 222.5,-109 232.5,-109 232.5,-116"/>
 </g>
-<!-- GATE_adc4_20__OUTPUTS -->
+<!-- GATE_adc4_21__OUTPUTS -->
 <g id="node7" class="node">
-<title>GATE_adc4_20__OUTPUTS</title>
+<title>GATE_adc4_21__OUTPUTS</title>
 <text text-anchor="start" x="127.5" y="-22" font-family="Times,serif" font-size="20.00">CO</text>
 <text text-anchor="start" x="173.5" y="-22" font-family="Times,serif" font-size="20.00">[Z32, Z10]</text>
 </g>
-<!-- FANIN_20__0&#45;&gt;GATE_adc4_20__OUTPUTS -->
+<!-- FANIN_21__0&#45;&gt;GATE_adc4_21__OUTPUTS -->
 <g id="edge1" class="edge">
-<title>FANIN_20__0:s&#45;&gt;GATE_adc4_20__OUTPUTS:__VIRTUAL__2</title>
+<title>FANIN_21__0:s&#45;&gt;GATE_adc4_21__OUTPUTS:__VIRTUAL__2</title>
 <path fill="none" stroke="black" stroke-width="8" d="M227.5,-107.5C227.5,-79.79 227.5,-71.57 227.5,-46.29"/>
 <polygon fill="black" stroke="black" stroke-width="8" points="231,-46 227.5,-41 224,-46 231,-46"/>
 <text text-anchor="middle" x="230" y="-75.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_adc2_20__1__12 -->
+<!-- GATE_adc2_21__1__13 -->
 <g id="node3" class="node">
-<title>GATE_adc2_20__1__12</title>
+<title>GATE_adc2_21__1__13</title>
 <text text-anchor="start" x="177.5" y="-230.4" font-family="Times,serif" font-size="7.00">C1</text>
 <text text-anchor="start" x="137.5" y="-204" font-family="Times,serif" font-size="20.00">adc2</text>
 <text text-anchor="start" x="138.5" y="-184.4" font-family="Times,serif" font-size="7.00">C4</text>
 <polygon fill="none" stroke="black" points="126,-175 126,-243 197,-243 197,-175 126,-175"/>
 </g>
-<!-- GATE_adc2_20__1__12&#45;&gt;FANIN_20__0 -->
+<!-- GATE_adc2_21__1__13&#45;&gt;FANIN_21__0 -->
 <g id="edge7" class="edge">
-<title>GATE_adc2_20__1__12:s&#45;&gt;FANIN_20__0:n</title>
+<title>GATE_adc2_21__1__13:s&#45;&gt;FANIN_21__0:n</title>
 <path fill="none" stroke="black" stroke-width="4" d="M164.5,-179C164.5,-140.5 225.5,-156 225.5,-117.5"/>
 <text text-anchor="middle" x="217" y="-141.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_adc2_20__1__12&#45;&gt;GATE_adc4_20__OUTPUTS -->
+<!-- GATE_adc2_21__1__13&#45;&gt;GATE_adc4_21__OUTPUTS -->
 <g id="edge6" class="edge">
-<title>GATE_adc2_20__1__12:s&#45;&gt;GATE_adc4_20__OUTPUTS:CO</title>
+<title>GATE_adc2_21__1__13:s&#45;&gt;GATE_adc4_21__OUTPUTS:CO</title>
 <path fill="none" stroke="black" stroke-width="2" d="M143.5,-179C143.5,-119.46 143.5,-103.27 143.5,-46.27"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="145.25,-46 143.5,-41 141.75,-46 145.25,-46"/>
 <text text-anchor="middle" x="146" y="-108.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_adc2_20__2__12&#45;&gt;FANIN_20__0 -->
+<!-- GATE_adc2_21__2__13&#45;&gt;FANIN_21__0 -->
 <g id="edge9" class="edge">
-<title>GATE_adc2_20__2__12:s&#45;&gt;FANIN_20__0:n</title>
+<title>GATE_adc2_21__2__13:s&#45;&gt;FANIN_21__0:n</title>
 <path fill="none" stroke="black" stroke-width="4" d="M230.5,-306C230.5,-222.22 229.5,-201.28 229.5,-117.5"/>
 <text text-anchor="middle" x="232" y="-205.3" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_adc2_20__2__12&#45;&gt;GATE_adc2_20__1__12 -->
+<!-- GATE_adc2_21__2__13&#45;&gt;GATE_adc2_21__1__13 -->
 <g id="edge8" class="edge">
-<title>GATE_adc2_20__2__12:s&#45;&gt;GATE_adc2_20__1__12:n</title>
+<title>GATE_adc2_21__2__13:s&#45;&gt;GATE_adc2_21__1__13:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M209.5,-306C209.5,-275.65 185.37,-271.5 182.73,-244.01"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="184.48,-243.91 182.5,-239 180.98,-244.08 184.48,-243.91"/>
 <text text-anchor="middle" x="204" y="-268.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_20__3&#45;&gt;GATE_adc2_20__1__12 -->
+<!-- FANOUT_21__3&#45;&gt;GATE_adc2_21__1__13 -->
 <g id="edge3" class="edge">
-<title>FANOUT_20__3:s&#45;&gt;GATE_adc2_20__1__12:n</title>
+<title>FANOUT_21__3:s&#45;&gt;GATE_adc2_21__1__13:n</title>
 <path fill="none" stroke="black" stroke-width="4" d="M192.5,-427.5C192.5,-413.81 175.29,-419.41 169.5,-407 138.67,-340.88 163.29,-314.92 164.46,-244.17"/>
 <polygon fill="black" stroke="black" stroke-width="4" points="166.21,-244.01 164.5,-239 162.71,-243.99 166.21,-244.01"/>
 <text text-anchor="middle" x="161" y="-332.3" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_20__3&#45;&gt;GATE_adc2_20__2__12 -->
+<!-- FANOUT_21__3&#45;&gt;GATE_adc2_21__2__13 -->
 <g id="edge2" class="edge">
-<title>FANOUT_20__3:s&#45;&gt;GATE_adc2_20__2__12:n</title>
+<title>FANOUT_21__3:s&#45;&gt;GATE_adc2_21__2__13:n</title>
 <path fill="none" stroke="black" stroke-width="4" d="M196.5,-427.5C196.5,-398.1 226.63,-397.23 230.16,-371.17"/>
 <polygon fill="black" stroke="black" stroke-width="4" points="231.92,-371.1 230.5,-366 228.43,-370.88 231.92,-371.1"/>
 <text text-anchor="middle" x="221" y="-395.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_20__4&#45;&gt;GATE_adc2_20__1__12 -->
+<!-- FANOUT_21__4&#45;&gt;GATE_adc2_21__1__13 -->
 <g id="edge5" class="edge">
-<title>FANOUT_20__4:s&#45;&gt;GATE_adc2_20__1__12:n</title>
+<title>FANOUT_21__4:s&#45;&gt;GATE_adc2_21__1__13:n</title>
 <path fill="none" stroke="black" stroke-width="4" d="M131.5,-427.5C131.5,-345.36 142.99,-323.86 143.48,-244.32"/>
 <polygon fill="black" stroke="black" stroke-width="4" points="145.23,-244.01 143.5,-239 141.73,-243.99 145.23,-244.01"/>
 <text text-anchor="middle" x="143" y="-332.3" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_20__4&#45;&gt;GATE_adc2_20__2__12 -->
+<!-- FANOUT_21__4&#45;&gt;GATE_adc2_21__2__13 -->
 <g id="edge4" class="edge">
-<title>FANOUT_20__4:s&#45;&gt;GATE_adc2_20__2__12:n</title>
+<title>FANOUT_21__4:s&#45;&gt;GATE_adc2_21__2__13:n</title>
 <path fill="none" stroke="black" stroke-width="4" d="M135.5,-427.5C135.5,-386.57 203.28,-406.82 209.1,-371.15"/>
 <polygon fill="black" stroke="black" stroke-width="4" points="210.86,-371.12 209.5,-366 207.37,-370.85 210.86,-371.12"/>
 <text text-anchor="middle" x="190" y="-395.8" font-family="Times,serif" font-size="14.00"> </text>
