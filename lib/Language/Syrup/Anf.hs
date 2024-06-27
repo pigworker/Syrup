@@ -10,6 +10,7 @@ import Control.Monad.State
 
 import Data.Maybe (fromMaybe)
 import Data.Monoid (First(..), Sum(..))
+import Data.Traversable (for)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Fsh
@@ -153,7 +154,7 @@ declareCopies :: (String, (First Typ, Sum Int)) -> ANF [LetBinding]
 declareCopies (x, (First (Just ty), Sum n))
   | n <= 2 = pure [] -- there are two ends to each cable
   | otherwise = do
-      os <- forM [2..n] $ const $ do
+      os <- for [2..n] $ const $ do
               nm <- freshVirtualName
               pure (Output True ty (Just x) nm)
       modify (insertArr (x, os))
