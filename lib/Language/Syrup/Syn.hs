@@ -4,10 +4,15 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE TypeFamilies      #-}
+
 module Language.Syrup.Syn where
 
+import Data.Kind (Type)
 import Data.List (intercalate)
-import Data.Void
+import Data.Monoid (Sum(..), First(..))
+import Data.Void (Void)
 
 import Language.Syrup.BigArray
 
@@ -76,6 +81,7 @@ data EXPT
   | Simulate String [Va] [[Va]]
   | Bisimilarity String String
   | Display String
+  | Anf String
   deriving Show
 
 data Va
@@ -94,9 +100,45 @@ instance Show Va where
 -- operations on syntax
 ------------------------------------------------------------------------------
 
+class AllVars t where
+  type VarTy t :: Type
+  allVars :: t -> Arr String (First (VarTy t), Sum Int)
+
+  default allVars
+    :: (t ~ f a, VarTy t ~ VarTy a, Foldable f, AllVars a)
+    => t -> Arr String (First (VarTy t), Sum Int)
+  allVars = foldMap allVars
+
+instance AllVars a => AllVars [a] where
+  type VarTy [a] = VarTy a
+instance AllVars a => AllVars (Maybe a) where
+  type VarTy (Maybe a) = VarTy a
+
+instance a ~ String => AllVars (Pat' ty a) where
+  type VarTy (Pat' ty a) = ty
+  allVars = \case
+    PVar ty s -> single (s, (First (Just ty), Sum 1))
+    PCab _ c -> allVars c
+
+instance AllVars (Def' ty) where
+  type VarTy (Def' ty) = ty
+  allVars = \case
+    Stub{} -> emptyArr
+    Def (fn,ps) es meqns -> allVars ps <> allVars es <> allVars meqns
+
+instance AllVars (Exp' ty) where
+  type VarTy (Exp' ty) = ty
+  allVars = \case
+    Var ty x -> single (x, (First (Just ty), Sum 1))
+    App _ fn es -> allVars es
+    Cab _ es -> allVars es
+
+instance AllVars (Eqn' ty) where
+  type VarTy (Eqn' ty) = ty
+  allVars (ps :=: es) = allVars ps <> allVars es
+
 support :: Pat' ty String -> Set String
-support (PVar _ x)  = singleton x
-support (PCab _ ps) = foldMap support ps
+support p = () <$ allVars p
 
 
 ------------------------------------------------------------------------------

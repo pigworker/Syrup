@@ -4,8 +4,6 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE DefaultSignatures #-}
-
 module Language.Syrup.Lnt where
 
 import Data.List (intercalate)
@@ -65,23 +63,8 @@ linter xs = xs >>= \case
 ------------------------------------------------------------------------------
 -- Needlessly split cables
 
-class AllVars t where
-  allVars :: t -> Set String
-
-  default allVars
-    :: (t ~ f a, Foldable f, AllVars a)
-    => t -> Set String
-  allVars = foldMap allVars
-
-instance AllVars a => AllVars [a]
-
-instance a ~ String => AllVars (Pat' ty a) where
-  allVars = \case
-    PVar _ s -> singleton s
-    PCab _ c -> allVars c
-
 abstractThisCable :: [Pat] -> Exp -> Bool
-abstractThisCable ps e = isEmptyArr (allVars ps `intersectSet` go e) where
+abstractThisCable ps e = isEmptyArr (foldMap support ps `intersectSet` go e) where
 
   cable = Cab () (map patToExp ps)
 
