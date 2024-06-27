@@ -20,10 +20,11 @@ import Data.Monoid (Endo(Endo), appEndo)
 import Data.Traversable (for)
 import Data.Void (Void)
 
+import Language.Syrup.Anf
 import Language.Syrup.BigArray
+import Language.Syrup.Dot
 import Language.Syrup.Syn
 import Language.Syrup.Ty
-import Language.Syrup.Dot
 import Language.Syrup.Utils
 
 import System.IO.Unsafe (unsafePerformIO)
@@ -52,6 +53,11 @@ experiment (g, st) (Display x) = case findArr x g of
    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
    Just d -> lines $ unsafePerformIO $
      readProcess "dot" ["-Tsvg"] (unlines $ whiteBoxDef st d)
+experiment (g, st) (Anf x) = case findArr x g of
+ Nothing -> ["I don't know what " ++ x ++ " is."]
+ Just c -> case defn c of
+   Nothing -> ["I don't have an implementation for " ++ x ++ "."]
+   Just d -> lines (show (toANF d))
 
 ------------------------------------------------------------------------------
 -- running tine sequences

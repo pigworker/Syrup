@@ -178,6 +178,14 @@ toWhitebox nm (Gate is os defs) env p = do
       Alias ty x -> case os of
         [y] -> [] <$ tellEdge ty (mkNode p x) (mkNode p $ outputName y) True
         _   -> error "not yet supported"
+      Copy ty arg -> do
+        id <- fresh
+        let dotG = fanOut aCopy (extend id p) [arg] os
+        for_ (zip [arg] (inputPorts dotG)) $ \ (arg, iport) ->
+          tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") False
+        for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
+          tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
+        pure (circuitGraph dotG)
       Call tys f args -> case findArr f env of
         Nothing   -> error ("This should never happen: could not find " ++ f ++ ".")
         Just repr -> do
@@ -198,7 +206,7 @@ toWhitebox nm (Gate is os defs) env p = do
         pure (circuitGraph dotG)
       FanOut arg -> do
         id <- fresh
-        let dotG = fanOut (extend id p) [arg] os
+        let dotG = fanOut aFanOut (extend id p) [arg] os
         for_ (zip [arg] (inputPorts dotG)) $ \ (arg, iport) ->
           tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") False
         for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
@@ -290,10 +298,22 @@ fanIn p is os =
     , "}"
     ]
 
-fanOut :: Path -> [Input] -> [Output] -> Circuit
-fanOut p is os =
+data FanOutType = FanOutType
+  { fanOutName   :: String
+  , fanOutColour :: String
+  }
+
+aFanOut :: FanOutType
+aFanOut = FanOutType "FANOUT" "red"
+
+aCopy :: FanOutType
+aCopy = FanOutType "COPY" "skyblue"
+
+
+fanOut :: FanOutType -> Path -> [Input] -> [Output] -> Circuit
+fanOut fot p is os =
   let width = length os
-      gateNode   = "FANOUT_" ++ show p
+      gateNode   = (fanOutName fot) ++ "_" ++ show p
       iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
       iports     = map (declarePort' (Just width) 7 False . inputToPort . \ r -> r { isVirtualInput = True}) is
@@ -304,7 +324,7 @@ fanOut p is os =
     , indent 2 $ gateNode
     , "    [ shape = none"
     , "    , style = filled"
-    , "    , fillcolor = red"
+    , "    , fillcolor = ", fanOutColour fot
     , "    , fixedsize = true"
     , "    , width = ", show (0.07 * fromIntegral width :: Double)
     , "    , height = .1"

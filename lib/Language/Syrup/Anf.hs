@@ -6,8 +6,12 @@
 
 module Language.Syrup.Anf where
 
-import Data.Maybe (fromMaybe)
+import Control.Monad.State
 
+import Data.Maybe (fromMaybe)
+import Data.Monoid (First(..), Sum(..))
+
+import Language.Syrup.BigArray
 import Language.Syrup.Fsh
 import Language.Syrup.Smp
 import Language.Syrup.Syn
@@ -61,6 +65,7 @@ cowire (Output v ty dn x) = Input v ty dn x
 data Expr' nm
   = Alias Typ nm
   | Call [Typ] nm [Input' nm]
+  | Copy Typ (Input' nm)
   | FanIn [Input' nm]
   | FanOut (Input' nm)
   deriving (Functor, Foldable, Traversable)
@@ -85,7 +90,7 @@ instance Semigroup Gate where
 ------------------------------------------------------------------------------
 -- ANF: the Fresh monad to generate fresh names for virtual wires
 
-type ANF = Fresh Int
+type ANF = StateT (Arr String [Output]) (Fresh Int)
 
 -- This should return a name not valid in the surface syntax.
 freshVirtualName :: ANF String
@@ -126,7 +131,7 @@ declareAlias e = do
 
 elabExp :: TypedExp -> ANF (Output, [Assignment])
 elabExp = \case
-  Var ty x -> pure (Output False ty Nothing x, [])
+  Var ty x -> elabVar x >>= \ x' -> pure (Output (x /= x') ty Nothing x', [])
   e        -> declareAlias e
 
 -- If an expression on the RHS is a variable corresponding to an input
@@ -140,16 +145,27 @@ elabRHS inputs e =
       ins  = map inputName inputs
   in case e of
     Var _ x
-      | x `elem` ins -> declareAlias e
+--      | x `elem` ins -> declareAlias e
       | otherwise    -> dflt
     _ -> dflt
+
+declareCopies :: (String, (First Typ, Sum Int)) -> ANF [LetBinding]
+declareCopies (x, (First (Just ty), Sum n))
+  | n <= 2 = pure [] -- there are two ends to each cable
+  | otherwise = do
+      os <- forM [2..n] $ const $ do
+              nm <- freshVirtualName
+              pure (Output True ty (Just x) nm)
+      modify (insertArr (x, os))
+      pure [(os, Copy ty (Input False ty Nothing x))]
 
 -- Not much work done here: elaborate the LHS, elaborate the RHS and
 -- collect the additional equations added by doing so and finally
 -- elaborate all of the equations.
 elabDef :: TypedDef -> ANF (Maybe (String, Gate))
 elabDef Stub{} = pure Nothing
-elabDef (Def (nm, ps) rhs eqns) = Just <$> do
+elabDef def@(Def (nm, ps) rhs eqns) = do
+  lcsA <- foldMapArr snd <$> travArr declareCopies (allVars def)
   -- obtain
   --  ins:   the definition's inputs
   --  inss:  the definition's bound names on the LHS
@@ -166,9 +182,9 @@ elabDef (Def (nm, ps) rhs eqns) = Just <$> do
   let gate = Gate
        { inputs      = ins
        , outputs     = ous
-       , letBindings = concat (lcs0 ++ lcs1 ++ lcs2)
+       , letBindings = concat (lcsA : lcs0 ++ lcs1 ++ lcs2)
        }
-  pure (nm, gate)
+  pure (Just (nm, gate))
 
 -- When elaborating an equations we have two situations:
 --    A,B,C = e
@@ -184,6 +200,13 @@ elabEqn (ps :=: rhs) = do
   eqns <- mapM elabEqn (zipWith (\ p e -> [p] :=: [e]) ps rhs)
   pure $ concat eqns
 
+elabVar :: String -> ANF String
+elabVar x = gets (findArr x) >>= \case
+  Nothing -> pure x
+  Just (n : ns) -> do
+    modify (insertArr (x, ns))
+    pure (outputName n)
+
 -- The assignment A,B,C = e case is bit more complex:
 --   - If e is a variable then we're done.
 --   - If e is an application then we recursively elaborate all of the
@@ -192,7 +215,7 @@ elabEqn (ps :=: rhs) = do
 --     Finally we elaborate these additional assignments
 elabAss :: Assignment -> ANF [LetBinding]
 elabAss (ous, e) = case e of
-  Var ty x -> pure [(ous, Alias ty x)]
+  Var ty x -> pure . (ous,) . Alias ty <$> elabVar x
   App tys f es -> do
     (args, eqs) <- unzip <$> mapM elabExp es
     ih <- mapM elabAss $ concat eqs
@@ -203,7 +226,7 @@ elabAss (ous, e) = case e of
     pure $ (ous, FanIn (cowire <$> args)) : concat ih
 
 toGate :: TypedDef -> Maybe (String, Gate)
-toGate = evalFresh . elabDef
+toGate = evalFresh . (`evalStateT` emptyArr) . elabDef
 
 ------------------------------------------------------------------------------
 -- Back to Def
@@ -222,6 +245,7 @@ fromGate nm g =
                 :=:
                 [case rhs of
                    Alias ty x -> Var ty x
+                   Copy ty x -> let n = length os in Cab (Cable (replicate n ty)) (replicate n (Var ty (inputName x)))
                    Call tys f es -> App tys f (map (\ i -> Var (inputType i) (inputName i)) es)
                    FanIn os   -> let ty = Cable (map inputType os) in
                                  Cab ty (map (\ i -> Var (inputType i) (inputName i)) os)
