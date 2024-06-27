@@ -132,7 +132,10 @@ declareAlias e = do
 
 elabExp :: TypedExp -> ANF (Output, [Assignment])
 elabExp = \case
-  Var ty x -> elabVar x >>= \ x' -> pure (Output (x /= x') ty Nothing x', [])
+  Var ty x -> do
+    x' <- elabVar x
+    let isVirtual = x /= x' -- we got a name from a copy box back!
+    pure (Output isVirtual ty (Just x) x', [])
   e        -> declareAlias e
 
 -- If an expression on the RHS is a variable corresponding to an input
@@ -150,6 +153,13 @@ elabRHS inputs e =
       | otherwise    -> dflt
     _ -> dflt
 
+
+-- If a wire has more than 2 ends (1 input as enforced by
+-- scope checking and 2+ outputs), then introduce one virtual
+-- name for each output and add a copy box taking the input
+-- and producing all the virtual outputs.
+-- When we will elaborate a (Var ty x), we will check whether
+-- we need to use one of the virtual names thus introduced.
 declareCopies :: (String, (First Typ, Sum Int)) -> ANF [LetBinding]
 declareCopies (x, (First (Just ty), Sum n))
   | n <= 2 = pure [] -- there are two ends to each cable
@@ -157,6 +167,7 @@ declareCopies (x, (First (Just ty), Sum n))
       os <- for [2..n] $ const $ do
               nm <- freshVirtualName
               pure (Output True ty (Just x) nm)
+      -- we store these names in the ANF monad for use in elabVar
       modify (insertArr (x, os))
       pure [(os, Copy ty (Input False ty Nothing x))]
 
@@ -201,6 +212,11 @@ elabEqn (ps :=: rhs) = do
   eqns <- mapM elabEqn (zipWith (\ p e -> [p] :=: [e]) ps rhs)
   pure $ concat eqns
 
+-- If that end of the wire is used more than once, we
+-- need to use one of the virtual names coming out of
+-- the associated copy box instead. This is what this
+-- does, being careful to *not* put the consumed name
+-- back in the state.
 elabVar :: String -> ANF String
 elabVar x = gets (findArr x) >>= \case
   Nothing -> pure x
