@@ -9,9 +9,10 @@
 
 module Language.Syrup.Syn where
 
+import Data.Kind (Type)
 import Data.List (intercalate)
 import Data.Monoid (Sum(..), First(..))
-import Data.Void
+import Data.Void (Void)
 
 import Language.Syrup.BigArray
 
@@ -100,7 +101,7 @@ instance Show Va where
 ------------------------------------------------------------------------------
 
 class AllVars t where
-  type VarTy t :: *
+  type VarTy t :: Type
   allVars :: t -> Arr String (First (VarTy t), Sum Int)
 
   default allVars
