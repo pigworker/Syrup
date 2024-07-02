@@ -16,12 +16,13 @@ import qualified Data.Bifunctor as Bi
 import Data.Function (on)
 import Data.List (find, intercalate, partition, sortBy)
 import Data.Maybe (fromJust)
-import Data.Monoid (Endo(Endo), appEndo)
+import Data.Monoid (Endo(Endo), appEndo, Sum(Sum))
 import Data.Traversable (for)
 import Data.Void (Void)
 
 import Language.Syrup.Anf
 import Language.Syrup.BigArray
+import Language.Syrup.Cst
 import Language.Syrup.Dot
 import Language.Syrup.Syn
 import Language.Syrup.Ty
@@ -58,6 +59,13 @@ experiment (g, st) (Anf x) = case findArr x g of
  Just c -> case defn c of
    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
    Just d -> lines (show (toANF d))
+experiment (g, st) (Costing nms x) =
+  let support = foldMap singleton nms in
+  let cost = costing g support x in
+  (x ++ "'s cost is as follows:") :
+  flip foldMapArr cost (\ (x, Sum k) ->
+    let copies = "cop" ++ if k > 1 then "ies" else "y" in
+    ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
 
 ------------------------------------------------------------------------------
 -- running tine sequences

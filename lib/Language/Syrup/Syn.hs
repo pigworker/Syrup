@@ -82,6 +82,7 @@ data EXPT
   | Bisimilarity String String
   | Display String
   | Anf String
+  | Costing [String] String
   deriving Show
 
 data Va
@@ -154,7 +155,6 @@ instance IsCircuit (Eqn' ty) where
 
 support :: Pat' ty String -> Set String
 support p = () <$ allVars p
-
 
 ------------------------------------------------------------------------------
 -- ugly-printing

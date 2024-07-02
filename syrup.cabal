@@ -74,6 +74,7 @@ library
                     , Language.Syrup.BigArray
                     , Language.Syrup.Bwd
                     , Language.Syrup.Chk
+                    , Language.Syrup.Cst
                     , Language.Syrup.Dot
                     , Language.Syrup.Expt
                     , Language.Syrup.Fsh
