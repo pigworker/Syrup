@@ -21,7 +21,7 @@ import Data.Bifunctor ()
 import Data.Char (toLower)
 import Data.List (intersperse)
 import Data.Monoid ()
-import Data.Foldable ()
+import Data.Foldable (traverse_)
 
 import Language.Syrup.Syn
 import Language.Syrup.BigArray
@@ -243,6 +243,10 @@ instance Scoped EXPT where
       isGlobalVar ga nm
       pure emptyExtension
     Anf nm -> do
+      isGlobalVar ga nm
+      pure emptyExtension
+    Costing nms nm -> do
+      traverse_ (isGlobalVar ga) nms
       isGlobalVar ga nm
       pure emptyExtension
 

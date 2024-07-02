@@ -1,0 +1,43 @@
+not(<Bit>) -> <Bit>
+not(X) = nand(X,X)
+
+and(<Bit>, <Bit>) -> <Bit>
+and(X,Y) = not(nand(X,Y))
+
+or(<Bit>, <Bit>) -> <Bit>
+or(X,Y) = nand(Z, S) where
+  Z = not(X)
+  S = not(Y)
+
+xor(<Bit>, <Bit>) -> <Bit>
+xor(X,Y) = or(L,R) where
+
+  L = and(X,not(Y))
+  R = and(not(X),Y)
+
+eq(<Bit>, <Bit>) -> <Bit>
+eq(X, Y) = Z where
+  Z = not(xor(X, Y))
+
+one() -> <Bit>
+one() = not(zero())
+
+mux(<Bit>, <Bit>, <Bit>) -> <Bit>
+mux(C, X, Y) = C&X | !C&Y
+
+xor2(<Bit>, <Bit>) -> <Bit>
+xor2(X, Y) = mux(X, !Y, Y)
+
+cost not
+cost [] and
+cost or
+cost [or] or
+cost [not] or
+cost [] xor
+cost [and,or,not] xor
+cost [and,or,not] eq
+cost zero
+cost one
+cost [not, zero] one
+cost [and, or, not] mux
+cost [mux] xor2

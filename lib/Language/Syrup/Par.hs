@@ -168,7 +168,7 @@ pAllSep s p = (:) <$> p <* pSpc <*> pRest <|> [] <$ pSpc <* pEOI where
   pRest = (:) <$ s <* pSpc <*> p <* pSpc <*> pRest <|> [] <$ pEOI
 
 pSep :: Par () -> Par x -> Par [x]
-pSep s p = ((:) <$> p <*> many (id <$ pSpc <* s <* pSpc <*> p) <|> pure [])
+pSep s p = (:) <$> p <*> many (id <$ pSpc <* s <* pSpc <*> p) <|> pure []
 
 pSep1 :: Par () -> Par x -> Par [x]
 pSep1 s p = (:) <$> p <*> many (id <$ pSpc <* s <* pSpc <*> p)
@@ -297,6 +297,7 @@ pEXPT :: Par EXPT
 pEXPT =
   Display <$ pTokIs (Id "display") <* pSpc <*> pVar <* pSpc <* pEOI
   <|> Anf <$ pTokIs (Id "anf") <* pSpc <*> pVar <* pSpc <* pEOI
+  <|> Costing <$ pTokIs (Id "cost") <* pSpc <*> pSupp <* pSpc <*> pVar <* pSpc <* pEOI
   <|> pTokIs (Id "experiment") *> pSpc *>
   pClue (SEEKING "an experiment")
   (    Tabulate <$> pVar <* pSpc <* pEOI
@@ -307,6 +308,10 @@ pEXPT =
   <|>  Bisimilarity <$> pVar <* pSpc <* pTokIs (Sym "=") <* pSpc
          <*> pVar <* pSpc <* pEOI
   )
+
+pSupp :: Par [String]
+pSupp = pBrk Square  (SEEKING "costing components") (pSep (pTokIs (Sym ",")) pVar)
+  <|> pure []
 
 pMem :: Par [Va]
 pMem = id <$> pBrk Curly (SEEKING "the initial memory contents") pVas

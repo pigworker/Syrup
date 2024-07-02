@@ -82,6 +82,7 @@ data EXPT
   | Bisimilarity String String
   | Display String
   | Anf String
+  | Costing [String] String
   deriving Show
 
 data Va
@@ -100,46 +101,60 @@ instance Show Va where
 -- operations on syntax
 ------------------------------------------------------------------------------
 
-class AllVars t where
+class IsCircuit t where
   type VarTy t :: Type
-  allVars :: t -> Arr String (First (VarTy t), Sum Int)
+  allVars  :: t -> Arr String (First (VarTy t), Sum Int)
+  allGates :: t -> Arr String (Sum Int)
 
   default allVars
-    :: (t ~ f a, VarTy t ~ VarTy a, Foldable f, AllVars a)
+    :: (t ~ f a, VarTy t ~ VarTy a, Foldable f, IsCircuit a)
     => t -> Arr String (First (VarTy t), Sum Int)
   allVars = foldMap allVars
 
-instance AllVars a => AllVars [a] where
+  default allGates
+    :: (t ~ f a, Foldable f, IsCircuit a)
+    => t -> Arr String (Sum Int)
+  allGates = foldMap allGates
+
+instance IsCircuit a => IsCircuit [a] where
   type VarTy [a] = VarTy a
-instance AllVars a => AllVars (Maybe a) where
+instance IsCircuit a => IsCircuit (Maybe a) where
   type VarTy (Maybe a) = VarTy a
 
-instance a ~ String => AllVars (Pat' ty a) where
+instance a ~ String => IsCircuit (Pat' ty a) where
   type VarTy (Pat' ty a) = ty
   allVars = \case
     PVar ty s -> single (s, (First (Just ty), Sum 1))
     PCab _ c -> allVars c
+  allGates _ = emptyArr
 
-instance AllVars (Def' ty) where
+instance IsCircuit (Def' ty) where
   type VarTy (Def' ty) = ty
   allVars = \case
     Stub{} -> emptyArr
     Def (fn,ps) es meqns -> allVars ps <> allVars es <> allVars meqns
+  allGates = \case
+    Stub{} -> emptyArr
+    Def (fn,ps) es meqns -> allGates es <> allGates meqns
 
-instance AllVars (Exp' ty) where
+instance IsCircuit (Exp' ty) where
   type VarTy (Exp' ty) = ty
   allVars = \case
     Var ty x -> single (x, (First (Just ty), Sum 1))
     App _ fn es -> allVars es
     Cab _ es -> allVars es
+  allGates = \case
+    Var{} -> emptyArr
+    Cab{} -> emptyArr
+    App _ fn es -> single (fn, Sum 1) <> allGates es
 
-instance AllVars (Eqn' ty) where
+instance IsCircuit (Eqn' ty) where
   type VarTy (Eqn' ty) = ty
   allVars (ps :=: es) = allVars ps <> allVars es
+  allGates (ps :=: es) = allGates es
 
 support :: Pat' ty String -> Set String
 support p = () <$ allVars p
-
 
 ------------------------------------------------------------------------------
 -- ugly-printing

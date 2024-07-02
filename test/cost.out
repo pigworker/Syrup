@@ -1,0 +1,65 @@
+not is defined.
+
+and is defined.
+
+or is defined.
+
+xor is defined.
+
+eq is defined.
+
+one is defined.
+
+mux is defined.
+
+xor2 is defined.
+
+not's cost is as follows:
+  1 copy of nand
+
+and's cost is as follows:
+  2 copies of nand
+
+or's cost is as follows:
+  3 copies of nand
+
+or's cost is as follows:
+  1 copy of or
+
+or's cost is as follows:
+  1 copy of nand
+  2 copies of not
+
+xor's cost is as follows:
+  9 copies of nand
+
+xor's cost is as follows:
+  2 copies of and
+  2 copies of not
+  1 copy of or
+
+eq's cost is as follows:
+  2 copies of and
+  3 copies of not
+  1 copy of or
+
+zero's cost is as follows:
+  1 copy of zero
+
+one's cost is as follows:
+  1 copy of nand
+  1 copy of zero
+
+one's cost is as follows:
+  1 copy of not
+  1 copy of zero
+
+mux's cost is as follows:
+  2 copies of and
+  1 copy of not
+  1 copy of or
+
+xor2's cost is as follows:
+  1 copy of mux
+  1 copy of nand
+
