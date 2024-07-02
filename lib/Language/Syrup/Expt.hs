@@ -53,7 +53,7 @@ experiment (g, st) (Display x) = case findArr x g of
  Just c -> case defn c of
    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
    Just d -> lines $ unsafePerformIO $
-     readProcess "dot" ["-Tsvg"] (unlines $ whiteBoxDef st d)
+     readProcess "dot" ["-q", "-Tsvg"] (unlines $ whiteBoxDef st d)
 experiment (g, st) (Anf x) = case findArr x g of
  Nothing -> ["I don't know what " ++ x ++ " is."]
  Just c -> case defn c of
