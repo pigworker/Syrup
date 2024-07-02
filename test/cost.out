@@ -1,0 +1,25 @@
+not is defined.
+
+and is defined.
+
+or is defined.
+
+xor is defined.
+
+not's cost is as follows:
+  1 copy of nand
+
+and's cost is as follows:
+  2 copies of nand
+
+or's cost is as follows:
+  3 copies of nand
+
+xor's cost is as follows:
+  9 copies of nand
+
+xor's cost is as follows:
+  2 copies of and
+  2 copies of not
+  1 copy of or
+
