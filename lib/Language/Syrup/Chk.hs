@@ -6,31 +6,76 @@
 
 module Language.Syrup.Chk where
 
-
+import Control.Applicative ((<|>))
+import Control.Monad (guard)
 import Control.Monad.Reader (local)
 import Control.Monad.State (get, gets, put)
 
 import Data.Bifunctor (bimap)
 import Data.Char (isAlpha)
+import Data.Foldable (traverse_)
 import Data.List (intercalate)
+import Data.Maybe (isJust, fromJust)
 import Data.Monoid (Last(Last))
 import Data.Traversable (for)
 import Data.Void (Void, absurd)
 
-import Language.Syrup.Bwd
-import Language.Syrup.Va
-import Language.Syrup.Ty
-import Language.Syrup.Syn
 import Language.Syrup.BigArray
+import Language.Syrup.Bwd
+import Language.Syrup.Expt
+import Language.Syrup.Syn
+import Language.Syrup.Ty
+import Language.Syrup.Va
 
+
+------------------------------------------------------------------------------
+-- Checking whether a component is remarkable
+------------------------------------------------------------------------------
+
+isBit :: Ty a Void -> Maybe a
+isBit (Bit a) = Just a
+isBit _ = Nothing
+
+isBisimilar :: Compo -> Compo -> Bool
+isBisimilar c d = case bisimReport c d of
+  Report (Bisimilar{}) -> True
+  _ -> False
+
+isRemarkable :: Compo -> Maybe Remarkable
+isRemarkable cmp
+  | null (memTys cmp)
+  , [o] <- oupTys cmp
+  , Bit _ <- getOutputType o
+  = do guard (isJust (traverse_ (isBit . getInputType) $ inpTys cmp))
+       case inpTys cmp of
+         []    -> IsZeroGate <$ guard (isBisimilar cmp zeroCompo)
+         [i]   -> IsNotGate  <$ guard (isBisimilar cmp notCompo)
+         [i,j] -> IsNandGate <$ guard (isBisimilar cmp nandCompo)
+              <|> IsAndGate  <$ guard (isBisimilar cmp andCompo)
+              <|> IsOrGate   <$ guard (isBisimilar cmp orCompo)
+         _ -> Nothing
+isRemarkable _ = Nothing
+
+maybeRemarkable :: String -> Maybe Remarkable -> [String]
+maybeRemarkable str Nothing = []
+maybeRemarkable str (Just g) = [] -- [str ++ " is a remarkable gate (" ++ enunciate g ++ ")."]
+  where enunciate = \case
+          IsZeroGate -> "zero"
+          IsNotGate -> "not"
+          IsNandGate -> "nand"
+          IsAndGate -> "and"
+          IsOrGate -> "or"
 
 ------------------------------------------------------------------------------
 -- how to invoke the typechecker
 ------------------------------------------------------------------------------
 
-mkComponent :: CoEnv -> (DEC, String) -> Maybe (Def, String)
-            -> (Bool, [String], CoEnv, Maybe TypedDef)
-mkComponent env (dec, decSrc) mdef =
+-- | The first boolean is telling us whether to attempt detecting whether
+-- the gate is remarkable. We should not do so for built in ones because
+-- such detection relies on them being already available as Compos!
+mkComponent' :: Bool -> CoEnv -> (DEC, String) -> Maybe (Def, String)
+             -> (Bool, [String], CoEnv, Maybe TypedDef)
+mkComponent' isrmk env (dec, decSrc) mdef =
   case (cookDec dec, mdef) of
     (dec@(Dec (g, ss) ts), Just (def, defSrc)) ->
       case tyM (guts dec def)
@@ -50,10 +95,12 @@ mkComponent env (dec, decSrc) mdef =
                 glom ([], foldMap support (mI ++ ps)) (sched st)
           in  case (tat, foldMap support qs0 `subSet` k1,
                          foldMap support (mO ++ qs1) `subSet` k2) of
-                ([], True, True) -> (True, [g ++ " is defined."],,Just def) $
+                ([], True, True) ->
                   let mems = concat $ reverse $ memTy st in
-                  let gc = Compo
+                  let rmk = guard isrmk >> isRemarkable gc
+                      gc = Compo
                         { monick = g
+                        , rmk = rmk
                         , defn = Just def
                         , memTys = mems
                         , inpTys = zipWith (InputWire . pure) ps ss
@@ -61,7 +108,8 @@ mkComponent env (dec, decSrc) mdef =
                         , stage0 = plan (Plan mI ta0 qs0)
                         , stage1 = plan (Plan (mI ++ ps) ta1 (mO ++ qs1))
                         }
-                  in insertArr (g, gc) env
+                  in (True, (g ++ " is defined.") : maybeRemarkable g rmk,,Just def) $
+                     insertArr (g, gc) env
                 e -> -- trace (show (sched st)) $
                   let sin = case e of
                         (_, False, _) ->
@@ -81,6 +129,10 @@ mkComponent env (dec, decSrc) mdef =
       , ["", g ++ " has been stubbed out."]
       , insertArr (g, stubOut dec) env
       , Nothing)
+
+mkComponent :: CoEnv -> (DEC, String) -> Maybe (Def, String)
+            -> (Bool, [String], CoEnv, Maybe TypedDef)
+mkComponent = mkComponent' False
 
 guts :: Dec -> Def -> TyM (([Pat], [Exp]), ([Pat], [Pat]), TypedDef)
 guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
@@ -380,10 +432,10 @@ yank ts x = foldMap go ts where
 emptyCoEnv :: CoEnv
 emptyCoEnv = emptyArr
 
-myCoEnv :: CoEnv
-myCoEnv = foldr insertArr emptyCoEnv
-  [ ("nand", Compo
+nandCompo :: Compo
+nandCompo = Compo
       { monick = "nand"
+      , rmk = Just IsNandGate
       , defn = Nothing
       , memTys = []
       , inpTys = [ InputWire (Just (PVar () "X")) (Bit ())
@@ -397,9 +449,11 @@ myCoEnv = foldr insertArr emptyCoEnv
           [V1, V1] -> [V0]
           _        -> [VQ]
       }
-    )
-  , ("dff", Compo
+
+dffCompo :: Compo
+dffCompo = Compo
       { monick = "dff"
+      , rmk = Nothing
       , defn = Nothing
       , memTys = [MemoryCell (Just $ CellName "Q") (Bit ())]
       , inpTys = [InputWire  (Just (PVar () "D")) (Bit ())]
@@ -407,9 +461,11 @@ myCoEnv = foldr insertArr emptyCoEnv
       , stage0 = \ [q] -> [q]
       , stage1 = \ [_, d] -> [d]
       }
-    )
-  , ("zero", Compo
+
+zeroCompo :: Compo
+zeroCompo = Compo
       { monick = "zero"
+      , rmk = Just IsZeroGate
       , defn = Nothing
       , memTys = []
       , inpTys = []
@@ -417,7 +473,12 @@ myCoEnv = foldr insertArr emptyCoEnv
       , stage0 = \ _ -> [V0]
       , stage1 = \ _ -> []
       }
-    )
+
+myCoEnv :: CoEnv
+myCoEnv = foldr insertArr emptyCoEnv
+  [ ("nand", nandCompo)
+  , ("dff", dffCompo)
+  , ("zero", zeroCompo)
   ]
 
 emptyTyEnv :: TyEnv
@@ -433,6 +494,9 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
    [[PVar () "y"] :=: [App [] "nand" [Var () "x", Var () "x"]]]
   ,"!x = y where  y = nand(x,x)")
 
+notCompo :: Compo
+notCompo = fromJust (findArr "not" env1)
+
 (_, _, env2, _) = mkComponent env1
   (DEC ("and", [BIT, BIT]) [BIT], "<Bit> & <Bit> -> <Bit>") $ Just
   (Def ("and", [PVar () "x", PVar () "y"]) [Var () "b"] $ Just
@@ -441,6 +505,9 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
     ]
   ,"x & y = b where  a = nand(x,y)  b = not(a)")
 
+andCompo :: Compo
+andCompo = fromJust (findArr "and" env2)
+
 (_, _, env3, _) = mkComponent env2
   (DEC ("or", [BIT, BIT]) [BIT], "<Bit> | <Bit> -> <Bit>") $ Just
   (Def ("or", [PVar () "x", PVar () "y"]) [Var () "c"] $ Just
@@ -448,6 +515,9 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
     ,[PVar () "a",PVar () "b"] :=: [App [] "not" [Var () "x"],App [] "not" [Var () "y"]]
     ]
   ,"x | y = c where  c = nand(a,b)  a,b = !x,!y")
+
+orCompo :: Compo
+orCompo = fromJust (findArr "or" env3)
 
 (_, _, env4, _) = mkComponent env3
   (DEC ("jkff", [BIT, BIT]) [OLD BIT], "jkff(<Bit>,<Bit>) -> @<Bit>") $ Just

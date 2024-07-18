@@ -84,8 +84,16 @@ mkOutputWire ms e ty = flip OutputWire ty $ do
   p <- exPat e
   isProperOPat (mkOPat ms p) <|> Just ((, False) <$> p)
 
+data Remarkable
+  = IsZeroGate
+  | IsNotGate
+  | IsNandGate
+  | IsAndGate
+  | IsOrGate
+
 data Compo = Compo
   { monick :: String
+  , rmk    :: Maybe Remarkable
   , defn   :: Maybe TypedDef
   , memTys :: [MemoryCell]
   , inpTys :: [InputWire]

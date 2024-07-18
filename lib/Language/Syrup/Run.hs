@@ -36,7 +36,7 @@ grokSy (env, st) (Right (Declaration dec@(DEC (f, _) _), s) : src) =
   (id *** ((concatMap (++ [""]) warn ++) . (drept ++) . (trept ++) . ("" :)))
   (grokSy (env', st') rest) where
     st' = maybe st (addDef st) mtydef
-    (_, trept, env', mtydef) = mkComponent env (dec, s) mdef
+    (_, trept, env', mtydef) = mkComponent' True env (dec, s) mdef
     (warn, rest)  = spanMaybe isLeft src
     (drept, mdef) = case getDefsOf f rest of
       [defs] -> ([], Just defs)
