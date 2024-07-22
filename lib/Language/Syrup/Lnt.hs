@@ -6,10 +6,12 @@
 
 module Language.Syrup.Lnt where
 
+import Data.Foldable (toList)
 import Data.List (intercalate)
 
-import Language.Syrup.Syn
 import Language.Syrup.BigArray
+import Language.Syrup.Ded
+import Language.Syrup.Syn
 
 class Lint t where
   linters :: [t -> [[String]]]
@@ -18,8 +20,13 @@ class Lint t where
 lint :: Lint t => t -> [[String]]
 lint t = foldMap ($ t) linters
 
+plural :: [a] -> String -> String -> String
+plural [p] x _  = x
+plural _   _ xs = xs
+
 instance ty ~ () => Lint (Def' ty) where
   linters = [ emptyWhere
+            , deadcode
             , needlessSplits
             ] where
 
@@ -39,9 +46,15 @@ instance ty ~ () => Lint (Def' ty) where
           ++ " taken apart only to be reconstructed or unused."
         , "Did you consider giving each cable a name without breaking it up?"
         ]
-      where
-        plural [p] x _  = x
-        plural _   _ xs = xs
+
+    deadcode d = case foldMapSet pure (unused d) of
+      [] -> []
+      ns -> pure
+        [ "Warning: the " ++ plural ns "wire " "wires "
+          ++ intercalate ", " ns
+          ++ plural ns " is" " are"
+          ++ " defined but never used."
+        ]
 
 
 instance Lint (Source' a) where

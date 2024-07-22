@@ -22,7 +22,15 @@ cleanup d@(Def lhs rhs meqns) = Def lhs rhs meqns' where
   needed (ps :=: es) = not (null (intersectSet reached (support ps)))
   reached = reachable d
 
+unused :: Def' ty -> Set String
+unused Stub{} = emptyArr
+unused d@(Def lhs rhs meqns) =
+  let reached = reachable d in
+  diffSet (support $ map (\ (ps :=: _) -> ps) (fromMaybe [] meqns)) reached
+
+
 reachable :: Def' ty -> Set String
+reachable Stub{} = emptyArr
 reachable (Def lhs rhs meqns) = collect (support rhs) (fromMaybe [] meqns)
 
   where
@@ -38,5 +46,3 @@ reachable (Def lhs rhs meqns) = collect (support rhs) (fromMaybe [] meqns)
     (seeing, rest)
       | null seeing -> seen
       | otherwise -> collect (foldl (<>) seen seeing) rest
-
-reachable _ = emptyArr
