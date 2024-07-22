@@ -9,7 +9,7 @@
 
 module Language.Syrup.DeMorgan where
 
-import Control.Monad (guard)
+import Control.Monad (guard, (>=>))
 import Control.Monad.Reader
 import Control.Monad.State
 
