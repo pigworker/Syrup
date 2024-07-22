@@ -4,3 +4,5 @@ f(X) = X where
   Y = X
   Z = Y
   T = [X,Y,Z]
+
+simplify f
