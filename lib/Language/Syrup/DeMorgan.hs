@@ -37,7 +37,7 @@ deMorgan env d = d
 data Polarity ty
   = Positive
   | Negative String ty
-  -- ^ this is storing the names of the:
+  -- ^ this is storing the names of:
   -- 1. the not gate
   -- 2. the Bit type
 
