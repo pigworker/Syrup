@@ -75,6 +75,8 @@ library
                     , Language.Syrup.Bwd
                     , Language.Syrup.Chk
                     , Language.Syrup.Cst
+                    , Language.Syrup.Ded
+                    , Language.Syrup.DeMorgan
                     , Language.Syrup.Dot
                     , Language.Syrup.Expt
                     , Language.Syrup.Fsh

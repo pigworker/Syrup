@@ -1,0 +1,16 @@
+not(<Bit>) -> <Bit>
+not(X) = nand(X,X)
+
+f(<Bit>) -> <Bit>
+f(X) = not(not(not(not(not(X)))))
+
+simplify f
+
+
+g(<Bit>) -> <Bit>, <Bit>, <Bit>, <Bit>
+g(X) = X,not(Y),Z,E where
+  Y = not(not(Z))
+  Z = not(E)
+  E = not(X)
+
+simplify g

@@ -23,6 +23,7 @@ import Data.Void (Void)
 import Language.Syrup.Anf
 import Language.Syrup.BigArray
 import Language.Syrup.Cst
+import Language.Syrup.DeMorgan
 import Language.Syrup.Dot
 import Language.Syrup.Syn
 import Language.Syrup.Ty
@@ -66,6 +67,11 @@ experiment (g, st) (Costing nms x) =
   flip foldMapArr cost (\ (x, Sum k) ->
     let copies = "cop" ++ if k > 1 then "ies" else "y" in
     ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
+experiment (g, st) (Simplify x) = case findArr x g of
+ Nothing -> ["I don't know what " ++ x ++ " is."]
+ Just c -> case defn c of
+   Nothing -> ["I don't have an implementation for " ++ x ++ "."]
+   Just d -> lines (show $ deMorgan g d)
 
 ------------------------------------------------------------------------------
 -- running tine sequences

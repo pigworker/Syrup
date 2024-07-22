@@ -90,6 +90,7 @@ data Remarkable
   | IsNandGate
   | IsAndGate
   | IsOrGate
+  deriving (Eq)
 
 data Compo = Compo
   { monick :: String

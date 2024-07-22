@@ -1,0 +1,12 @@
+not is defined.
+
+f is defined.
+
+f(X) = not(X)
+
+g is defined.
+
+g(X) = X, not(X), Z, E where
+  E = not(X)
+  Z = X
+

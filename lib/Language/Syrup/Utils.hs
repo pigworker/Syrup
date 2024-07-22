@@ -49,3 +49,10 @@ unzipWith f (a:as) =
   let (b , c)  = f a
       (bs, cs) = unzipWith f as
   in (b:bs, c:cs)
+
+
+partitionWith :: (a -> Either b c) -> [a] -> ([b], [c])
+partitionWith p [] = ([], [])
+partitionWith p (x : xs)
+  = either (Bi.first . (:)) (Bi.second . (:)) (p x)
+  $ partitionWith p xs

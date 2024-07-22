@@ -83,6 +83,7 @@ data EXPT
   | Display String
   | Anf String
   | Costing [String] String
+  | Simplify String
   deriving Show
 
 data Va
@@ -153,7 +154,7 @@ instance IsCircuit (Eqn' ty) where
   allVars (ps :=: es) = allVars ps <> allVars es
   allGates (ps :=: es) = allGates es
 
-support :: Pat' ty String -> Set String
+support :: IsCircuit t => t -> Set String
 support p = () <$ allVars p
 
 ------------------------------------------------------------------------------
