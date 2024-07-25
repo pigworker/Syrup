@@ -15,7 +15,6 @@ import Control.Monad (ap, guard)
 import Control.Monad.Reader (MonadReader, ask, local)
 import Control.Monad.State (MonadState, get, gets, put)
 
-import Data.List (intercalate)
 import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
@@ -382,10 +381,7 @@ stub (Cable ts) = VC (fmap stub ts)
 instance Show x => Show (Ty t x) where
   show (TyV x)    = "?" ++ show x
   show (Bit t)    = "<Bit>"
-  show (Cable ts) = "[" ++ showTyList ts ++ "]"
-
-showTyList :: Show x => [Ty t x] -> String
-showTyList ts = intercalate ", " (fmap show ts)
+  show (Cable ts) = "[" ++ csepShow ts ++ "]"
 
 instance Monad (Ty t) where
   return = TyV

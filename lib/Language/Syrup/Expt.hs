@@ -425,9 +425,9 @@ data Report = forall st st'.
 report :: (String, String) -> Report -> [String]
 report (lnom, rnom) (Report (Incompatible (lis, los) (ris, ros))) =
   [lnom ++ " and " ++ rnom ++ " are incompatible"
-  ,concat [lnom, "(", showTyList lis, ") -> ", showTyList los
+  ,concat [lnom, "(", csepShow lis, ") -> ", csepShow los
           ]
-  ,concat [rnom, "(", showTyList ris, ") -> ", showTyList ros
+  ,concat [rnom, "(", csepShow ris, ") -> ", csepShow ros
           ]
   ]
 report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
