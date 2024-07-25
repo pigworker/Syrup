@@ -298,6 +298,7 @@ pEXPT =
   Display <$ pTokIs (Id "display") <* pSpc <*> pVar <* pSpc <* pEOI
   <|> Anf <$ pTokIs (Id "anf") <* pSpc <*> pVar <* pSpc <* pEOI
   <|> Costing <$ pTokIs (Id "cost") <* pSpc <*> pSupp <* pSpc <*> pVar <* pSpc <* pEOI
+  <|> Simplify <$ pTokIs (Id "simplify") <* pSpc <*> pVar <* pSpc <* pEOI
   <|> pTokIs (Id "experiment") *> pSpc *>
   pClue (SEEKING "an experiment")
   (    Tabulate <$> pVar <* pSpc <* pEOI

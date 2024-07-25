@@ -15,6 +15,8 @@ Warning: You are redefining the top-level variable nand.
 
 nand is defined.
 
+Warning: the wire N is defined but never used.
+
 I was trying to make sense of the following code:
 
 and(<Bit>,<Bit>) -> <Bit>
@@ -33,6 +35,8 @@ or is defined.
 xor is defined.
 
 h1 is defined.
+
+Warning: the wires CIN, CiN are defined but never used.
 
 I was trying to make sense of the following code:
 

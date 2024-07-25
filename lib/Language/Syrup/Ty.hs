@@ -15,7 +15,6 @@ import Control.Monad (ap, guard)
 import Control.Monad.Reader (MonadReader, ask, local)
 import Control.Monad.State (MonadState, get, gets, put)
 
-import Data.List (intercalate)
 import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
@@ -41,6 +40,18 @@ type TypedPat = Pat' Typ String
 type TypedExp = Exp' Typ
 type TypedEqn = Eqn' Typ
 type TypedDef = Def' Typ
+
+showTyped :: TypedDef -> String
+showTyped d@(Def (fn, ps) rhs _)
+  = unlines $
+  [ concat [ fn,  "(", csepShow pstys, ")"
+               , " -> ", csepShow rhstys
+           ]
+  , show d
+  ] where
+
+  pstys = map patTy ps
+  rhstys = map (head . expTys) rhs
 
 data Ti = T0 | T1 deriving (Show, Eq)
 
@@ -84,8 +95,17 @@ mkOutputWire ms e ty = flip OutputWire ty $ do
   p <- exPat e
   isProperOPat (mkOPat ms p) <|> Just ((, False) <$> p)
 
+data Remarkable
+  = IsZeroGate
+  | IsNotGate
+  | IsNandGate
+  | IsAndGate
+  | IsOrGate
+  deriving (Eq)
+
 data Compo = Compo
   { monick :: String
+  , rmk    :: Maybe Remarkable
   , defn   :: Maybe TypedDef
   , memTys :: [MemoryCell]
   , inpTys :: [InputWire]
@@ -361,10 +381,7 @@ stub (Cable ts) = VC (fmap stub ts)
 instance Show x => Show (Ty t x) where
   show (TyV x)    = "?" ++ show x
   show (Bit t)    = "<Bit>"
-  show (Cable ts) = "[" ++ showTyList ts ++ "]"
-
-showTyList :: Show x => [Ty t x] -> String
-showTyList ts = intercalate ", " (fmap show ts)
+  show (Cable ts) = "[" ++ csepShow ts ++ "]"
 
 instance Monad (Ty t) where
   return = TyV

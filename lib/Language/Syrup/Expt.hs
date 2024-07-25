@@ -23,6 +23,7 @@ import Data.Void (Void)
 import Language.Syrup.Anf
 import Language.Syrup.BigArray
 import Language.Syrup.Cst
+import Language.Syrup.DeMorgan
 import Language.Syrup.Dot
 import Language.Syrup.Syn
 import Language.Syrup.Ty
@@ -58,7 +59,7 @@ experiment (g, st) (Anf x) = case findArr x g of
  Nothing -> ["I don't know what " ++ x ++ " is."]
  Just c -> case defn c of
    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
-   Just d -> lines (show (toANF d))
+   Just d -> lines (showTyped (toANF d))
 experiment (g, st) (Costing nms x) =
   let support = foldMap singleton nms in
   let cost = costing g support x in
@@ -66,6 +67,11 @@ experiment (g, st) (Costing nms x) =
   flip foldMapArr cost (\ (x, Sum k) ->
     let copies = "cop" ++ if k > 1 then "ies" else "y" in
     ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
+experiment (g, st) (Simplify x) = case findArr x g of
+ Nothing -> ["I don't know what " ++ x ++ " is."]
+ Just c -> case defn c of
+   Nothing -> ["I don't have an implementation for " ++ x ++ "."]
+   Just d -> lines (showTyped $ deMorgan g d)
 
 ------------------------------------------------------------------------------
 -- running tine sequences
@@ -419,9 +425,9 @@ data Report = forall st st'.
 report :: (String, String) -> Report -> [String]
 report (lnom, rnom) (Report (Incompatible (lis, los) (ris, ros))) =
   [lnom ++ " and " ++ rnom ++ " are incompatible"
-  ,concat [lnom, "(", showTyList lis, ") -> ", showTyList los
+  ,concat [lnom, "(", csepShow lis, ") -> ", csepShow los
           ]
-  ,concat [rnom, "(", showTyList ris, ") -> ", showTyList ros
+  ,concat [rnom, "(", csepShow ris, ") -> ", csepShow ros
           ]
   ]
 report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =

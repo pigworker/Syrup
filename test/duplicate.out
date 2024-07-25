@@ -1,9 +1,11 @@
 duplicate is defined.
 
+duplicate(<Bit>) -> <Bit>, <Bit>
 duplicate(X) = __VIRTUAL__2, __VIRTUAL__3 where
   __VIRTUAL__0, __VIRTUAL__1 = [X, X]
   __VIRTUAL__2, __VIRTUAL__3 = [Z, Z]
   Z = nand(__VIRTUAL__0, __VIRTUAL__1)
+
 
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
