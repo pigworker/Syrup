@@ -85,6 +85,11 @@ applyPolarity :: Polarity ty -> Exp' ty -> Exp' ty
 applyPolarity Positive e = e
 applyPolarity (Negative fn ty) e = App [ty] fn [e]
 
+mkIdempotent :: [ty] -> String -> Exp' ty -> Exp' ty -> Exp' ty
+mkIdempotent tys fn e1 e2
+  | (() <$ e1) == (() <$ e2) = e1
+  | otherwise = App tys fn [e1, e2]
+
 instance DeMorgan ty (Exp' ty) where
   simplify pol (App [ty] fn [e]) = isRemarkable fn >>= \case
     Just IsNotGate -> simplify (inverse fn ty pol) e
@@ -106,12 +111,12 @@ instance DeMorgan ty (Exp' ty) where
         Just and -> do
           e1 <- simplify pol e1
           e2 <- simplify pol e2
-          pure $ App [ty] and [e1, e2]
+          pure $ mkIdempotent [ty] and e1 e2
         _ -> structural
     Just IsOrGate | otherwise -> do
       e1 <- simplify Positive e1
       e2 <- simplify Positive e2
-      let dflt = App [ty] fn [e1, e2]
+      let dflt = mkIdempotent [ty] fn e1 e2
       case (e1, e2) of
         (App [_] ln [e1'], App [_] rn [e2']) -> do
           rmkl <- isRemarkable ln
@@ -125,7 +130,7 @@ instance DeMorgan ty (Exp' ty) where
           mand <- getRemarkable IsAndGate
           pure $ case (,,) <$> mand <*> rmkl <*> rmkr of
             Just (and, IsNandGate, IsNotGate) ->
-              App [ty] "nand" [App [ty] and [e11, e12], e2']
+              App [ty] "nand" [mkIdempotent [ty] and e11 e12, e2']
             _ -> dflt
         (App [_] ln [e1'], App [_] rn [e21, e22]) -> do
           rmkl <- isRemarkable ln
@@ -133,7 +138,7 @@ instance DeMorgan ty (Exp' ty) where
           mand <- getRemarkable IsAndGate
           pure $ case (,,) <$> mand <*> rmkl <*> rmkr of
             Just (and, IsNotGate, IsNandGate) ->
-              App [ty] "nand" [e1', App [ty] and [e21, e22]]
+              App [ty] "nand" [e1', mkIdempotent [ty] and e21 e22]
             _ -> dflt
         _ -> pure dflt
     _ -> structural

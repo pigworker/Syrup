@@ -41,3 +41,13 @@ k(<Bit>, <Bit>) -> <Bit>
 k(X,Y) = or(or(not(X), not(Y)), not(X))
 
 simplify k
+
+l(<Bit>, <Bit>) -> <Bit>
+l(X, Y) = and(not(or(not(X),not(X))), Y)
+
+simplify l
+
+m(<Bit>, <Bit>) -> <Bit>
+m(X, Y) = or(or(not(X),not(X)), not(Y))
+
+simplify m

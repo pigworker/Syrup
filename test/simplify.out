@@ -32,3 +32,11 @@ k is defined.
 
 k(X, Y) = nand(and(X, Y), X)
 
+l is defined.
+
+l(X, Y) = and(X, Y)
+
+m is defined.
+
+m(X, Y) = nand(X, Y)
+
