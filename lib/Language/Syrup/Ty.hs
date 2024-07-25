@@ -42,6 +42,18 @@ type TypedExp = Exp' Typ
 type TypedEqn = Eqn' Typ
 type TypedDef = Def' Typ
 
+showTyped :: TypedDef -> String
+showTyped d@(Def (fn, ps) rhs _)
+  = unlines $
+  [ concat [ fn,  "(", csepShow pstys, ")"
+               , " -> ", csepShow rhstys
+           ]
+  , show d
+  ] where
+
+  pstys = map patTy ps
+  rhstys = map (head . expTys) rhs
+
 data Ti = T0 | T1 deriving (Show, Eq)
 
 sizeTy :: Ty a Void -> Int

@@ -34,11 +34,22 @@ data Exp' ty
   | Cab ty [Exp' ty]
   deriving (Eq, Functor, Foldable, Traversable)
 
+expTys :: Exp' ty -> [ty]
+expTys = \case
+  Var ty _ -> [ty]
+  App tys _ _ -> tys
+  Cab ty _ -> [ty]
+
 type Pat = Pat' () String
 data Pat' ty a
   = PVar ty a
   | PCab ty [Pat' ty a]
   deriving (Functor, Traversable, Foldable)
+
+patTy :: Pat' ty a -> ty
+patTy = \case
+  PVar ty a -> ty
+  PCab ty _ -> ty
 
 exPat :: Exp' ty -> Maybe (Pat' ty String)
 exPat (Var ty x)  = return (PVar ty x)

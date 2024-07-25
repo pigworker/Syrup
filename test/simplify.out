@@ -2,41 +2,51 @@ not is defined.
 
 f is defined.
 
+f(<Bit>) -> <Bit>
 f(X) = not(X)
 
 g is defined.
 
+g(<Bit>) -> <Bit>, <Bit>, <Bit>, <Bit>
 g(X) = X, not(X), Z, E where
   E = not(X)
   Z = X
 
+
 and is defined.
 
+and(<Bit>, <Bit>) -> <Bit>
 and(X, Y) = not(nand(X, Y))
 
 h is defined.
 
+h(<Bit>, <Bit>) -> <Bit>
 h(X, Y) = nand(X, Y)
 
 or is defined.
 
 i is defined.
 
+i(<Bit>, <Bit>) -> <Bit>
 i(X, Y) = and(X, not(Y))
 
 j is defined.
 
+j(<Bit>, <Bit>) -> <Bit>
 j(X, Y) = nand(X, Y)
 
 k is defined.
 
+k(<Bit>, <Bit>) -> <Bit>
 k(X, Y) = nand(and(X, Y), X)
 
 l is defined.
 
+l(<Bit>, <Bit>) -> <Bit>
 l(X, Y) = and(X, Y)
 
 m is defined.
 
+m(<Bit>, <Bit>) -> <Bit>
 m(X, Y) = nand(X, Y)
 

@@ -59,7 +59,7 @@ experiment (g, st) (Anf x) = case findArr x g of
  Nothing -> ["I don't know what " ++ x ++ " is."]
  Just c -> case defn c of
    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
-   Just d -> lines (show (toANF d))
+   Just d -> lines (showTyped (toANF d))
 experiment (g, st) (Costing nms x) =
   let support = foldMap singleton nms in
   let cost = costing g support x in
@@ -71,7 +71,7 @@ experiment (g, st) (Simplify x) = case findArr x g of
  Nothing -> ["I don't know what " ++ x ++ " is."]
  Just c -> case defn c of
    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
-   Just d -> lines (show $ deMorgan g d)
+   Just d -> lines (showTyped $ deMorgan g d)
 
 ------------------------------------------------------------------------------
 -- running tine sequences
