@@ -23,3 +23,21 @@ h(<Bit>, <Bit>) -> <Bit>
 h(X,Y) = not (and(X, not(not(Y))))
 
 simplify h
+
+or(<Bit>, <Bit>) -> <Bit>
+or(X, Y) = nand(not(X), not(Y))
+
+i(<Bit>, <Bit>) -> <Bit>
+i(X,Y) = not(or(not(X), Y))
+
+simplify i
+
+j(<Bit>, <Bit>) -> <Bit>
+j(X,Y) = or(not(X), not(Y))
+
+simplify j
+
+k(<Bit>, <Bit>) -> <Bit>
+k(X,Y) = or(or(not(X), not(Y)), not(X))
+
+simplify k

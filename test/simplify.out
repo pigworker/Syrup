@@ -18,3 +18,17 @@ h is defined.
 
 h(X, Y) = nand(X, Y)
 
+or is defined.
+
+i is defined.
+
+i(X, Y) = and(X, not(Y))
+
+j is defined.
+
+j(X, Y) = nand(X, Y)
+
+k is defined.
+
+k(X, Y) = nand(and(X, Y), X)
+

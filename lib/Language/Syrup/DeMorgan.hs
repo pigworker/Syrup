@@ -14,6 +14,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 
 import Data.Maybe (fromMaybe)
+import Data.Monoid (First(First, getFirst))
 
 import Language.Syrup.BigArray
 import Language.Syrup.Ded
@@ -61,6 +62,12 @@ class DeMorgan ty t where
 isRemarkable :: String -> DeMorganM ty (Maybe Remarkable)
 isRemarkable f = asks (findArr f >=> rmk)
 
+getRemarkable :: Remarkable -> DeMorganM ty (Maybe String)
+getRemarkable f = do
+  arr <- ask
+  pure $ getFirst $ flip foldMapArr arr $ \ (k, v) ->
+    First $ k <$ guard (rmk v == Just f)
+
 isAssignment :: String -> Eqn' ty -> Either (Exp' ty) (Eqn' ty)
 isAssignment x eqn@([PVar _ y] :=: [e])
   | x == y = Left e
@@ -84,16 +91,52 @@ instance DeMorgan ty (Exp' ty) where
     _ -> do
       e <- simplify Positive e
       pure $ applyPolarity pol (App [ty] fn [e])
-  simplify pol (App [ty] fn [e1,e2]) = isRemarkable fn >>= \case
-    Just IsAndGate -> do
+  simplify pol (App [ty] fn [e1,e2]) =
+    let structural = do
+          e1 <- simplify Positive e1
+          e2 <- simplify Positive e2
+          pure $ applyPolarity pol (App [ty] fn [e1, e2])
+    in isRemarkable fn >>= \case
+    Just IsAndGate | not (isPositive pol) -> do
       e1 <- simplify Positive e1
       e2 <- simplify Positive e2
-      let gate = if isPositive pol then fn else "nand"
-      pure $ App [ty] gate [e1, e2]
-    _ -> do
+      pure $ App [ty] "nand" [e1, e2]
+    Just IsOrGate | not (isPositive pol) ->
+      getRemarkable IsAndGate >>= \case
+        Just and -> do
+          e1 <- simplify pol e1
+          e2 <- simplify pol e2
+          pure $ App [ty] and [e1, e2]
+        _ -> structural
+    Just IsOrGate | otherwise -> do
       e1 <- simplify Positive e1
       e2 <- simplify Positive e2
-      pure $ applyPolarity pol (App [ty] fn [e1, e2])
+      let dflt = App [ty] fn [e1, e2]
+      case (e1, e2) of
+        (App [_] ln [e1'], App [_] rn [e2']) -> do
+          rmkl <- isRemarkable ln
+          rmkr <- isRemarkable rn
+          pure $ case (,) <$> rmkl <*> rmkr of
+            Just (IsNotGate, IsNotGate) -> App [ty] "nand" [e1', e2']
+            _ -> dflt
+        (App [_] ln [e11, e12], App [_] rn [e2']) -> do
+          rmkl <- isRemarkable ln
+          rmkr <- isRemarkable rn
+          mand <- getRemarkable IsAndGate
+          pure $ case (,,) <$> mand <*> rmkl <*> rmkr of
+            Just (and, IsNandGate, IsNotGate) ->
+              App [ty] "nand" [App [ty] and [e11, e12], e2']
+            _ -> dflt
+        (App [_] ln [e1'], App [_] rn [e21, e22]) -> do
+          rmkl <- isRemarkable ln
+          rmkr <- isRemarkable rn
+          mand <- getRemarkable IsAndGate
+          pure $ case (,,) <$> mand <*> rmkl <*> rmkr of
+            Just (and, IsNotGate, IsNandGate) ->
+              App [ty] "nand" [e1', App [ty] and [e21, e22]]
+            _ -> dflt
+        _ -> pure dflt
+    _ -> structural
   simplify pol og@(Var ty x) = isDefined x >>= \case
     Just e -> do
       e <- simplify Positive e
