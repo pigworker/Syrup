@@ -10,3 +10,11 @@ g(X) = X, not(X), Z, E where
   E = not(X)
   Z = X
 
+and is defined.
+
+and(X, Y) = not(nand(X, Y))
+
+h is defined.
+
+h(X, Y) = nand(X, Y)
+

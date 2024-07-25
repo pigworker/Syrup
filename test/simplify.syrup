@@ -6,7 +6,6 @@ f(X) = not(not(not(not(not(X)))))
 
 simplify f
 
-
 g(<Bit>) -> <Bit>, <Bit>, <Bit>, <Bit>
 g(X) = X,not(Y),Z,E where
   Y = not(not(Z))
@@ -14,3 +13,13 @@ g(X) = X,not(Y),Z,E where
   E = not(X)
 
 simplify g
+
+and(<Bit>, <Bit>) -> <Bit>
+and(X, Y) = not (nand (not (not(X)), Y))
+
+simplify and
+
+h(<Bit>, <Bit>) -> <Bit>
+h(X,Y) = not (and(X, not(not(Y))))
+
+simplify h

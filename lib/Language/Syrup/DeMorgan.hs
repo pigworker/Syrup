@@ -81,12 +81,24 @@ applyPolarity (Negative fn ty) e = App [ty] fn [e]
 instance DeMorgan ty (Exp' ty) where
   simplify pol (App [ty] fn [e]) = isRemarkable fn >>= \case
     Just IsNotGate -> simplify (inverse fn ty pol) e
-    _ -> do e <- simplify Positive e
-            pure $ applyPolarity pol (App [ty] fn [e])
+    _ -> do
+      e <- simplify Positive e
+      pure $ applyPolarity pol (App [ty] fn [e])
+  simplify pol (App [ty] fn [e1,e2]) = isRemarkable fn >>= \case
+    Just IsAndGate -> do
+      e1 <- simplify Positive e1
+      e2 <- simplify Positive e2
+      let gate = if isPositive pol then fn else "nand"
+      pure $ App [ty] gate [e1, e2]
+    _ -> do
+      e1 <- simplify Positive e1
+      e2 <- simplify Positive e2
+      pure $ applyPolarity pol (App [ty] fn [e1, e2])
   simplify pol og@(Var ty x) = isDefined x >>= \case
-    Just e -> do e <- simplify Positive e
-                 modify (([PVar ty x] :=: [e]) :)
-                 if isPositive pol then pure og else simplify pol e
+    Just e -> do
+      e <- simplify Positive e
+      modify (([PVar ty x] :=: [e]) :)
+      if isPositive pol then pure og else simplify pol e
     Nothing -> pure $ applyPolarity pol og
   simplify pol og = pure $ applyPolarity pol og
 
