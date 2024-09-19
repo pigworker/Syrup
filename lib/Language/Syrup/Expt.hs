@@ -29,6 +29,7 @@ import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Utils
 
+import System.Directory (findExecutable)
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (readProcess)
 
@@ -53,8 +54,9 @@ experiment (g, st) (Display x) = case findArr x g of
  Nothing -> ["I don't know what " ++ x ++ " is."]
  Just c -> case defn c of
    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
-   Just d -> lines $ unsafePerformIO $
-     readProcess "dot" ["-q", "-Tsvg"] (unlines $ whiteBoxDef st d)
+   Just d -> lines $ unsafePerformIO $ findExecutable "dot" >>= \case
+     Nothing -> pure "Could not find the `dot` executable :("
+     Just{} -> readProcess "dot" ["-q", "-Tsvg"] (unlines $ whiteBoxDef st d)
 experiment (g, st) (Anf x) = case findArr x g of
  Nothing -> ["I don't know what " ++ x ++ " is."]
  Just c -> case defn c of
