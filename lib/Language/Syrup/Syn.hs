@@ -93,6 +93,7 @@ data EXPT
   | Bisimilarity String String
   | Display String
   | Print String
+  | Typing String
   | Anf String
   | Costing [String] String
   | Simplify String

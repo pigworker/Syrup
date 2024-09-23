@@ -41,6 +41,12 @@ type TypedExp = Exp' Typ
 type TypedEqn = Eqn' Typ
 type TypedDef = Def' Typ
 
+showType :: String -> [InputWire] -> [OutputWire] -> String
+showType fn is os = concat
+  [ fn,  "(", csepShow (getInputType <$> is), ")"
+  , " -> ", csepShow (getOutputType <$> os)
+  ]
+
 showTyped :: TypedDef -> String
 showTyped d@(Def (fn, ps) rhs _)
   = unlines $

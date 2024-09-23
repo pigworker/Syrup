@@ -55,6 +55,9 @@ experiment (g, st) (Print x) = case findArr x g of
   Just c -> case defn c of
     Nothing -> ["I don't have an implementation for " ++ x ++ "."]
     Just d -> lines (showTyped d)
+experiment (g, st) (Typing x) = case findArr x g of
+  Nothing -> ["I don't know what " ++ x ++ " is."]
+  Just c -> lines (showType x (inpTys c) (oupTys c))
 experiment (g, st) (Display x) = case findArr x g of
   Nothing -> ["I don't know what " ++ x ++ " is."]
   Just c -> case defn c of

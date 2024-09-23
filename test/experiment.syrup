@@ -51,4 +51,5 @@ experiment xor1 = xor2
 
 experiment xor = or
 
+type adc2
 print adc2
