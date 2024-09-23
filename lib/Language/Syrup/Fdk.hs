@@ -51,7 +51,7 @@ render = \case
   AnExperiment ls -> ls
   CircuitDefined str -> [str ++ " is defined."]
   TypeDefined str -> ["Type alias " ++ str ++ " is defined."]
-  StubbedOut nm -> ["", nm ++ " has been stubbed out."]
+  StubbedOut nm -> [nm ++ " has been stubbed out."]
   TypeError ls -> ls
   UnknownIdentifier x -> ["I don't know what " ++ x ++ " is."]
   MissingImplementation x -> ["I don't have an implementation for " ++ x ++ "."]

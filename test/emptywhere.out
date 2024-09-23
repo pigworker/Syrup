@@ -9,7 +9,6 @@ and(X,Y) = notnand where
 
 Error: You tried to use notnand but it is not in scope.
 
-
 and has been stubbed out.
 
 I was trying to make sense of the following code:
