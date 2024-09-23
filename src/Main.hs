@@ -8,9 +8,16 @@
 
 module Main where
 
+import Language.Syrup.Opt
 import Language.Syrup.Run
+
+import System.Environment
+import System.Exit
 
 main :: IO ()
 main = do
   src <- getContents
-  putStr (syrup src)
+  opts <- getArgs >>= \args -> case parseOptions args of
+    Left e -> die ("Error: " ++ e)
+    Right opts -> pure opts
+  putStr (syrup opts src)
