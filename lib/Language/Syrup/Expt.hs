@@ -50,18 +50,23 @@ experiment (g, _) (Bisimilarity l r) = case (findArr l g, findArr r g) of
   (Nothing, _) -> ["I don't know what " ++ l ++ " is."]
   (_, Nothing) -> ["I don't know what " ++ r ++ " is."]
   (Just lc, Just rc) -> report (l, r) (bisimReport lc rc)
+experiment (g, st) (Print x) = case findArr x g of
+  Nothing -> ["I don't know what " ++ x ++ " is."]
+  Just c -> case defn c of
+    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
+    Just d -> lines (showTyped d)
 experiment (g, st) (Display x) = case findArr x g of
- Nothing -> ["I don't know what " ++ x ++ " is."]
- Just c -> case defn c of
-   Nothing -> ["I don't have an implementation for " ++ x ++ "."]
-   Just d -> lines $ unsafePerformIO $ findExecutable "dot" >>= \case
-     Nothing -> pure "Could not find the `dot` executable :("
-     Just{} -> readProcess "dot" ["-q", "-Tsvg"] (unlines $ whiteBoxDef st d)
+  Nothing -> ["I don't know what " ++ x ++ " is."]
+  Just c -> case defn c of
+    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
+    Just d -> lines $ unsafePerformIO $ findExecutable "dot" >>= \case
+      Nothing -> pure "Could not find the `dot` executable :("
+      Just{} -> readProcess "dot" ["-q", "-Tsvg"] (unlines $ whiteBoxDef st d)
 experiment (g, st) (Anf x) = case findArr x g of
- Nothing -> ["I don't know what " ++ x ++ " is."]
- Just c -> case defn c of
-   Nothing -> ["I don't have an implementation for " ++ x ++ "."]
-   Just d -> lines (showTyped (toANF d))
+  Nothing -> ["I don't know what " ++ x ++ " is."]
+  Just c -> case defn c of
+    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
+    Just d -> lines (showTyped (toANF d))
 experiment (g, st) (Costing nms x) =
   let support = foldMap singleton nms in
   let cost = costing g support x in

@@ -92,6 +92,7 @@ data EXPT
   | Simulate String [Va] [[Va]]
   | Bisimilarity String String
   | Display String
+  | Print String
   | Anf String
   | Costing [String] String
   | Simplify String

@@ -50,3 +50,5 @@ xor2(X,Y) = (X|Y) & !(X&Y)
 experiment xor1 = xor2
 
 experiment xor = or
+
+print adc2

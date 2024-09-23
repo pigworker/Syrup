@@ -293,12 +293,16 @@ pEqn = pClue (SEEKING "an equation") $
 -- parsing experiments
 ------------------------------------------------------------------------------
 
+pCommand :: String -> (String -> EXPT) -> Par EXPT
+pCommand str con = con <$ pTokIs (Id str) <* pSpc <*> pVar <* pSpc <* pEOI
+
 pEXPT :: Par EXPT
 pEXPT =
-  Display <$ pTokIs (Id "display") <* pSpc <*> pVar <* pSpc <* pEOI
-  <|> Anf <$ pTokIs (Id "anf") <* pSpc <*> pVar <* pSpc <* pEOI
+  pCommand "display" Display
+  <|> pCommand "print" Print
+  <|> pCommand "anf" Anf
+  <|> pCommand "simplify" Simplify
   <|> Costing <$ pTokIs (Id "cost") <* pSpc <*> pSupp <* pSpc <*> pVar <* pSpc <* pEOI
-  <|> Simplify <$ pTokIs (Id "simplify") <* pSpc <*> pVar <* pSpc <* pEOI
   <|> pTokIs (Id "experiment") *> pSpc *>
   pClue (SEEKING "an experiment")
   (    Tabulate <$> pVar <* pSpc <* pEOI

@@ -242,6 +242,9 @@ instance Scoped EXPT where
     Display nm -> do
       isGlobalVar ga nm
       pure emptyExtension
+    Print nm -> do
+      isGlobalVar ga nm
+      pure emptyExtension
     Anf nm -> do
       isGlobalVar ga nm
       pure emptyExtension
