@@ -4,9 +4,10 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeSynonymInstances  #-}
-{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module Language.Syrup.Ty where
 
@@ -14,13 +15,18 @@ import Control.Applicative ((<|>))
 import Control.Monad (ap, guard)
 import Control.Monad.Reader (MonadReader, ask, local)
 import Control.Monad.State (MonadState, get, gets, put)
+import Control.Monad.Writer (MonadWriter, tell)
 
 import Data.Void (Void, absurd)
+import Data.Sequence (Seq)
 
 import Language.Syrup.BigArray
-import Language.Syrup.Va
-import Language.Syrup.Syn
 import Language.Syrup.Bwd
+import Language.Syrup.Fdk
+import Language.Syrup.Syn
+import Language.Syrup.Va
+
+import Utilities.Lens
 
 ------------------------------------------------------------------------------
 -- representing Syrup types
@@ -144,6 +150,15 @@ splitTy2 (Cable ts) = ([Cable ts0], [Cable ts1]) where
 ------------------------------------------------------------------------------
 -- monad
 ------------------------------------------------------------------------------
+
+type MonadCompo s m =
+  ( Has CoEnv s
+  , MonadState s m
+  , MonadWriter (Seq Feedback) m
+  )
+
+instance Has (Arr a b) (Arr a b) where
+  hasLens = id
 
 newtype TyM x = TyM
   {tyM :: Bwd TyClue                  -- what are we in the middle of?

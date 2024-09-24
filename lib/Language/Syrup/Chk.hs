@@ -4,29 +4,38 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes #-}
+
 module Language.Syrup.Chk where
 
 import Control.Applicative ((<|>))
 import Control.Monad (guard)
 import Control.Monad.Reader (local)
-import Control.Monad.State (get, gets, put)
+import Control.Monad.State (MonadState, execStateT, get, gets, put)
+import Control.Monad.Writer (MonadWriter, runWriter, tell)
 
 import Data.Bifunctor (bimap)
 import Data.Char (isAlpha)
-import Data.Foldable (traverse_)
+import Data.Foldable (traverse_, toList)
 import Data.List (intercalate)
 import Data.Maybe (isJust, fromJust)
 import Data.Monoid (Last(Last))
+import Data.Sequence (Seq)
+import qualified Data.Sequence as Seq
 import Data.Traversable (for)
 import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
 import Language.Syrup.Expt
+import Language.Syrup.Fdk
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Va
 
+import Utilities.Lens (Has, hasLens, use, (%=))
 
 ------------------------------------------------------------------------------
 -- Checking whether a component is remarkable
@@ -56,7 +65,7 @@ isRemarkable cmp
          _ -> Nothing
 isRemarkable _ = Nothing
 
-maybeRemarkable :: String -> Maybe Remarkable -> [String]
+maybeRemarkable :: String -> Maybe Remarkable -> [Feedback]
 maybeRemarkable str Nothing = []
 maybeRemarkable str (Just g) = [] -- [str ++ " is a remarkable gate (" ++ enunciate g ++ ")."]
   where enunciate = \case
@@ -70,22 +79,29 @@ maybeRemarkable str (Just g) = [] -- [str ++ " is a remarkable gate (" ++ enunci
 -- how to invoke the typechecker
 ------------------------------------------------------------------------------
 
+execOnCoEnv :: CoEnv -> (forall s m. MonadCompo s m => m a) -> CoEnv
+execOnCoEnv env act = fst $ runWriter $ execStateT act env
+
 -- | The first boolean is telling us whether to attempt detecting whether
 -- the gate is remarkable. We should not do so for built in ones because
 -- such detection relies on them being already available as Compos!
-mkComponent' :: Bool -> CoEnv -> (DEC, String) -> Maybe (Def, String)
-             -> (Bool, [String], CoEnv, Maybe TypedDef)
-mkComponent' isrmk env (dec, decSrc) mdef =
+mkComponent' :: MonadCompo s m
+             => Bool -> (DEC, String) -> Maybe (Def, String)
+             -> m (Bool, Maybe TypedDef)
+mkComponent' isrmk (dec, decSrc) mdef =
   case (cookDec dec, mdef) of
-    (dec@(Dec (g, ss) ts), Just (def, defSrc)) ->
+    (dec@(Dec (g, ss) ts), Just (def, defSrc)) -> do
+      env <- use hasLens
       case tyM (guts dec def)
              (B0 :< TySOURCE decSrc defSrc)
              (tySt0 {coEnv = env}) of
-        Left e ->
-          ( False
-          , typeErrorReport e ++ ["", g ++ " has been stubbed out."]
-          , insertArr (g, stubOut dec) env
-          , Nothing)
+        Left e -> do
+          tell $ Seq.fromList
+            [ TypeError $ typeErrorReport e
+            , StubbedOut g
+            ]
+          hasLens %= insertArr (g, stubOut dec)
+          pure (False, Nothing)
         Right (((ps, rhs), (qs0, qs1), def), st) ->
           let mI  = memIn st
               mO  = memOu st
@@ -95,8 +111,8 @@ mkComponent' isrmk env (dec, decSrc) mdef =
                 glom ([], foldMap support (mI ++ ps)) (sched st)
           in  case (tat, foldMap support qs0 `subSet` k1,
                          foldMap support (mO ++ qs1) `subSet` k2) of
-                ([], True, True) ->
-                  let mems = concat $ reverse $ memTy st in
+                ([], True, True) -> do
+                  let mems = concat $ reverse $ memTy st
                   let rmk = guard isrmk >> isRemarkable gc
                       gc = Compo
                         { monick = g
@@ -108,9 +124,10 @@ mkComponent' isrmk env (dec, decSrc) mdef =
                         , stage0 = plan (Plan mI ta0 qs0)
                         , stage1 = plan (Plan (mI ++ ps) ta1 (mO ++ qs1))
                         }
-                  in (True, (g ++ " is defined.") : maybeRemarkable g rmk,,Just def) $
-                     insertArr (g, gc) env
-                e -> -- trace (show (sched st)) $
+                  tell $ Seq.fromList (CircuitDefined g : maybeRemarkable g rmk)
+                  hasLens %= insertArr (g, gc)
+                  pure (True, Just def)
+                e -> do -- trace (show (sched st)) $
                   let sin = case e of
                         (_, False, _) ->
                           Stage0 (foldMapSet (yank (sched st))
@@ -119,19 +136,21 @@ mkComponent' isrmk env (dec, decSrc) mdef =
                           Stage1 (foldMapSet (yank (sched st))
                                   (diffSet (foldMap support (mO ++ qs1)) k2))
                         _ -> Junk
-                  in  ( False
-                      , typeErrorReport (B0 :< TySOURCE decSrc defSrc, sin)
-                        ++ ["", g ++ " has been stubbed out."]
-                      , insertArr (g, stubOut dec) env
-                      , Nothing)
-    (dec@(Dec (g, ss) ts), Nothing) ->
-      ( False
-      , ["", g ++ " has been stubbed out."]
-      , insertArr (g, stubOut dec) env
-      , Nothing)
+                  hasLens %= insertArr (g, stubOut dec)
+                  tell $ Seq.fromList
+                    [ TypeError $ typeErrorReport (B0 :< TySOURCE decSrc defSrc, sin)
+                    , StubbedOut g
+                    ]
+                  pure (False, Nothing)
+    (dec@(Dec (g, ss) ts), Nothing) -> do
+      tell $ Seq.singleton (StubbedOut g)
+      hasLens %= insertArr (g, stubOut dec)
+      pure (False, Nothing)
 
-mkComponent :: CoEnv -> (DEC, String) -> Maybe (Def, String)
-            -> (Bool, [String], CoEnv, Maybe TypedDef)
+
+mkComponent :: MonadCompo s m
+            => (DEC, String) -> Maybe (Def, String)
+            -> m (Bool, Maybe TypedDef)
 mkComponent = mkComponent' False
 
 guts :: Dec -> Def -> TyM (([Pat], [Exp]), ([Pat], [Pat]), TypedDef)
@@ -488,7 +507,7 @@ myTyEnv :: TyEnv
 myTyEnv = emptyTyEnv
 
 env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
-(_, _, env1, _) = mkComponent myCoEnv
+env1 = execOnCoEnv myCoEnv $ mkComponent
   (DEC ("not", [BIT]) [BIT], "!<Bit> -> <Bit>") $ Just
   (Def ("not", [PVar () "x"]) [Var () "y"] $ Just
    [[PVar () "y"] :=: [App [] "nand" [Var () "x", Var () "x"]]]
@@ -497,7 +516,7 @@ env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
 notCompo :: Compo
 notCompo = fromJust (findArr "not" env1)
 
-(_, _, env2, _) = mkComponent env1
+env2 = execOnCoEnv env1 $ mkComponent
   (DEC ("and", [BIT, BIT]) [BIT], "<Bit> & <Bit> -> <Bit>") $ Just
   (Def ("and", [PVar () "x", PVar () "y"]) [Var () "b"] $ Just
     [[PVar () "a"] :=: [App [] "nand" [Var () "x", Var () "y"]]
@@ -508,7 +527,7 @@ notCompo = fromJust (findArr "not" env1)
 andCompo :: Compo
 andCompo = fromJust (findArr "and" env2)
 
-(_, _, env3, _) = mkComponent env2
+env3 = execOnCoEnv env2 $ mkComponent
   (DEC ("or", [BIT, BIT]) [BIT], "<Bit> | <Bit> -> <Bit>") $ Just
   (Def ("or", [PVar () "x", PVar () "y"]) [Var () "c"] $ Just
     [[PVar () "c"] :=: [App [] "nand" [Var () "a", Var () "b"]]
@@ -519,7 +538,7 @@ andCompo = fromJust (findArr "and" env2)
 orCompo :: Compo
 orCompo = fromJust (findArr "or" env3)
 
-(_, _, env4, _) = mkComponent env3
+env4 = execOnCoEnv env3 $ mkComponent
   (DEC ("jkff", [BIT, BIT]) [OLD BIT], "jkff(<Bit>,<Bit>) -> @<Bit>") $ Just
   (Def ("jkff", [PVar () "j", PVar () "k"]) [Var () "q"] $ Just
     [[PVar () "q"] :=: [App [] "dff" [Var () "d"]]
@@ -530,14 +549,14 @@ orCompo = fromJust (findArr "or" env3)
     ]
   ,"jkff(j,k) = q where  q = dff(d)  d = j & !q | q & !k")
 
-(_, _, env5, _) = mkComponent env4
+env5 = execOnCoEnv env4 $ mkComponent
   (DEC ("ndnff", [BIT]) [OLD BIT], "ndnff(<Bit>) -> @<Bit>") $ Just
   (Def ("ndnff", [PVar () "d"]) [App [] "not" [Var () "q"]] $ Just
     [[PVar () "q"] :=: [App [] "dff" [App [] "not" [Var () "d"]]]
     ]
   ,"ndnff(d) = !q where  q = dff(!d)")
 
-(_, _, env6, _) = mkComponent env5
+env6 = execOnCoEnv env5 $ mkComponent
   (DEC ("xor", [BIT,BIT]) [BIT], "xor(<Bit>,<Bit>) -> <Bit>") $ Just
   (Def ("xor", [PVar () "x", PVar () "y"])
        [App [] "or" [ App [] "and" [App [] "not" [Var () "x"], Var () "y"]
@@ -546,7 +565,7 @@ orCompo = fromJust (findArr "or" env3)
        Nothing
   ,"xor(x,y) = !x & y | x & !y")
 
-(_, _, env7, _) = mkComponent env6
+env7 = execOnCoEnv env6 $ mkComponent
   (DEC ("tff", [BIT]) [OLD BIT], "tff(<Bit>) -> @<Bit>") $ Just
   (Def ("tff", [PVar () "t"]) [Var () "q"] $ Just
     [[PVar () "q"] :=: [App [] "dff" [Var () "d"]]
@@ -554,12 +573,12 @@ orCompo = fromJust (findArr "or" env3)
     ]
   ,"tff(t) = q where q = dff(d) d = xor(t,q)")
 
-(_, _, env8, _) = mkComponent env7
+env8 = execOnCoEnv env7 $ mkComponent
   (DEC ("one", []) [OLD BIT], "one() -> @<Bit>") $ Just
   (Def ("one", []) [App [] "not" [App [] "zero" []]] Nothing
   ,"one() = !zero()")
 
-(_, _, env9, _) = mkComponent env8
+env9 = execOnCoEnv env8 $ mkComponent
   (DEC ("tff2", [BIT]) [OLD BIT], "tff2(<Bit>) -> @<Bit>") $ Just
   (Def ("tff2", [PVar () "t"]) [App [] "xor" [Var () "q2",Var () "q1"]] $ Just
     [[PVar () "q2"] :=: [App [] "tff" [App [] "or" [App [] "not" [Var () "t"],Var () "q1"]]]

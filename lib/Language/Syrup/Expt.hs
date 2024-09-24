@@ -4,19 +4,22 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE StandaloneDeriving        #-}
-{-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Language.Syrup.Expt where
 
 import Control.Arrow ((***))
-import Control.Monad.State (StateT(StateT), execStateT, get, put, runStateT)
+import Control.Monad.State (MonadState, gets, StateT(StateT), execStateT, get, put, runStateT)
+import Control.Monad.Writer (MonadWriter, tell)
 
 import qualified Data.Bifunctor as Bi
 import Data.Function (on)
 import Data.List (find, intercalate, partition, sortBy)
 import Data.Maybe (fromJust)
 import Data.Monoid (Endo(Endo), appEndo, Sum(Sum))
+import qualified Data.Sequence as Seq
 import Data.Traversable (for)
 import Data.Void (Void)
 
@@ -25,9 +28,12 @@ import Language.Syrup.BigArray
 import Language.Syrup.Cst
 import Language.Syrup.DeMorgan
 import Language.Syrup.Dot
+import Language.Syrup.Fdk
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Utils
+
+import Utilities.Lens
 
 import System.Directory (findExecutable)
 import System.IO.Unsafe (unsafePerformIO)
@@ -37,51 +43,56 @@ import System.Process (readProcess)
 -- experiments
 ------------------------------------------------------------------------------
 
-experiment :: (CoEnv, DotSt) -> EXPT -> [String]
-experiment (g, _) (Tabulate x) = case findArr x g of
-  Nothing -> ["I don't know what " ++ x ++ " is."]
-  Just c ->  ["Truth table for " ++ x ++ ":"] ++
-             displayTabulation (tabulate c)
-experiment (g, _) (Simulate x m0 iss) = case findArr x g of
-  Nothing -> ["I don't know what " ++ x ++ " is."]
-  Just c ->  ["Simulation for " ++ x ++ ":"] ++
-             runCompo c m0 iss
-experiment (g, _) (Bisimilarity l r) = case (findArr l g, findArr r g) of
-  (Nothing, _) -> ["I don't know what " ++ l ++ " is."]
-  (_, Nothing) -> ["I don't know what " ++ r ++ " is."]
-  (Just lc, Just rc) -> report (l, r) (bisimReport lc rc)
-experiment (g, st) (Print x) = case findArr x g of
-  Nothing -> ["I don't know what " ++ x ++ " is."]
-  Just c -> case defn c of
-    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
-    Just d -> lines (showTyped d)
-experiment (g, st) (Typing x) = case findArr x g of
-  Nothing -> ["I don't know what " ++ x ++ " is."]
-  Just c -> lines (showType x (inpTys c) (oupTys c))
-experiment (g, st) (Display x) = case findArr x g of
-  Nothing -> ["I don't know what " ++ x ++ " is."]
-  Just c -> case defn c of
-    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
-    Just d -> lines $ unsafePerformIO $ findExecutable "dot" >>= \case
+type MonadExperiment s m =
+  ( Has DotSt s
+  , MonadCompo s m
+  )
+
+withCompo :: MonadCompo s m
+          => String -> (Compo -> m ()) -> m ()
+withCompo x k = gets (findArr x . (^. hasLens)) >>= \case
+  Nothing -> tell $ Seq.singleton (UnknownIdentifier x)
+  Just c -> k c
+
+withImplem :: MonadCompo s m
+           => String -> (TypedDef -> m ()) -> m ()
+withImplem x k = withCompo x $ \ c -> case defn c of
+  Nothing -> tell $ Seq.singleton (MissingImplementation x)
+  Just i -> k i
+
+experiment :: MonadExperiment s m => EXPT -> m ()
+experiment (Tabulate x) = withCompo x $ \ c ->
+  anExperiment $ ["Truth table for " ++ x ++ ":"] ++
+    displayTabulation (tabulate c)
+experiment (Simulate x m0 iss) = withCompo x $ \ c ->
+  anExperiment $ ["Simulation for " ++ x ++ ":"] ++
+    runCompo c m0 iss
+experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc ->
+  anExperiment $ report (l, r) (bisimReport lc rc)
+experiment (Print x) = withImplem x $ \ i ->
+  anExperiment $ lines (showTyped i)
+experiment (Typing x) = withCompo x $ \ c ->
+  anExperiment $ lines (showType x (inpTys c) (oupTys c))
+experiment (Display x) = withImplem x $ \ i -> do
+  st <- use hasLens
+  anExperiment $ lines $ unsafePerformIO $
+    findExecutable "dot" >>= \case
       Nothing -> pure "Could not find the `dot` executable :("
-      Just{} -> readProcess "dot" ["-q", "-Tsvg"] (unlines $ whiteBoxDef st d)
-experiment (g, st) (Anf x) = case findArr x g of
-  Nothing -> ["I don't know what " ++ x ++ " is."]
-  Just c -> case defn c of
-    Nothing -> ["I don't have an implementation for " ++ x ++ "."]
-    Just d -> lines (showTyped (toANF d))
-experiment (g, st) (Costing nms x) =
-  let support = foldMap singleton nms in
-  let cost = costing g support x in
-  (x ++ "'s cost is as follows:") :
-  flip foldMapArr cost (\ (x, Sum k) ->
-    let copies = "cop" ++ if k > 1 then "ies" else "y" in
-    ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
-experiment (g, st) (Simplify x) = case findArr x g of
- Nothing -> ["I don't know what " ++ x ++ " is."]
- Just c -> case defn c of
-   Nothing -> ["I don't have an implementation for " ++ x ++ "."]
-   Just d -> lines (showTyped $ deMorgan g d)
+      Just{} -> readProcess "dot" ["-q", "-Tsvg"] (unlines $ whiteBoxDef st i)
+experiment (Anf x) = withImplem x $ \ i ->
+  anExperiment $ lines (showTyped (toANF i))
+experiment (Costing nms x) = do
+  g <- use hasLens
+  let support = foldMap singleton nms
+  let cost = costing g support x
+  anExperiment $
+    (x ++ "'s cost is as follows:") :
+    flip foldMapArr cost (\ (x, Sum k) ->
+      let copies = "cop" ++ if k > 1 then "ies" else "y" in
+      ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
+experiment (Simplify x) = withImplem x $ \ i -> do
+  g <- use hasLens
+  anExperiment $ lines (showTyped $ deMorgan g i)
 
 ------------------------------------------------------------------------------
 -- running tine sequences

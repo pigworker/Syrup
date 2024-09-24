@@ -18,5 +18,5 @@ main = do
       let goldenFile = replaceExtension src "out" in
       goldenVsString testName goldenFile $ do
         txt <- readFile src
-        pure $ pack $ syrup txt
+        pure $ pack $ syrup mempty txt
  defaultMain $ testGroup "Tests" (mkTest <$> sources)
