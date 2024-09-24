@@ -8,20 +8,21 @@ module Language.Syrup.Opt where
 
 import Data.Set
 
-data Option
-  = Quiet
-  deriving (Eq, Ord)
+data Options = Options
+  { quiet :: Bool
+  , filepath :: Maybe FilePath
+  }
 
-type Options = Set Option
-
-addOption :: String -> Options -> Maybe Options
-addOption "-q" opts = pure (insert Quiet opts)
-addOption _ _ = Nothing
+defaultOptions :: Options
+defaultOptions = Options
+  { quiet = False
+  , filepath = Nothing
+  }
 
 parseOptions :: [String] -> Either String Options
-parseOptions = go mempty where
+parseOptions = go defaultOptions where
 
   go acc [] = pure acc
-  go acc (opt : opts) = case addOption opt acc of
-    Nothing -> Left ("Unrecognised option \"" ++ opt ++ "\".")
-    Just acc' -> go acc' opts
+  go acc ("-q" : opts) = go (acc { quiet = True }) opts
+  go acc ("-f" : fp : opts) = go (acc { filepath = Just fp }) opts
+  go acc (opt : opts) = Left ("Unrecognised option \"" ++ opt ++ "\".")

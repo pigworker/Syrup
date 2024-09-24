@@ -1,0 +1,8 @@
+;; this should be inserted in your .emacs
+;; be careful to replace PATH/TO/ with the path...
+
+;; syrup
+(autoload 'syrup-mode "PATH/TO/syrup/emacs/syrup.el" nil t)
+(add-to-list 'auto-mode-alist '("\\.syrup\\'" . syrup-mode))
+;; additionally if you want rainbow delimiters on parens, braces & brackets
+(add-hook 'syrup-mode-hook 'rainbow-delimiters-mode)

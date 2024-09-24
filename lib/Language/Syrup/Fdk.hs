@@ -34,9 +34,9 @@ anExperiment ls = tell $ Seq.singleton $ AnExperiment ls
 
 keep :: Options -> Feedback -> Bool
 keep opts = \case
-  CircuitDefined{} -> Quiet `notElem` opts
-  TypeDefined{} -> Quiet `notElem` opts
-  StubbedOut{} -> Quiet `notElem` opts
+  CircuitDefined{} -> not (quiet opts)
+  TypeDefined{} -> not (quiet opts)
+  StubbedOut{} -> not (quiet opts)
   AnExperiment{} -> True
   TypeError{} -> True
   UnknownIdentifier{} -> True

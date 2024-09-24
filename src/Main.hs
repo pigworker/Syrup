@@ -16,8 +16,10 @@ import System.Exit
 
 main :: IO ()
 main = do
-  src <- getContents
   opts <- getArgs >>= \args -> case parseOptions args of
     Left e -> die ("Error: " ++ e)
     Right opts -> pure opts
+  src <- case filepath opts of
+    Nothing -> getContents
+    Just fp -> readFile fp
   putStr (syrup opts src)

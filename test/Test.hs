@@ -9,6 +9,7 @@ import Test.Tasty (defaultMain, testGroup)
 import Test.Tasty.Golden (findByExtension, goldenVsString)
 
 import Language.Syrup.Run
+import Language.Syrup.Opt (defaultOptions)
 
 main :: IO ()
 main = do
@@ -18,5 +19,5 @@ main = do
       let goldenFile = replaceExtension src "out" in
       goldenVsString testName goldenFile $ do
         txt <- readFile src
-        pure $ pack $ syrup mempty txt
+        pure $ pack $ syrup defaultOptions txt
  defaultMain $ testGroup "Tests" (mkTest <$> sources)
