@@ -74,7 +74,7 @@ experiment (Print x) = withImplem x $ \ i ->
 experiment (Typing x) = withCompo x $ \ c ->
   anExperiment $ lines (showType x (inpTys c) (oupTys c))
 experiment (Display x) = withImplem x $ \ i -> do
-  st <- gets (^. hasLens)
+  st <- use hasLens
   anExperiment $ lines $ unsafePerformIO $
     findExecutable "dot" >>= \case
       Nothing -> pure "Could not find the `dot` executable :("
@@ -82,7 +82,7 @@ experiment (Display x) = withImplem x $ \ i -> do
 experiment (Anf x) = withImplem x $ \ i ->
   anExperiment $ lines (showTyped (toANF i))
 experiment (Costing nms x) = do
-  g <- gets (^. hasLens)
+  g <- use hasLens
   let support = foldMap singleton nms
   let cost = costing g support x
   anExperiment $
@@ -91,7 +91,7 @@ experiment (Costing nms x) = do
       let copies = "cop" ++ if k > 1 then "ies" else "y" in
       ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
 experiment (Simplify x) = withImplem x $ \ i -> do
-  g <- gets (^. hasLens)
+  g <- use hasLens
   anExperiment $ lines (showTyped $ deMorgan g i)
 
 ------------------------------------------------------------------------------
