@@ -11,7 +11,7 @@
 
 module Language.Syrup.Run where
 
-import Control.Monad.State (evalStateT)
+import Control.Monad.State (execStateT)
 import Control.Monad.Writer (tell, listens, runWriter)
 import Control.Monad.Reader (MonadReader, ask, runReaderT)
 import Data.Foldable (toList)
@@ -102,11 +102,16 @@ runSyrup txt = do
   hasLens .= t'
   grokSy srcs
 
-syrup :: Options -> String -> String
-syrup opts src
-  = unlines
-  $ feedback opts . toList
-  $ snd . runWriter
+
+-- The sort of interface Marx prefers
+oldRunSyrup :: Options -> SyrupEnv -> String -> (SyrupEnv, String)
+oldRunSyrup opts env src
+  = fmap (unlines . feedback opts . toList)
+  $ runWriter
   $ flip runReaderT opts
-  $ flip evalStateT (SyrupEnv myTyEnv myCoEnv myDotSt)
+  $ flip execStateT env
   $ runSyrup src
+
+
+syrup :: Options -> String -> String
+syrup opts src = snd $ oldRunSyrup opts (SyrupEnv myTyEnv myCoEnv myDotSt) src
