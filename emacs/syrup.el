@@ -80,7 +80,10 @@
 
 (defun syrup-compilation-filter ()
   "Filter function for compilation output."
-  (ansi-color-apply-on-region compilation-filter-start (point-max)))
+  (progn
+    (ansi-color-apply-on-region compilation-filter-start (point-max))
+    (setq buffer-read-only nil)
+    (render-svg)))
 
 (define-compilation-mode syrup-compilation-mode "Syrup"
   "Syrup compilation mode."
@@ -133,3 +136,28 @@
                              (setq show-trailing-whitespace nil)))
 
 (provide 'syrup-mode)
+
+(defun render-svg ()
+  "narrow the buffer visibility to the section between two regexes the user provides"
+  (interactive)
+  (let* ((beginRegex "\<\?xml version=")
+         (endRegex "\</svg\>")
+         (beg)
+         (end))
+    (goto-char (point-min)) ;; go to the start of the buffer
+    (if (re-search-forward beginRegex nil t nil)
+        (setq beg (- (point) (length beginRegex))))
+    (if (re-search-forward endRegex nil t nil)
+        (setq end (point)))
+    (if (and beg end (> end beg))
+        (progn
+          (narrow-to-region beg end)
+          (goto-char beg)
+          (insert-char ?\n)
+          (image-mode)
+          (image-toggle-display)
+          (goto-char beg)
+          (delete-char 1)
+          (image-toggle-display)
+          (widen))
+      (message "did not find both instances of the regex, %s %s, no narrow" beg end))))
