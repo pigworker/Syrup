@@ -5,7 +5,7 @@
 ;; define several class of keywords
 (setq syrup-keywords  '("where"))
 (setq syrup-operators '("!" "&" "|"))
-(setq syrup-symbols   '("=" "," ":" "->"))
+(setq syrup-symbols   '("=" "," ":" "->" "@"))
 
 ;; create the regex string for each class of keywords
 (setq syrup-keywords-regexp  (regexp-opt syrup-keywords 'words))
@@ -118,7 +118,7 @@
       (compilation-start syrup-command-to-run 'syrup-compilation-mode (lambda (m) (buffer-name)))
       (overlay-put (make-overlay (point-min) (point-max) (current-buffer) nil t)
                    'face
-                   `(:background "black",:foreground "white",:extend t)))))
+                   `(:background "black",:foreground "white",:spacing "monospace", :extend t)))))
 
 ;;;###autoload
 (defun syrup-run (override-options)
@@ -128,5 +128,8 @@
     (syrup-run-on-file (shell-quote-argument (buffer-file-name)) opts)))
 
 (define-key syrup-mode-map (kbd "C-c C-l") 'syrup-run)
+
+(add-hook 'compilation-mode-hook (lambda ()
+                             (setq show-trailing-whitespace nil)))
 
 (provide 'syrup-mode)
