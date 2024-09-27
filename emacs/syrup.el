@@ -121,7 +121,7 @@
       (compilation-start syrup-command-to-run 'syrup-compilation-mode (lambda (m) (buffer-name)))
       (overlay-put (make-overlay (point-min) (point-max) (current-buffer) nil t)
                    'face
-                   `(:background "black",:foreground "white",:spacing "monospace", :extend t)))))
+                   `(:background "black",:foreground "white", :extend t)))))
 
 ;;;###autoload
 (defun syrup-run (override-options)
@@ -132,23 +132,25 @@
 
 (define-key syrup-mode-map (kbd "C-c C-l") 'syrup-run)
 
-(add-hook 'compilation-mode-hook (lambda ()
-                             (setq show-trailing-whitespace nil)))
-
 (provide 'syrup-mode)
 
 (defun render-svg ()
   "narrow the buffer visibility to the section between two regexes the user provides"
   (interactive)
-  (let* ((beginRegex "\<\?xml version=")
-         (endRegex "\</svg\>")
-         (beg)
-         (end))
-    (goto-char (point-min)) ;; go to the start of the buffer
-    (if (re-search-forward beginRegex nil t nil)
-        (setq beg (- (point) (length beginRegex))))
-    (if (re-search-forward endRegex nil t nil)
-        (setq end (point)))
+  (progn
+    (message "starting at %s" (point))
+    (let* ((beginRegex "<?xml version=")
+           (endRegex "</svg>")
+           (beg)
+           (end))
+    (if (search-forward beginRegex nil t nil)
+        (progn
+          (setq beg (- (point) (length beginRegex)))
+          (message "found beginning at %s" (point))))
+    (if (search-forward endRegex nil t nil)
+        (progn
+          (setq end (point))
+          (message "found end at %s" (point))))
     (if (and beg end (> end beg))
         (progn
           (narrow-to-region beg end)
@@ -159,5 +161,6 @@
           (goto-char beg)
           (delete-char 1)
           (image-toggle-display)
-          (widen))
-      (message "did not find both instances of the regex, %s %s, no narrow" beg end))))
+          (widen)
+          (goto-char end)
+          (render-svg))))))
