@@ -1,6 +1,6 @@
-Type alias Two defined.
+Type alias Two is defined.
 
-Type alias Four defined.
+Type alias Four is defined.
 
 Warning: the cables [X0,X1], [X2,X3] are taken apart only to be reconstructed or unused.
 Did you consider giving each cable a name without breaking it up?

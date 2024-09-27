@@ -7,8 +7,9 @@
 module Language.Syrup.Sub where
 
 import Language.Syrup.BigArray
-import Language.Syrup.Ty
+import Language.Syrup.Fdk
 import Language.Syrup.Syn
+import Language.Syrup.Ty
 
 import Data.Void
 
@@ -38,13 +39,11 @@ subAlias rho c = case c of
   Definition d -> pure (rho, pure (Definition d))
   Experiment e -> pure (rho, pure (Experiment e))
 
-inlineAliases :: TyEnv -> [Either [String] (SourceC, String)] -> (TyEnv, [Either [String] (Source, String)])
+inlineAliases :: TyEnv -> [Either [String] (SourceC, String)] -> (TyEnv, [Either Feedback (Source, String)])
 inlineAliases rho []                     = (rho, [])
-inlineAliases rho (Left s : tl)          = (Left s :) <$> inlineAliases rho tl
+inlineAliases rho (Left s : tl)          = (Left (GenericLog s) :) <$> inlineAliases rho tl
 inlineAliases rho (Right (srcc, s) : tl) =
   case subAlias rho srcc of
-    Right (rho, Left ty)   -> (Left log :)       <$> inlineAliases rho tl
-      where log = ["Type alias " ++ ty ++ " defined." ]
-    Right (rho, Right src) -> (Right (src, s) :) <$> inlineAliases rho tl
-    Left x                 -> (Left err :)       <$> inlineAliases rho tl
-      where err = ["You haven't defined the type alias " ++ x ++ " just now." , "" ]
+    Right (rho, Left ty)   -> (Left (TypeDefined ty) :)  <$> inlineAliases rho tl
+    Right (rho, Right src) -> (Right (src, s) :)         <$> inlineAliases rho tl
+    Left x                 -> (Left (UndefinedType x) :) <$> inlineAliases rho tl

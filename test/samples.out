@@ -20,7 +20,7 @@ jkff is defined.
 
 adc2 is defined.
 
-Type alias Two defined.
+Type alias Two is defined.
 
 adcTwo is defined.
 
@@ -235,7 +235,7 @@ tff behaves like tff2
   {1} ~ {01,10}
   {0} ~ {00,11}
 
-Type alias Four defined.
+Type alias Four is defined.
 
 adc4 is defined.
 

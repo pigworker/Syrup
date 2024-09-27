@@ -24,9 +24,9 @@ data Feedback
   | TypeError [String]
   | UnknownIdentifier String
   | MissingImplementation String
-  | AWarning [String]
   | Ambiguous String [[String]]
   | Undefined String
+  | UndefinedType String
   | GenericLog [String] -- TODO: get rid of!
 
 anExperiment :: MonadWriter (Seq Feedback) m => [String] -> m ()
@@ -41,9 +41,9 @@ keep opts = \case
   TypeError{} -> True
   UnknownIdentifier{} -> True
   MissingImplementation{} -> True
-  AWarning{} -> True
   Ambiguous{} -> True
   Undefined{} -> True
+  UndefinedType{} -> True
   GenericLog{} -> True
 
 render :: Feedback -> [String]
@@ -55,11 +55,11 @@ render = \case
   TypeError ls -> ls
   UnknownIdentifier x -> ["I don't know what " ++ x ++ " is."]
   MissingImplementation x -> ["I don't have an implementation for " ++ x ++ "."]
-  AWarning ls -> ls
   Ambiguous f zs ->
     ["I don't know which of the following is your preferred " ++ f ++ ":"]
     ++ intercalate [""] zs
   Undefined f -> ["You haven't defined " ++ f ++ " just now."]
+  UndefinedType x -> ["You haven't defined the type alias " ++ x ++ " just now."]
   GenericLog ss -> ss
 
 feedback :: Options -> [Feedback] -> [String]

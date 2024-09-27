@@ -36,22 +36,22 @@ import Language.Syrup.Utils
 import Utilities.Lens (Has, hasLens, (.=), use, (%=))
 import Utilities.Monad (whenJust)
 
-getDefsOf :: String -> [Either [String] (Source, String)] -> [(Def, String)]
+getDefsOf :: String -> [Either a (Source, String)] -> [(Def, String)]
 getDefsOf f src = src >>= \case
   Right (Definition def@(Def (g, _) _ _), s) | g == f -> [(def,s)]
   Right (Definition def@(Stub g _)      , s) | g == f -> [(def,s)]
   _ -> []
 
 grokSy :: MonadExperiment s m
-       => [Either [String] (Source, String)]
+       => [Either Feedback (Source, String)]
        -> m ()
 grokSy [] = pure ()
 grokSy (Left ss : src) = do
-  tell $ Seq.singleton (GenericLog ss)
+  tell $ Seq.singleton ss
   grokSy src
 grokSy (Right (Declaration dec@(DEC (f, _) _), s) : src) = do
   let (warn, rest)  = spanMaybe isLeft src
-  mapM_ (tell . Seq.singleton . AWarning) warn
+  mapM_ (tell . Seq.singleton) warn
   mdef <- case getDefsOf f rest of
     [defs] -> pure (Just defs)
     zs@(_ : _ : _) -> do
