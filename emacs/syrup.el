@@ -84,9 +84,7 @@
     (ansi-color-apply-on-region compilation-filter-start (point-max))
     (setq buffer-read-only nil)
     (setq show-trailing-whitespace nil)
-    (goto-char (point-min))
-    (render-svg)
-    (set-window-point (get-buffer-window "*syrup output*") (point-max))))
+    (render-svg)))
 
 (define-compilation-mode syrup-compilation-mode "Syrup"
   "Syrup compilation mode."
@@ -137,8 +135,8 @@
 
 (provide 'syrup-mode)
 
-(defun render-svg ()
-  "narrow the buffer visibility to the section between two regexes the user provides"
+(defun render-svg-loop ()
+  "Render all svgs in sight"
   (interactive)
   (progn
     (message "starting at %s" (point))
@@ -166,4 +164,27 @@
           (image-toggle-display)
           (widen)
           (goto-char end)
-          (render-svg))))))
+          (render-svg-loop))))))
+
+(defun recenter-compilation-buffer ()
+  (interactive)
+  (let ((compilation-buffer (get-buffer "*syrup output*"))
+        (window))
+    (if (null compilation-buffer)
+       (message "No compilation buffer")
+      (setq window (display-buffer compilation-buffer))
+      (save-selected-window
+         (select-window window)
+         (bury-buffer compilation-buffer)
+         (goto-char (point-max))
+         (condition-case nil
+             (scroll-down (- (/ (window-height) 2) 2))
+             (error nil))))))
+
+(defun render-svg ()
+  "Render all svgs in sight"
+  (interactive)
+  (progn
+    (goto-char (point-min))
+    (render-svg-loop)
+    (recenter-compilation-buffer)))
