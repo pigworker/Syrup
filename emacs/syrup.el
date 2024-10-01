@@ -52,6 +52,7 @@
   ;; handling comments
   :syntax-table syrup-syntax-table
   ;; code for syntax highlighting
+  (set-face-attribute 'default nil :height 175)
   (setq font-lock-defaults '((syrup-font-lock-keywords)))
   (setq mode-name "syrup")
   ;; clear memory
@@ -122,7 +123,7 @@
       (compilation-start syrup-command-to-run 'syrup-compilation-mode (lambda (m) (buffer-name)))
       (overlay-put (make-overlay (point-min) (point-max) (current-buffer) nil t)
                    'face
-                   `(:background "black",:foreground "white", :extend t)))))
+                   `(:background "black",:foreground "white", :height 175, :extend t)))))
 
 ;;;###autoload
 (defun syrup-run (override-options)
