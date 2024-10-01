@@ -58,7 +58,9 @@
   ;; clear memory
   (setq syrup-keywords-regexp nil)
   (setq syrup-operators-regexp nil)
-)
+  ;; kill emacs buffer
+  (setq inhibit-startup-screen t)
+  (split-window-right))
 
 ;; Customisation options
 
