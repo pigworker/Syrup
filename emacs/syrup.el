@@ -83,7 +83,10 @@
   (progn
     (ansi-color-apply-on-region compilation-filter-start (point-max))
     (setq buffer-read-only nil)
-    (render-svg)))
+    (setq show-trailing-whitespace nil)
+    (goto-char (point-min))
+    (render-svg)
+    (set-window-point (get-buffer-window "*syrup output*") (point-max))))
 
 (define-compilation-mode syrup-compilation-mode "Syrup"
   "Syrup compilation mode."
