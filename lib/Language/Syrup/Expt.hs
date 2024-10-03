@@ -11,6 +11,7 @@
 module Language.Syrup.Expt where
 
 import Control.Arrow ((***))
+import Control.Monad.Reader (MonadReader, asks)
 import Control.Monad.State (MonadState, gets, StateT(StateT), execStateT, get, put, runStateT)
 import Control.Monad.Writer (MonadWriter, tell)
 
@@ -29,6 +30,7 @@ import Language.Syrup.Cst
 import Language.Syrup.DeMorgan
 import Language.Syrup.Dot
 import Language.Syrup.Fdk
+import Language.Syrup.Opt
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Utils
@@ -45,6 +47,7 @@ import System.Process (readProcess)
 
 type MonadExperiment s m =
   ( Has DotSt s
+  , MonadReader Options m
   , MonadCompo s m
   )
 
@@ -75,10 +78,13 @@ experiment (Typing x) = withCompo x $ \ c ->
   anExperiment $ lines (showType x (inpTys c) (oupTys c))
 experiment (Display x) = withImplem x $ \ i -> do
   st <- use hasLens
-  anExperiment $ lines $ unsafePerformIO $
-    findExecutable "dot" >>= \case
-      Nothing -> pure "Could not find the `dot` executable :("
-      Just{} -> readProcess "dot" ["-q", "-Tsvg"] (unlines $ whiteBoxDef st i)
+  let dot = whiteBoxDef st i
+  asks graphFormat >>= \ opts -> tell $ Seq.singleton $ case opts of
+    SourceDot -> DotGraph dot
+    RenderedSVG -> SVGGraph $ lines $ unsafePerformIO $
+      findExecutable "dot" >>= \case
+        Nothing -> pure "Could not find the `dot` executable :("
+        Just{} -> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
 experiment (Anf x) = withImplem x $ \ i ->
   anExperiment $ lines (showTyped (toANF i))
 experiment (Costing nms x) = do

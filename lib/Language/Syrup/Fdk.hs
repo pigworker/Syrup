@@ -18,6 +18,8 @@ import Language.Syrup.Opt
 
 data Feedback
   = AnExperiment [String]
+  | DotGraph [String]
+  | SVGGraph [String]
   | CircuitDefined String
   | TypeDefined String
   | StubbedOut String
@@ -38,6 +40,8 @@ keep opts = \case
   TypeDefined{} -> not (quiet opts)
   StubbedOut{} -> not (quiet opts)
   AnExperiment{} -> True
+  DotGraph{} -> True
+  SVGGraph{} -> True
   TypeError{} -> True
   UnknownIdentifier{} -> True
   MissingImplementation{} -> True
@@ -46,9 +50,13 @@ keep opts = \case
   UndefinedType{} -> True
   GenericLog{} -> True
 
+-- TODO: HTML renderer!
+
 render :: Feedback -> [String]
 render = \case
   AnExperiment ls -> ls
+  DotGraph ls -> ls
+  SVGGraph ls -> ls
   CircuitDefined str -> [str ++ " is defined."]
   TypeDefined str -> ["Type alias " ++ str ++ " is defined."]
   StubbedOut nm -> [nm ++ " has been stubbed out."]

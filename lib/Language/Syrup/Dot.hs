@@ -151,25 +151,25 @@ toWhitebox nm (Gate is os defs) env p = do
   let iports = map (declarePort 20 True . inputToPort) is
   let oports = map (declarePort 20 True . outputToPort) os
   let iPorts = if null iports then "" else unlines
-         [ concat [ gateNode, "__INPUTS" ]
+         [ indent 2 $ concat [ gateNode, "__INPUTS" ]
          , "    [ shape = none"
          , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"10\">"
          , "               <TR>"
          , unlines $ map (indent 15) iports
          , "               </TR>"
          , "               </TABLE>>"
-         , "      ];"
+         , "    ];"
          ]
 
   let oPorts = unlines
-         [ concat [ gateNode, "__OUTPUTS" ]
+         [ indent 2 $ concat [ gateNode, "__OUTPUTS" ]
          , "    [ shape = none"
          , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"10\">"
          , "               <TR>"
          , unlines $ map (indent 15) oports
          , "               </TR>"
          , "               </TABLE>>"
-         , "      ];"
+         , "    ];"
          ]
 
   gph <- fmap concat $ for (reverse defs) $ \ (os, e) -> do
@@ -288,7 +288,7 @@ fanIn p is os =
     , "    , style = filled"
     , "    , fillcolor = red"
     , "    , fixedsize = true"
-    , "    , width = ", show (0.07 * fromIntegral width :: Double)
+    , "    , width = " ++ show (0.07 * fromIntegral width :: Double)
     , "    , height = .1"
     , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">"
     , indent 15 $ "<TR>" ++ unlines iports ++ "</TR>"
@@ -324,11 +324,11 @@ fanOut fot p is os =
     , indent 2 $ gateNode
     , "    [ shape = none"
     , "    , style = filled"
-    , "    , fillcolor = ", fanOutColour fot
+    , "    , fillcolor = " ++ fanOutColour fot
     , "    , fixedsize = true"
-    , "    , width = ", show (0.07 * fromIntegral width :: Double)
+    , "    , width = " ++ show (0.07 * fromIntegral width :: Double)
     , "    , height = .1"
-    , "    ,  label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">"
+    , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\">"
     , indent 15 $ "<TR>" ++ unlines iports ++ "</TR>"
     , indent 15 $ "<TR>" ++ unlines oports ++ "</TR>"
     , "              </TABLE>>"
