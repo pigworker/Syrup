@@ -17,8 +17,14 @@ br = "<br />"
 asHTML :: [String] -> String
 asHTML ls = intercalate "\n" $ intersperse br (escapeHTML <$> ls)
 
+tag :: String -> String -> String
+tag t txt = concat ["<",t,">",txt,"</",t,">"]
+
 pre :: String -> String
-pre txt = "<pre>" ++ txt ++ "</pre>"
+pre = tag "pre"
+
+code :: String -> String
+code = tag "code"
 
 span :: [String] -> String -> String
 span attrs doc = concat

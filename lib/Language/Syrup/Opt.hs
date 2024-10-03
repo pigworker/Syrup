@@ -31,22 +31,20 @@ defaultOptions = Options
   , outputFormat = TextOutput
   }
 
-defaulMarxOptions :: Options
-defaulMarxOptions = Options
+defaultMarxOptions :: Options
+defaultMarxOptions = Options
   { quiet = False
   , filepath = Nothing
   , graphFormat = SourceDot
   , outputFormat = HTMLOutput
   }
 
-parseOptions :: [String] -> Either String Options
-parseOptions = go defaultOptions where
-
-  go acc [] = pure acc
-  go acc ("-q" : opts) = go (acc { quiet = True }) opts
-  go acc ("-f" : fp : opts) = go (acc { filepath = Just fp }) opts
-  go acc ("--source-dot" : opts) = go (acc { graphFormat = SourceDot }) opts
-  go acc ("--rendered-svg" : opts) = go (acc { graphFormat = RenderedSVG }) opts
-  go acc ("--html" : opts) = go (acc { outputFormat = HTMLOutput }) opts
-  go acc ("--text" : opts) = go (acc { outputFormat = TextOutput }) opts
-  go acc (opt : opts) = Left ("Unrecognised option \"" ++ opt ++ "\".")
+parseOptions :: Options -> [String] -> Either String Options
+parseOptions acc [] = pure acc
+parseOptions acc ("-q" : opts) = parseOptions (acc { quiet = True }) opts
+parseOptions acc ("-f" : fp : opts) = parseOptions (acc { filepath = Just fp }) opts
+parseOptions acc ("--source-dot" : opts) = parseOptions (acc { graphFormat = SourceDot }) opts
+parseOptions acc ("--rendered-svg" : opts) = parseOptions (acc { graphFormat = RenderedSVG }) opts
+parseOptions acc ("--html" : opts) = parseOptions (acc { outputFormat = HTMLOutput }) opts
+parseOptions acc ("--text" : opts) = parseOptions (acc { outputFormat = TextOutput }) opts
+parseOptions acc (opt : opts) = Left ("Unrecognised option \"" ++ opt ++ "\".")

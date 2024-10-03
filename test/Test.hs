@@ -11,7 +11,7 @@ import Test.Tasty (defaultMain, testGroup)
 import Test.Tasty.Golden (findByExtension, goldenVsString)
 
 import Language.Syrup.Run
-import Language.Syrup.Opt (parseOptions)
+import Language.Syrup.Opt (defaultOptions, parseOptions)
 
 main :: IO ()
 main = do
@@ -25,7 +25,7 @@ main = do
         opts <- do
           check <- doesFileExist flagsFile
           flags <- if check then words <$> readFile flagsFile else pure []
-          case parseOptions flags of
+          case parseOptions defaultOptions flags of
             Left err -> die err
             Right opts -> pure opts
         pure $ pack $ syrup opts txt

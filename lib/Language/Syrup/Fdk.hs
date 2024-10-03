@@ -86,8 +86,8 @@ renderHTML = \case
   RawCode ls -> pure $ HTML.span ["class=" ++ show "syrup-code"] (unlines $ escapeHTML <$> ls)
   TruthTable x ls -> pure (HTML.pre $ unlines $ map escapeHTML (("Truth table for " ++ x ++ ":") : ls))
 
-  CircuitDefined str -> pure (yay $ asHTML ["Circuit " ++ str ++ " is defined."])
-  TypeDefined str -> pure (yay $ asHTML ["Type <" ++ str ++ "> is defined."])
+  CircuitDefined str -> pure (yay $ "Circuit " ++ HTML.code (escapeHTML str) ++ " is defined.")
+  TypeDefined str -> pure (yay $ "Type " ++ HTML.code (escapeHTML ("<" ++ str ++ ">")) ++ " is defined.")
   StubbedOut nm -> pure (meh $ asHTML ["Circuit " ++ nm ++ " has been stubbed out."])
   TypeError ls -> pure (asHTML ls)
   UnknownIdentifier x -> pure (nay $ asHTML ["I don't know what " ++ x ++ " is."])
@@ -135,6 +135,7 @@ feedback opts = (. filter (keep opts)) $ case outputFormat opts of
     , "  .syrup-code {"
     , "    display: block;"
     , "    font-family: monospace;"
+    , "    font-size: 17px;"
     , "    white-space: pre;"
     , "    margin: 1em 0;"
     , "  }"

@@ -2,6 +2,7 @@
   .syrup-code {
     display: block;
     font-family: monospace;
+    font-size: 17px;
     white-space: pre;
     margin: 1em 0;
   }
@@ -15,7 +16,7 @@
   }
 </style>
 
-<span class="syrup-happy">Circuit not is defined.</span><br />
+<span class="syrup-happy">Circuit <code>not</code> is defined.</span><br />
 <span class="syrup-code">not(&lt;Bit&gt;) -&gt; &lt;Bit&gt;
 not(X) = Z where
   Z = nand(X, X)
@@ -32,7 +33,7 @@ not(X) = Z where
 </script>
 <div id="GRAPH1"></div>
 <br />
-<span class="syrup-happy">Circuit and is defined.</span><br />
+<span class="syrup-happy">Circuit <code>and</code> is defined.</span><br />
 <span class="syrup-code">and(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 and(X, Y) = Z where
   A = nand(X, Y)
@@ -50,7 +51,7 @@ and(X, Y) = Z where
 </script>
 <div id="GRAPH2"></div>
 <br />
-<span class="syrup-happy">Circuit or is defined.</span><br />
+<span class="syrup-happy">Circuit <code>or</code> is defined.</span><br />
 <span class="syrup-code">or(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 or(X, Y) = Z where
   A, B = not(X), not(Y)
@@ -68,7 +69,7 @@ or(X, Y) = Z where
 </script>
 <div id="GRAPH3"></div>
 <br />
-<span class="syrup-happy">Circuit nor is defined.</span><br />
+<span class="syrup-happy">Circuit <code>nor</code> is defined.</span><br />
 <span class="syrup-code">nor(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 nor(X, Y) = not(or(X, Y))
 </span><br />
@@ -83,7 +84,7 @@ nor(X, Y) = not(or(X, Y))
 </script>
 <div id="GRAPH4"></div>
 <br />
-<span class="syrup-happy">Circuit xor is defined.</span><br />
+<span class="syrup-happy">Circuit <code>xor</code> is defined.</span><br />
 <span class="syrup-code">xor(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 xor(X, Y) = Z where
   A, B = or(X, Y), and(X, Y)
@@ -102,7 +103,7 @@ xor(X, Y) = Z where
 </script>
 <div id="GRAPH5"></div>
 <br />
-<span class="syrup-happy">Circuit hadd is defined.</span><br />
+<span class="syrup-happy">Circuit <code>hadd</code> is defined.</span><br />
 <span class="syrup-code">hadd(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;, &lt;Bit&gt;
 hadd(X1, Y1) = C2, S1 where
   C2 = and(X1, Y1)
@@ -120,7 +121,7 @@ hadd(X1, Y1) = C2, S1 where
 </script>
 <div id="GRAPH6"></div>
 <br />
-<span class="syrup-happy">Circuit fadd is defined.</span><br />
+<span class="syrup-happy">Circuit <code>fadd</code> is defined.</span><br />
 <span class="syrup-code">fadd(&lt;Bit&gt;, &lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;, &lt;Bit&gt;
 fadd(X1, Y1, C1) = C2, Z1 where
   D2, D1 = hadd(X1, Y1)
@@ -151,8 +152,8 @@ X1 Y1 C1 | C2 Z1
 1  1  0  | 1  0 
 1  1  1  | 1  1 
 </pre><br />
-<span class="syrup-happy">Type &lt;Bit2&gt; is defined.</span><br />
-<span class="syrup-happy">Circuit adc2 is defined.</span><br />
+<span class="syrup-happy">Type <code>&lt;Bit2&gt;</code> is defined.</span><br />
+<span class="syrup-happy">Circuit <code>adc2</code> is defined.</span><br />
 <span class="syrup-code">adc2([&lt;Bit&gt;, &lt;Bit&gt;], [&lt;Bit&gt;, &lt;Bit&gt;], &lt;Bit&gt;) -&gt; &lt;Bit&gt;, [&lt;Bit&gt;, &lt;Bit&gt;]
 adc2([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   C2, Z1 = fadd(X1, Y1, C1)
@@ -170,7 +171,7 @@ adc2([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
 </script>
 <div id="GRAPH8"></div>
 <br />
-<span class="syrup-happy">Circuit one is defined.</span><br />
+<span class="syrup-happy">Circuit <code>one</code> is defined.</span><br />
 <span class="syrup-code">one() -&gt; &lt;Bit&gt;
 one() = not(zero())
 </span><br />
@@ -185,7 +186,7 @@ one() = not(zero())
 </script>
 <div id="GRAPH9"></div>
 <br />
-<span class="syrup-happy">Circuit mux is defined.</span><br />
+<span class="syrup-happy">Circuit <code>mux</code> is defined.</span><br />
 <span class="syrup-code">mux(&lt;Bit&gt;, &lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 mux(C, X, Y) = or(and(C, X), and(not(C), Y))
 </span><br />
@@ -200,7 +201,7 @@ mux(C, X, Y) = or(and(C, X), and(not(C), Y))
 </script>
 <div id="GRAPH10"></div>
 <br />
-<span class="syrup-happy">Circuit adc2par is defined.</span><br />
+<span class="syrup-happy">Circuit <code>adc2par</code> is defined.</span><br />
 <span class="syrup-code">adc2par([&lt;Bit&gt;, &lt;Bit&gt;], [&lt;Bit&gt;, &lt;Bit&gt;], &lt;Bit&gt;) -&gt; &lt;Bit&gt;, [&lt;Bit&gt;, &lt;Bit&gt;]
 adc2par([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   C2, Z1 = fadd(X1, Y1, C1)

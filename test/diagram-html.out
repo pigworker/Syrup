@@ -2,6 +2,7 @@
   .syrup-code {
     display: block;
     font-family: monospace;
+    font-size: 17px;
     white-space: pre;
     margin: 1em 0;
   }
@@ -15,7 +16,7 @@
   }
 </style>
 
-<span class="syrup-happy">Circuit not is defined.</span><br />
+<span class="syrup-happy">Circuit <code>not</code> is defined.</span><br />
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
