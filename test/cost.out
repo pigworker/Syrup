@@ -1,18 +1,18 @@
-not is defined.
+Circuit not is defined.
 
-and is defined.
+Circuit and is defined.
 
-or is defined.
+Circuit or is defined.
 
-xor is defined.
+Circuit xor is defined.
 
-eq is defined.
+Circuit eq is defined.
 
-one is defined.
+Circuit one is defined.
 
-mux is defined.
+Circuit mux is defined.
 
-xor2 is defined.
+Circuit xor2 is defined.
 
 not's cost is as follows:
   1 copy of nand

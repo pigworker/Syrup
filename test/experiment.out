@@ -1,12 +1,12 @@
-not is defined.
+Circuit not is defined.
 
-and is defined.
+Circuit and is defined.
 
-or is defined.
+Circuit or is defined.
 
-xor is defined.
+Circuit xor is defined.
 
-hadd is defined.
+Circuit hadd is defined.
 
 Truth table for hadd:
 X Y |    
@@ -16,7 +16,7 @@ X Y |
 1 0 | 0 1
 1 1 | 1 0
 
-fadd is defined.
+Circuit fadd is defined.
 
 Truth table for fadd:
 X Y CI | CO Z
@@ -30,9 +30,9 @@ X Y CI | CO Z
 1 1 0  | 1  0
 1 1 1  | 1  1
 
-Type alias Two is defined.
+Type <Two> is defined.
 
-adc2 is defined.
+Circuit adc2 is defined.
 
 Truth table for adc2:
 [X1 X0] [Y1 Y0] CI | CO [Z1 Z0]
@@ -75,9 +75,9 @@ Simulation for adc2:
 1 {} [11][10]0 -> 1[01]
 2 {}
 
-xor1 is defined.
+Circuit xor1 is defined.
 
-xor2 is defined.
+Circuit xor2 is defined.
 
 xor1 behaves like xor2
   {} ~ {}

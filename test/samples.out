@@ -1,40 +1,40 @@
-not is defined.
+Circuit not is defined.
 
-and is defined.
+Circuit and is defined.
 
-or is defined.
+Circuit or is defined.
 
-nor is defined.
+Circuit nor is defined.
 
-xor is defined.
+Circuit xor is defined.
 
-xor1 is defined.
+Circuit xor1 is defined.
 
-xor2 is defined.
+Circuit xor2 is defined.
 
-hadd is defined.
+Circuit hadd is defined.
 
-fadd is defined.
+Circuit fadd is defined.
 
-jkff is defined.
+Circuit jkff is defined.
 
-adc2 is defined.
+Circuit adc2 is defined.
 
-Type alias Two is defined.
+Type <Two> is defined.
 
-adcTwo is defined.
+Circuit adcTwo is defined.
 
-ndnff is defined.
+Circuit ndnff is defined.
 
-tff is defined.
+Circuit tff is defined.
 
-jkt is defined.
+Circuit jkt is defined.
 
-one is defined.
+Circuit one is defined.
 
-guff is defined.
+Circuit guff is defined.
 
-tff2 is defined.
+Circuit tff2 is defined.
 
 Truth table for not:
 X | Z
@@ -235,9 +235,9 @@ tff behaves like tff2
   {1} ~ {01,10}
   {0} ~ {00,11}
 
-Type alias Four is defined.
+Type <Four> is defined.
 
-adc4 is defined.
+Circuit adc4 is defined.
 
 Truth table for adc4:
 [X32  X10 ] [Y32  Y10 ] CI | CO [Z32  Z10 ]

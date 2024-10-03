@@ -65,15 +65,14 @@ withImplem x k = withCompo x $ \ c -> case defn c of
 
 experiment :: MonadExperiment s m => EXPT -> m ()
 experiment (Tabulate x) = withCompo x $ \ c ->
-  anExperiment $ ["Truth table for " ++ x ++ ":"] ++
-    displayTabulation (tabulate c)
+  tell $ Seq.singleton $ TruthTable x $ displayTabulation (tabulate c)
 experiment (Simulate x m0 iss) = withCompo x $ \ c ->
   anExperiment $ ["Simulation for " ++ x ++ ":"] ++
     runCompo c m0 iss
 experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc ->
   anExperiment $ report (l, r) (bisimReport lc rc)
 experiment (Print x) = withImplem x $ \ i ->
-  anExperiment $ lines (showTyped i)
+  tell $ Seq.singleton $ RawCode $ lines (showTyped i)
 experiment (Typing x) = withCompo x $ \ c ->
   anExperiment $ lines (showType x (inpTys c) (oupTys c))
 experiment (Display x) = withImplem x $ \ i -> do
@@ -86,7 +85,7 @@ experiment (Display x) = withImplem x $ \ i -> do
         Nothing -> pure "Could not find the `dot` executable :("
         Just{} -> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
 experiment (Anf x) = withImplem x $ \ i ->
-  anExperiment $ lines (showTyped (toANF i))
+  tell $ Seq.singleton $ RawCode $ lines (showTyped (toANF i))
 experiment (Costing nms x) = do
   g <- use hasLens
   let support = foldMap singleton nms
@@ -98,7 +97,7 @@ experiment (Costing nms x) = do
       ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
 experiment (Simplify x) = withImplem x $ \ i -> do
   g <- use hasLens
-  anExperiment $ lines (showTyped $ deMorgan g i)
+  tell $ Seq.singleton $ RawCode $ lines (showTyped $ deMorgan g i)
 
 ------------------------------------------------------------------------------
 -- running tine sequences

@@ -1,0 +1,91 @@
+!<Bit> -> <Bit>
+!X = Z where
+  Z = nand(X, X)
+
+print not
+display not
+
+<Bit> & <Bit> -> <Bit>
+X & Y = Z where
+  A = nand(X, Y)
+  Z = !A
+
+print and
+display and
+
+<Bit> | <Bit> -> <Bit>
+X | Y = Z where
+  A, B = !X, !Y
+  Z = nand(A, B)
+
+print or
+display or
+
+nor(<Bit>, <Bit>) -> <Bit>
+nor(X,Y) = !(X | Y)
+
+print nor
+display nor
+
+xor(<Bit>, <Bit>) -> <Bit>
+xor(X, Y) = Z where
+  A, B = X | Y, X & Y
+  C = !B
+  Z = A & C
+
+print xor
+display xor
+
+hadd(<Bit>, <Bit>) -> <Bit>, <Bit>
+hadd(X1, Y1) = C2, S1 where
+  C2 = X1 & Y1
+  S1 = xor(X1, Y1)
+
+print hadd
+display hadd
+
+fadd(<Bit>, <Bit>, <Bit>) -> <Bit>, <Bit>
+fadd(X1, Y1, C1) = C2, Z1 where
+  D2, D1 = hadd(X1, Y1)
+  E2, Z1 = hadd(D1, C1)
+  C2 = xor(D2, E2)
+
+print fadd
+display fadd
+
+experiment fadd
+
+type <Bit2> = [<Bit>,<Bit>]
+
+adc2(<Bit2>,<Bit2>,<Bit>) ->
+  <Bit>,<Bit2>
+adc2([X2,X1],[Y2,Y1],C1) = C4,[Z2,Z1] where
+  C2,Z1 = fadd(X1,Y1,C1)
+  C4,Z2 = fadd(X2,Y2,C2)
+
+print adc2
+display adc2
+
+one() -> <Bit>
+one() = !zero()
+
+print one
+display one
+
+mux(<Bit>, <Bit>, <Bit>) -> <Bit>
+mux(C, X, Y) = C & X | !C & Y
+
+print mux
+display mux
+
+adc2par(<Bit2>,<Bit2>,<Bit>) ->
+  <Bit>,<Bit2>
+adc2par([X2,X1],[Y2,Y1],C1) = C4,[Z2,Z1] where
+  C2,Z1   = fadd(X1,Y1,C1)
+  C40,Z20 = fadd(X2,Y2,zero())
+  C41,Z21 = fadd(X2,Y2,one())
+  C4=mux(C2,C41,C40)
+  Z2=mux(C2,Z21,Z20)
+
+print adc2par
+display adc2par

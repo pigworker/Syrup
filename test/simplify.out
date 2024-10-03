@@ -1,11 +1,11 @@
-not is defined.
+Circuit not is defined.
 
-f is defined.
+Circuit f is defined.
 
 f(<Bit>) -> <Bit>
 f(X) = not(X)
 
-g is defined.
+Circuit g is defined.
 
 g(<Bit>) -> <Bit>, <Bit>, <Bit>, <Bit>
 g(X) = X, not(X), Z, E where
@@ -13,39 +13,39 @@ g(X) = X, not(X), Z, E where
   Z = X
 
 
-and is defined.
+Circuit and is defined.
 
 and(<Bit>, <Bit>) -> <Bit>
 and(X, Y) = not(nand(X, Y))
 
-h is defined.
+Circuit h is defined.
 
 h(<Bit>, <Bit>) -> <Bit>
 h(X, Y) = nand(X, Y)
 
-or is defined.
+Circuit or is defined.
 
-i is defined.
+Circuit i is defined.
 
 i(<Bit>, <Bit>) -> <Bit>
 i(X, Y) = and(X, not(Y))
 
-j is defined.
+Circuit j is defined.
 
 j(<Bit>, <Bit>) -> <Bit>
 j(X, Y) = nand(X, Y)
 
-k is defined.
+Circuit k is defined.
 
 k(<Bit>, <Bit>) -> <Bit>
 k(X, Y) = nand(and(X, Y), X)
 
-l is defined.
+Circuit l is defined.
 
 l(<Bit>, <Bit>) -> <Bit>
 l(X, Y) = and(X, Y)
 
-m is defined.
+Circuit m is defined.
 
 m(<Bit>, <Bit>) -> <Bit>
 m(X, Y) = nand(X, Y)
