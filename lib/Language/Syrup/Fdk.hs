@@ -65,6 +65,9 @@ fresh = do
   put sn
   pure sn
 
+identifier :: String -> String
+identifier = HTML.code . escapeHTML
+
 renderHTML :: MonadState Int m => Feedback -> m String
 renderHTML = \case
   AnExperiment ls -> pure $ asHTML ls
@@ -86,16 +89,16 @@ renderHTML = \case
   RawCode ls -> pure $ HTML.span ["class=" ++ show "syrup-code"] (unlines $ escapeHTML <$> ls)
   TruthTable x ls -> pure (HTML.pre $ unlines $ map escapeHTML (("Truth table for " ++ x ++ ":") : ls))
 
-  CircuitDefined str -> pure (yay $ "Circuit " ++ HTML.code (escapeHTML str) ++ " is defined.")
-  TypeDefined str -> pure (yay $ "Type " ++ HTML.code (escapeHTML ("<" ++ str ++ ">")) ++ " is defined.")
-  StubbedOut nm -> pure (meh $ asHTML ["Circuit " ++ nm ++ " has been stubbed out."])
+  CircuitDefined str -> pure (yay $ "Circuit " ++ identifier str ++ " is defined.")
+  TypeDefined str -> pure (yay $ "Type " ++ identifier ("<" ++ str ++ ">") ++ " is defined.")
+  StubbedOut nm -> pure (meh $ "Circuit " ++ identifier nm ++ " has been stubbed out.")
   TypeError ls -> pure (asHTML ls)
-  UnknownIdentifier x -> pure (nay $ asHTML ["I don't know what " ++ x ++ " is."])
-  MissingImplementation x -> pure (nay $ asHTML ["I don't have an implementation for " ++ x ++ "."])
+  UnknownIdentifier x -> pure (nay $ "I don't know what " ++ identifier x ++ " is.")
+  MissingImplementation x -> pure (nay $ "I don't have an implementation for " ++ identifier x ++ ".")
   Ambiguous f zs ->
     pure (nay $ asHTML (("I don't know which of the following is your preferred " ++ f ++ ":") : intercalate [""] zs))
-  Undefined f -> pure (meh $ asHTML ["You haven't defined the circuit " ++ f ++ " just now."])
-  UndefinedType x -> pure (meh $ asHTML ["You haven't defined the type " ++ x ++ " just now."])
+  Undefined f -> pure (nay $ "You haven't defined the circuit " ++ identifier f ++ " just now.")
+  UndefinedType x -> pure (nay $ "You haven't defined the type " ++ identifier x ++ " just now.")
   GenericLog ss -> pure (asHTML ss)
 
   where
@@ -145,6 +148,10 @@ feedback opts = (. filter (keep opts)) $ case outputFormat opts of
     , "  }"
     , "  .syrup-sad:before {"
     , "    content: \"\\274C\";"
+    , "    padding: 0 6px 0 0;"
+    , "  }"
+    , "  .syrup-unimpressed:before {"
+    , "    content: \"\\26A0\\FE0F\";"
     , "    padding: 0 6px 0 0;"
     , "  }"
     , "</style>"

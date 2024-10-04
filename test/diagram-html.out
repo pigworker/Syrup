@@ -14,6 +14,10 @@
     content: "\274C";
     padding: 0 6px 0 0;
   }
+  .syrup-unimpressed:before {
+    content: "\26A0\FE0F";
+    padding: 0 6px 0 0;
+  }
 </style>
 
 <span class="syrup-happy">Circuit <code>not</code> is defined.</span><br />

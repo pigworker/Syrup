@@ -14,8 +14,14 @@
     content: "\274C";
     padding: 0 6px 0 0;
   }
+  .syrup-unimpressed:before {
+    content: "\26A0\FE0F";
+    padding: 0 6px 0 0;
+  }
 </style>
 
+<span class="syrup-sad">You haven't defined the circuit <code>undefined</code> just now.</span><br />
+<span class="syrup-unimpressed">Circuit <code>undefined</code> has been stubbed out.</span><br />
 <span class="syrup-happy">Circuit <code>not</code> is defined.</span><br />
 <span class="syrup-code">not(&lt;Bit&gt;) -&gt; &lt;Bit&gt;
 not(X) = Z where
