@@ -86,7 +86,6 @@ instance Has DotSt SyrupEnv where
 
 type MonadSyrup s m =
   ( Has TyEnv s
-  , MonadReader Options m
   , MonadExperiment s m
   )
 

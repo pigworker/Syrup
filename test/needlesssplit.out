@@ -1,21 +1,21 @@
-Type alias Two is defined.
+Type <Two> is defined.
 
-Type alias Four is defined.
-
-Warning: the cables [X0,X1], [X2,X3] are taken apart only to be reconstructed or unused.
-Did you consider giving each cable a name without breaking it up?
-
-swap is defined.
+Type <Four> is defined.
 
 Warning: the cables [X0,X1], [X2,X3] are taken apart only to be reconstructed or unused.
 Did you consider giving each cable a name without breaking it up?
 
-fst is defined.
+Circuit swap is defined.
+
+Warning: the cables [X0,X1], [X2,X3] are taken apart only to be reconstructed or unused.
+Did you consider giving each cable a name without breaking it up?
+
+Circuit fst is defined.
 
 Warning: the cable [Y2,Y3] is taken apart only to be reconstructed or unused.
 Did you consider giving each cable a name without breaking it up?
 
-snd is defined.
+Circuit snd is defined.
 
-nowarn is defined.
+Circuit nowarn is defined.
 

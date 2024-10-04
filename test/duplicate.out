@@ -1,4 +1,4 @@
-duplicate is defined.
+Circuit duplicate is defined.
 
 duplicate(<Bit>) -> <Bit>, <Bit>
 duplicate(X) = __VIRTUAL__2, __VIRTUAL__3 where

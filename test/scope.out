@@ -1,4 +1,4 @@
-not is defined.
+Circuit not is defined.
 
 I was trying to make sense of the following code:
 
@@ -9,11 +9,11 @@ not2(c) = !C
 Error: You tried to use C but it is not in scope.
 Did you mean: c?
 
-not2 has been stubbed out.
+Circuit not2 has been stubbed out.
 
 Warning: You are redefining the top-level variable nand.
 
-nand is defined.
+Circuit nand is defined.
 
 Warning: the wire N is defined but never used.
 
@@ -28,13 +28,13 @@ and(X,Y) = !n where
 Error: You tried to use n but it is not in scope.
 Did you mean: N?
 
-and has been stubbed out.
+Circuit and has been stubbed out.
 
-or is defined.
+Circuit or is defined.
 
-xor is defined.
+Circuit xor is defined.
 
-h1 is defined.
+Circuit h1 is defined.
 
 Warning: the wires CIN, CiN are defined but never used.
 
@@ -52,7 +52,7 @@ Error: You are redefining the local variable CIN.
 Error: You tried to use Cin but it is not in scope.
 Did you mean one of these: CIN, CIn, CiN?
 
-f1 has been stubbed out.
+Circuit f1 has been stubbed out.
 
-tff is defined.
+Circuit tff is defined.
 

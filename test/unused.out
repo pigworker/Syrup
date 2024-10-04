@@ -1,6 +1,6 @@
 Warning: the wires T, Y, Z are defined but never used.
 
-f is defined.
+Circuit f is defined.
 
 f(<Bit>) -> <Bit>
 f(X) = X

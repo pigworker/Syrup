@@ -1,24 +1,24 @@
-not is defined.
+Circuit not is defined.
 
-and is defined.
+Circuit and is defined.
 
-or is defined.
+Circuit or is defined.
 
-nor is defined.
+Circuit nor is defined.
 
-xor is defined.
+Circuit xor is defined.
 
-hadd is defined.
+Circuit hadd is defined.
 
-fadd is defined.
+Circuit fadd is defined.
 
-adc2 is defined.
+Circuit adc2 is defined.
 
-one is defined.
+Circuit one is defined.
 
-mux is defined.
+Circuit mux is defined.
 
-adc2par is defined.
+Circuit adc2par is defined.
 
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"

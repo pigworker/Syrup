@@ -16,7 +16,7 @@ import System.Exit
 
 main :: IO ()
 main = do
-  opts <- getArgs >>= \args -> case parseOptions args of
+  opts <- getArgs >>= \args -> case parseOptions defaultOptions args of
     Left e -> die ("Error: " ++ e)
     Right opts -> pure opts
   src <- case filepath opts of
