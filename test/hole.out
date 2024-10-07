@@ -1,0 +1,14 @@
+Circuit not is defined.
+
+Circuit and is defined.
+
+Circuit or is defined.
+
+Found holes in circuit f:
+  A : <Bit>
+  B : <Bit>
+  C : <Bit>
+  D : [<Bit>, <Bit>]
+
+Circuit f has been stubbed out.
+

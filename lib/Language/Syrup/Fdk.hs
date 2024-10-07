@@ -29,6 +29,7 @@ data Feedback
   | CircuitDefined String
   | TypeDefined String
   | StubbedOut String
+  | FoundHoles String [String]
   | TypeError [String]
   | UnknownIdentifier String
   | MissingImplementation String
@@ -47,6 +48,7 @@ keep opts = \case
   StubbedOut{} -> not (quiet opts)
   AnExperiment{} -> True
   RawCode{} -> True
+  FoundHoles{} -> True
   DotGraph{} -> True
   SVGGraph{} -> True
   TypeError{} -> True
@@ -92,6 +94,7 @@ renderHTML = \case
   CircuitDefined str -> pure (yay $ "Circuit " ++ identifier str ++ " is defined.")
   TypeDefined str -> pure (yay $ "Type " ++ identifier ("<" ++ str ++ ">") ++ " is defined.")
   StubbedOut nm -> pure (meh $ "Circuit " ++ identifier nm ++ " has been stubbed out.")
+  FoundHoles f ls -> pure (meh $ "Found holes in circuit " ++ identifier f ++ ":" ++ HTML.br ++ asHTML ls)
   TypeError ls -> pure (asHTML ls)
   UnknownIdentifier x -> pure (nay $ "I don't know what " ++ identifier x ++ " is.")
   MissingImplementation x -> pure (nay $ "I don't have an implementation for " ++ identifier x ++ ".")
@@ -117,6 +120,7 @@ render = \case
   CircuitDefined str -> ["Circuit " ++ str ++ " is defined."]
   TypeDefined str -> ["Type <" ++ str ++ "> is defined."]
   StubbedOut nm -> ["Circuit " ++ nm ++ " has been stubbed out."]
+  FoundHoles f ls -> ("Found holes in circuit " ++ f ++ ":") : ls
   TypeError ls -> ls
   UnknownIdentifier x -> ["I don't know what " ++ x ++ " is."]
   MissingImplementation x -> ["I don't have an implementation for " ++ x ++ "."]

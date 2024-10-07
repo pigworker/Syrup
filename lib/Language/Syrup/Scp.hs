@@ -199,6 +199,7 @@ instance Scoped Pat where
 instance Scoped Exp where
   scopecheck ga = \case
     Var _ s  -> emptyExtension <$ isLocalVar ga s
+    Hol _ s  -> pure emptyExtension
     App _ f es -> do
       isGlobalVar ga f
       scopecheck ga es
@@ -227,6 +228,7 @@ instance Scoped Def where
     let ga'' = ga' `extend` ewhr
     -- check rhs in the extended scope
     emptyExtension <$ scopecheck ga'' rhs
+  scopecheck ga Stub{} = pure emptyExtension
 
 instance Scoped (DEC' a) where
   scopecheck ga (DEC (nm, _) _) = declareVar ga nm
