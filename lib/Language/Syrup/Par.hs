@@ -8,16 +8,17 @@
 
 module Language.Syrup.Par where
 
-import Data.Monoid
-import Control.Monad
-import Control.Monad.State
-import Control.Monad.Reader
 import Control.Applicative
+import Control.Monad (ap, guard)
+import Control.Monad.Reader (MonadReader(..), asks)
+import Control.Monad.State (MonadState(..), gets)
+import Data.Monoid (Last(..))
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
-import Language.Syrup.Syn
+import Language.Syrup.Fdk (Feedback(SyntaxError))
 import Language.Syrup.Lex
+import Language.Syrup.Syn
 
 
 ------------------------------------------------------------------------------
@@ -335,12 +336,12 @@ pVa = V0 <$ pTokIs (Sym "0") <|> V1 <$ pTokIs (Sym "1")
 -- the top level
 ------------------------------------------------------------------------------
 
-syrupFile :: String -> [Either [String] (SourceC, String)]
+syrupFile :: String -> [Either Feedback (SourceC, String)]
 syrupFile = map syrupSource . lexFile
 
-syrupSource :: (String, [Token]) -> Either [String] (SourceC, String)
+syrupSource :: (String, [Token]) -> Either Feedback (SourceC, String)
 syrupSource (s, ts) = case par pSource en st of
-    Left e -> Left (syntaxError e)
+    Left e -> Left (SyntaxError $ syntaxError e)
     Right (x, _) -> Right (x, s)
   where
     en = ParEn

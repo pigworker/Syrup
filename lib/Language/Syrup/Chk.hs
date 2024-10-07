@@ -360,7 +360,7 @@ typeErrorReport (cz, e) = concat
     problem (DecDef c f) = [ concat
       [ "I found a declaration for ", c
       , " but its definition was for ", f, "."] ]
-    problem (Stubbed msg) = msg
+    problem (Stubbed msg) = render msg
     problem (DuplicateWire x) = [ concat
       ["I found more than one signal called ", x, "."] ]
     problem LongPats  = ["I found fewer signals than I needed."]

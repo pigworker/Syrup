@@ -195,7 +195,7 @@ data TyErr
   | BitCable              -- a bit has been connected to a cable!
   | CableLoop             -- there's a spatial loop!
   | DecDef String String  -- declaration and definition names mismatch!
-  | Stubbed [String]      -- definition already stubbed out!
+  | Stubbed Feedback      -- definition already stubbed out!
   | DuplicateWire String  -- same name used for two wires!
   | LongPats              -- too many patterns for the types!
   | ShortPats             -- not enough patterns for the expressions!
@@ -204,7 +204,7 @@ data TyErr
   | Stage1 (Set String)   -- couldn't compute from memory and inputs!
   | Junk                  -- spurious extra stuff!
   | BUGSolderMismatch     -- soldering fails to match up properly (my fault)
-  deriving Show
+--  deriving Show
 
 tyErr :: TyErr -> TyM x
 tyErr e = do

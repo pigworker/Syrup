@@ -19,12 +19,13 @@ import Control.Monad (foldM, unless, when)
 
 import Data.Bifunctor ()
 import Data.Char (toLower)
+import Data.Foldable (traverse_)
 import Data.List (intersperse)
 import Data.Monoid ()
-import Data.Foldable (traverse_)
 
-import Language.Syrup.Syn
 import Language.Syrup.BigArray
+import Language.Syrup.Fdk
+import Language.Syrup.Syn
 
 type Name  = String
 type Names = Set Name
@@ -77,8 +78,8 @@ errorStatus = \case
   Shadowing Local _  -> Error
   Shadowing Global _ -> Warning
 
-errMsg :: ScopeError -> String
-errMsg e = concat $ show (errorStatus e) : ": " : case e of
+errMsg :: ScopeError -> Feedback
+errMsg e = ScopeError $ concat $ show (errorStatus e) : ": " : case e of
   OutOfScope _ n ns ->
     let names = foldMapSet pure ns in
     "You tried to use "
@@ -266,13 +267,13 @@ instance Scoped (Source' a) where
     Definition d  -> emptyExtension <$ scopecheck ga d
     Experiment e  -> emptyExtension <$ scopecheck ga e
 
-stub :: (Source' a, String) -> [String]
-     -> [Either [String] (Source' a, String)]
-     -> [Either [String] (Source' a, String)]
+stub :: (Source' a, String) -> Feedback
+     -> [Either [Feedback] (Source' a, String)]
+     -> [Either [Feedback] (Source' a, String)]
 stub (Definition (Def (nm, _) _ _), src) msg rst = Right (Definition (Stub nm msg), src) : rst
 stub _ msg rst = Left msg : rst
 
-check :: Scope -> [Either [String] (Source' a, String)] -> [Either [String] (Source' a, String)]
+check :: Scope -> [Either Feedback (Source' a, String)] -> [Either Feedback (Source' a, String)]
 check ga []                     = []
 check ga (Left err        : ds) = Left err : check ga ds
 check ga (Right (d , src) : ds) = do

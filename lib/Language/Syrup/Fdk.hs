@@ -21,9 +21,13 @@ import qualified Utilities.HTML as HTML
 import Language.Syrup.Opt
 
 data Feedback
-  = AnExperiment [String]
+  = SyntaxError [String]
+  | ScopeError [String]
+  | Lint [String]
+  | AnExperiment [String]
   | DotGraph [String]
   | SVGGraph [String]
+  | NoExecutable String
   | RawCode [String]
   | TruthTable String [String]
   | CircuitDefined String
@@ -45,6 +49,10 @@ keep opts = \case
   CircuitDefined{} -> not (quiet opts)
   TypeDefined{} -> not (quiet opts)
   StubbedOut{} -> not (quiet opts)
+  Lint{} -> not (quiet opts)
+  SyntaxError{} -> True
+  ScopeError{} -> True
+  NoExecutable{} -> True
   AnExperiment{} -> True
   RawCode{} -> True
   DotGraph{} -> True
@@ -85,10 +93,13 @@ renderHTML = \case
       , "</script>"
       , "<div id=" ++ show ("GRAPH" ++ n) ++ "></div>"
       ]
+  Lint ls -> pure (meh $ asHTML ls)
+  NoExecutable exe -> pure (meh ("Could not find the " ++ identifier exe ++ " executable :("))
   SVGGraph ls -> pure (unlines ls)
   RawCode ls -> pure $ HTML.span ["class=" ++ show "syrup-code"] (unlines $ escapeHTML <$> ls)
   TruthTable x ls -> pure (HTML.pre $ unlines $ map escapeHTML (("Truth table for " ++ x ++ ":") : ls))
-
+  SyntaxError ls -> pure (nay $ asHTML ls)
+  ScopeError ls -> pure (nay $ asHTML ls)
   CircuitDefined str -> pure (yay $ "Circuit " ++ identifier str ++ " is defined.")
   TypeDefined str -> pure (yay $ "Type " ++ identifier ("<" ++ str ++ ">") ++ " is defined.")
   StubbedOut nm -> pure (meh $ "Circuit " ++ identifier nm ++ " has been stubbed out.")
@@ -110,9 +121,12 @@ renderHTML = \case
 render :: Feedback -> [String]
 render = \case
   AnExperiment ls -> ls
+  Lint ls -> ls
   DotGraph ls -> ls
   SVGGraph ls -> ls
   RawCode ls -> ls
+  SyntaxError ls -> ls
+  ScopeError ls -> ls
   TruthTable x ls -> ("Truth table for " ++ x ++ ":") : ls
   CircuitDefined str -> ["Circuit " ++ str ++ " is defined."]
   TypeDefined str -> ["Type <" ++ str ++ "> is defined."]

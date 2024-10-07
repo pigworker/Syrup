@@ -80,10 +80,10 @@ experiment (Display x) = withImplem x $ \ i -> do
   let dot = whiteBoxDef st i
   asks graphFormat >>= \ opts -> tell $ Seq.singleton $ case opts of
     SourceDot -> DotGraph dot
-    RenderedSVG -> SVGGraph $ lines $ unsafePerformIO $
+    RenderedSVG -> unsafePerformIO $
       findExecutable "dot" >>= \case
-        Nothing -> pure "Could not find the `dot` executable :("
-        Just{} -> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
+        Nothing -> pure (NoExecutable "dot")
+        Just{} -> SVGGraph . lines <$> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
 experiment (Anf x) = withImplem x $ \ i ->
   tell $ Seq.singleton $ RawCode $ lines (showTyped (toANF i))
 experiment (Costing nms x) = do
