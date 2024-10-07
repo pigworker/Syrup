@@ -12,12 +12,10 @@
 module Language.Syrup.Run where
 
 import Control.Monad.State (execStateT)
-import Control.Monad.Writer (tell, listens, runWriter)
-import Control.Monad.Reader (MonadReader, ask, runReaderT)
+import Control.Monad.Writer (tell, runWriter)
+import Control.Monad.Reader (runReaderT)
 import Data.Foldable (toList)
 import Data.Functor (void)
-import Data.List (intercalate)
-import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 
 import Language.Syrup.Chk

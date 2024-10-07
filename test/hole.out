@@ -1,0 +1,11 @@
+I was trying to make sense of the following code:
+
+f(<Bit>) -> <Bit>
+f(X) = ?A
+
+There were some signals I couldn't compute from inputs.
+
+I can't remember any more about what I thought I was doing.
+
+Circuit f has been stubbed out.
+

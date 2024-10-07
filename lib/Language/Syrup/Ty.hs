@@ -197,6 +197,7 @@ data TyErr
   | DecDef String String  -- declaration and definition names mismatch!
   | Stubbed [String]      -- definition already stubbed out!
   | DuplicateWire String  -- same name used for two wires!
+  | ConflictingHoles String -- same name used for two holes with different types
   | LongPats              -- too many patterns for the types!
   | ShortPats             -- not enough patterns for the expressions!
   | Don'tKnow String      -- don't know what that component is!
@@ -230,7 +231,12 @@ data TySt = TySt
   , sched  :: [Task]         -- scheduled tasks so far
   } deriving Show
 
-type Cxt = Arr String (Bool, Typ)
+data Wire
+  = Physical String
+  | Holey String
+  deriving (Show, Eq, Ord)
+
+type Cxt = Arr Wire (Bool, Typ)
 
 type CoEnv = Arr String Compo
 type TyEnv = Arr String TY
@@ -279,7 +285,7 @@ tyO bad t = do
     Bit _ -> pure (Bit ())
     Cable ts -> Cable <$> traverse (tyO bad) ts
 
-defineWire :: Maybe Typ -> String -> TyM Typ
+defineWire :: Maybe Typ -> Wire -> TyM Typ
 defineWire mt x = do
   g <- gets wiCxt
   case findArr x g of
@@ -291,7 +297,11 @@ defineWire mt x = do
         Just ty' -> do
           tyEq (ty, ty')
           return ty'
-    Just (True, _)   -> tyErr (DuplicateWire x)
+    Just (True, ty) -> case x of
+      Physical nm -> tyErr (DuplicateWire nm)
+      Holey{} -> case mt of
+        Just ty' -> ty <$ tyEq (ty, ty')
+        _ -> pure ty
     Nothing -> do
       ty <- case mt of
         Just ty -> return ty
@@ -300,7 +310,7 @@ defineWire mt x = do
       put (st {wiCxt = insertArr (x, (True, ty)) g})
       return ty
 
-useWire :: String -> TyM Typ
+useWire :: Wire -> TyM Typ
 useWire x = do
   g <- gets wiCxt
   case findArr x g of

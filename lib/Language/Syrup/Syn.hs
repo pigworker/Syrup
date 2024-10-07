@@ -30,6 +30,7 @@ type Source  = Source' Void
 type Exp = Exp' ()
 data Exp' ty
   = Var ty String
+  | Hol ty String
   | App [ty] String [Exp' ty]
   | Cab ty [Exp' ty]
   deriving (Eq, Functor, Foldable, Traversable)
@@ -37,6 +38,7 @@ data Exp' ty
 expTys :: Exp' ty -> [ty]
 expTys = \case
   Var ty _ -> [ty]
+  Hol ty _ -> [ty]
   App tys _ _ -> tys
   Cab ty _ -> [ty]
 
@@ -53,6 +55,7 @@ patTy = \case
 
 exPat :: Exp' ty -> Maybe (Pat' ty String)
 exPat (Var ty x)  = return (PVar ty x)
+exPat (Hol ty x)  = Nothing -- for now?
 exPat (Cab ty es) = PCab ty <$> traverse exPat es
 exPat _           = Nothing
 
@@ -155,10 +158,12 @@ instance IsCircuit (Exp' ty) where
   type VarTy (Exp' ty) = ty
   allVars = \case
     Var ty x -> single (x, (First (Just ty), Sum 1))
+    Hol ty x -> emptyArr
     App _ fn es -> allVars es
     Cab _ es -> allVars es
   allGates = \case
     Var{} -> emptyArr
+    Hol{} -> emptyArr
     Cab{} -> emptyArr
     App _ fn es -> single (fn, Sum 1) <> allGates es
 
@@ -176,6 +181,7 @@ support p = () <$ allVars p
 
 instance Show (Exp' ty) where
   show (Var _ x)    = x
+  show (Hol _ x)    = concat ["?", x]
   show (App _ f es) = concat [f, "(", csepShow es, ")"]
   show (Cab _ es)   = concat ["[", csepShow es, "]"]
 

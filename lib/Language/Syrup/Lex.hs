@@ -15,6 +15,7 @@ tokens r = (r, findBrackets B0 (raw r))
 data Token
   = Spc Int      -- never two adjacent
   | Id String    -- never two adjacent
+  | QM String    -- question mark identifier
   | Num Int      -- never two adjacent
   | Sym String   -- two adjacent only if at least one is a solo symbol
   | Bracket Bracket [Token]
@@ -77,7 +78,8 @@ raw :: String -> [Token]
 raw "" = []
 raw (c : s) | elem c " \t\n" = spaces 1 s
 raw (c : s) | elem c solos = Sym [c] : raw s
-raw (c : s) | isAlphaNumU c = alphanum (B0 :< c) s
+raw (c : s) | c == '?' = alphanum QM B0 s
+raw (c : s) | isAlphaNumU c = alphanum Id (B0 :< c) s
 raw (c : s) = symbol (B0 :< c) s
 
 solos :: String
@@ -87,10 +89,11 @@ spaces :: Int -> String -> [Token]
 spaces i (c : s) | elem c " \t\n" = spaces (i + 1) s
 spaces i s = Spc i : raw s
 
-alphanum :: Bwd Char -> String -> [Token]
-alphanum cz (c : s) | isAlphaNumU c = alphanum (cz :< c) s
-alphanum cz s | all isDigit cz = Num (read (cz <>> [])) : raw s
-              | otherwise = Id (cz <>> []) : raw s
+alphanum :: (String -> Token) -> Bwd Char -> String -> [Token]
+alphanum con cz (c : s) | isAlphaNumU c = alphanum con (cz :< c) s
+alphanum con cz s
+  | all isDigit cz = Num (read (cz <>> [])) : raw s
+  | otherwise = con (cz <>> []) : raw s
 
 symbol :: Bwd Char -> String -> [Token]
 symbol cz (c : s) | not (or ([isSpace, isAlphaNum, (`elem` solos)] <*> [c]))

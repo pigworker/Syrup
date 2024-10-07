@@ -190,7 +190,7 @@ decPats ss [] = tyErr ShortPats
 decPats (s : ss) (p : ps) = (:) <$> decPat s p <*> decPats ss ps
 
 decPat :: Typ -> Pat -> TyM TypedPat
-decPat s (PVar () x) = PVar s x <$ defineWire (Just s) x
+decPat s (PVar () x) = PVar s x <$ defineWire (Just s) (Physical x)
 decPat s@(Cable ss) (PCab () ps)
   | length ss == length ps = PCab s <$> decPats ss ps
   | otherwise = tyErr CableWidth
@@ -210,7 +210,7 @@ chkEqn eqn@(qs :=: es) = do
 
 defPat :: Pat -> TyM (Typ, TypedPat)
 defPat (PVar () x)  = do
-  ty <- defineWire Nothing x
+  ty <- defineWire Nothing (Physical x)
   pure (ty, PVar ty x)
 defPat (PCab () ps) = do
   (tys, pats) <- unzip <$> traverse defPat ps
@@ -253,10 +253,13 @@ renameMem rho (MemoryCell mc t) = MemoryCell (fmap CellName $ mc >>= flip lookup
 chkExp :: [(Typ, Maybe TypedPat)]
        -> Exp
        -> TyM ([Pat], [(Typ, Maybe TypedPat)], TypedExp)
-chkExp ((t,_) : ts) (Var () x) = do
-  s <- useWire x
+chkExp ((t,_) : tqs) (Var () x) = do
+  s <- useWire (Physical x)
   local (:< TyWIRE x s t) $ tyEq (s, t)
-  return ([PVar () x], ts, Var s x)
+  return ([PVar () x], tqs, Var s x)
+chkExp ((t,_) : tqs) (Hol () x) = do
+  s <- defineWire (Just t) (Holey x)
+  return ([PVar () ('?':x)], tqs, Hol s x)
 chkExp tqs e@(App _ fn es) = do
   env <- gets coEnv
   f <- case findArr fn env of
@@ -270,11 +273,11 @@ chkExp tqs e@(App _ fn es) = do
   let mTy = getCellType <$> memTys
   mIn <- for mTy $ \ ty -> do
     w <- wiF
-    defineWire (Just (stanTy ty)) w
+    defineWire (Just (stanTy ty)) (Physical w)
     return (PVar () w)
   mOu <- for mTy $ \ ty -> do
     w <- wiF
-    defineWire (Just (stanTy ty)) w
+    defineWire (Just (stanTy ty))(Physical w)
     return (PVar () w)
   st <- get
   put $ st { memTy = memTys : memTy st
@@ -313,7 +316,7 @@ stage :: Ty2 -> TyM ([Pat], ([Pat], [Pat]))
 stage (TyV x) = absurd x
 stage (Bit t) = do
   w <- wiF
-  defineWire (Just (Bit ())) w
+  defineWire (Just (Bit ())) (Physical w)
   return ([PVar () w], case t of {T0 -> ([PVar () w], []); T1 -> ([], [PVar () w])})
 stage (Cable ts) = do
   (qs, (qs0, qs1)) <- foldMap stage ts
