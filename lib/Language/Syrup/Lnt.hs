@@ -11,13 +11,14 @@ import Data.List (intercalate)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Ded
+import Language.Syrup.Fdk
 import Language.Syrup.Syn
 
 class Lint t where
-  linters :: [t -> [[String]]]
+  linters :: [t -> [Feedback]]
   linters = []
 
-lint :: Lint t => t -> [[String]]
+lint :: Lint t => t -> [Feedback]
 lint t = foldMap ($ t) linters
 
 plural :: [a] -> String -> String -> String
@@ -31,7 +32,7 @@ instance ty ~ () => Lint (Def' ty) where
             ] where
 
     emptyWhere = \case
-      Def (fun, _) _ (Just []) -> pure $
+      Def (fun, _) _ (Just []) -> pure $ Lint
         [ "Warning: empty where clause in the definition of " ++ fun ++ "."
         , "Did you forget to indent the block of local definitions using spaces?"
         ]
@@ -39,7 +40,7 @@ instance ty ~ () => Lint (Def' ty) where
 
     needlessSplits d = do
       let ps = abstractableCables d
-      if null ps then [] else pure
+      if null ps then [] else pure $ Lint
         [ "Warning: the " ++ plural ps "cable " "cables "
           ++ intercalate ", " (show <$> ps)
           ++ plural ps " is" " are"
@@ -49,7 +50,7 @@ instance ty ~ () => Lint (Def' ty) where
 
     deadcode d = case foldMapSet pure (unused d) of
       [] -> []
-      ns -> pure
+      ns -> pure $ Lint
         [ "Warning: the " ++ plural ns "wire " "wires "
           ++ intercalate ", " ns
           ++ plural ns " is" " are"
@@ -65,8 +66,8 @@ instance Lint (Source' a) where
       _ -> []
 
 linter :: Lint t
-       => [Either [String] (t, String)]
-       -> [Either [String] (t, String)]
+       => [Either Feedback (t, String)]
+       -> [Either Feedback (t, String)]
 linter xs = xs >>= \case
   err@Left{}         -> [err]
   src@(Right (t, _)) -> map Left (lint t) ++ [src]

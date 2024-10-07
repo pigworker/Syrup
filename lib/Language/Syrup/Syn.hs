@@ -15,6 +15,7 @@ import Data.Monoid (Sum(..), First(..))
 import Data.Void (Void)
 
 import Language.Syrup.BigArray
+import Language.Syrup.Fdk
 
 data Source' a
   = Declaration (DEC' a)
@@ -65,7 +66,7 @@ type Eqn = Eqn' ()
 data Eqn' ty = [Pat' ty String] :=: [Exp' ty]
 type Def = Def' ()
 data Def' ty
-  = Stub String [String]
+  = Stub String Feedback
   -- stubbed out definition together with error msg
   | Def (String,[Pat' ty String]) [Exp' ty] (Maybe [Eqn' ty])
 
