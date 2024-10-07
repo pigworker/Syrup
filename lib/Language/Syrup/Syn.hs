@@ -122,6 +122,7 @@ class IsCircuit t where
   type VarTy t :: Type
   allVars  :: t -> Arr String (First (VarTy t), Sum Int)
   allGates :: t -> Arr String (Sum Int)
+  allHoles :: t -> Arr String (First (VarTy t))
 
   default allVars
     :: (t ~ f a, VarTy t ~ VarTy a, Foldable f, IsCircuit a)
@@ -132,6 +133,11 @@ class IsCircuit t where
     :: (t ~ f a, Foldable f, IsCircuit a)
     => t -> Arr String (Sum Int)
   allGates = foldMap allGates
+
+  default allHoles
+    :: (t ~ f a, VarTy t ~ VarTy a, Foldable f, IsCircuit a)
+    => t -> Arr String (First (VarTy t))
+  allHoles = foldMap allHoles
 
 instance IsCircuit a => IsCircuit [a] where
   type VarTy [a] = VarTy a
@@ -144,6 +150,7 @@ instance a ~ String => IsCircuit (Pat' ty a) where
     PVar ty s -> single (s, (First (Just ty), Sum 1))
     PCab _ c -> allVars c
   allGates _ = emptyArr
+  allHoles _ = emptyArr
 
 instance IsCircuit (Def' ty) where
   type VarTy (Def' ty) = ty
@@ -153,6 +160,9 @@ instance IsCircuit (Def' ty) where
   allGates = \case
     Stub{} -> emptyArr
     Def (fn,ps) es meqns -> allGates es <> allGates meqns
+  allHoles = \case
+    Stub{} -> emptyArr
+    Def (fn,ps) es meqns -> allHoles es <> allHoles meqns
 
 instance IsCircuit (Exp' ty) where
   type VarTy (Exp' ty) = ty
@@ -166,11 +176,17 @@ instance IsCircuit (Exp' ty) where
     Hol{} -> emptyArr
     Cab{} -> emptyArr
     App _ fn es -> single (fn, Sum 1) <> allGates es
+  allHoles = \case
+    Var ty x -> emptyArr
+    Hol ty x -> single (x, First (Just ty))
+    App _ fn es -> allHoles es
+    Cab _ es -> allHoles es
 
 instance IsCircuit (Eqn' ty) where
   type VarTy (Eqn' ty) = ty
   allVars (ps :=: es) = allVars ps <> allVars es
   allGates (ps :=: es) = allGates es
+  allHoles (ps :=: es) = allHoles es
 
 support :: IsCircuit t => t -> Set String
 support p = () <$ allVars p

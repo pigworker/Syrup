@@ -31,6 +31,7 @@ tokSize _ = 1
 instance Show Token where
   show (Spc n) = replicate n ' '
   show (Id x)  = x
+  show (QM x)  = '?':x
   show (Num n) = show n
   show (Sym s) = s
   show (Bracket b ts) = o ++ foldMap show ts ++ c where (o, c) = brackets b

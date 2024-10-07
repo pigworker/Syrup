@@ -13,12 +13,14 @@ module Language.Syrup.Ty where
 
 import Control.Applicative ((<|>))
 import Control.Monad (ap, guard)
+import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.Reader (MonadReader, ask, local)
 import Control.Monad.State (MonadState, get, gets, put)
 import Control.Monad.Writer (MonadWriter, tell)
 
-import Data.Void (Void, absurd)
+import Data.Foldable (traverse_)
 import Data.Sequence (Seq)
+import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
@@ -160,13 +162,29 @@ type MonadCompo s m =
 instance Has (Arr a b) (Arr a b) where
   hasLens = id
 
-newtype TyM x = TyM
-  {tyM :: Bwd TyClue                  -- what are we in the middle of?
-       -> TySt                        -- tracking type variables and tasks
-       -> Either (Bwd TyClue, TyErr)  -- failure: context and error
-                 (x, TySt)            -- success: output and updated state
+data TyFailure = TyFailure
+  { failureCtx :: Bwd TyClue
+  , failureErr :: TyErr
   }
 
+data HasHoles
+  = YesHasHoles
+  | NoHasNoHoles
+
+instance Semigroup HasHoles where
+  NoHasNoHoles <> y = y
+  x <> NoHasNoHoles = x
+  YesHasHoles <> YesHasHoles = YesHasHoles
+
+instance Monoid HasHoles where
+  mempty = NoHasNoHoles
+
+type TyMonad m =
+  ( MonadError TyFailure m      -- failure: context and error
+  , MonadReader (Bwd TyClue) m  -- what are we in the middle of?
+  , MonadWriter HasHoles m      -- have we found holes (in which case stub the def)
+  , MonadState TySt m           -- tracking type variables and tasks
+  )
 
 ------------------------------------------------------------------------------
 -- clues
@@ -207,12 +225,11 @@ data TyErr
   | BUGSolderMismatch     -- soldering fails to match up properly (my fault)
   deriving Show
 
-tyErr :: TyErr -> TyM x
+tyErr :: TyMonad m => TyErr -> m x
 tyErr e = do
     g <- ask
     g <- traverse (traverse norm) g
-    bail (g, e)
-  where bail x = TyM $ \ _ _ -> Left x
+    throwError (TyFailure g e)
 
 
 ------------------------------------------------------------------------------
@@ -256,27 +273,27 @@ tySt0 = TySt
   , sched = []
   }
 
-tyF :: TyM Typ
+tyF :: TyMonad m => m Typ
 tyF = do
   st <- get
   let u = tyNew st
   put (st {tyNew = u + 1})
   return (TyV u)
 
-wiF :: TyM String
+wiF :: TyMonad m => m String
 wiF = do
   st <- get
   let u = wiNew st
   put (st {wiNew = u + 1})
   return ("|" ++ show u)
 
-tyD :: (TyNom, Typ) -> TyM ()
+tyD :: TyMonad m => (TyNom, Typ) -> m ()
 tyD (x, t) = do
   t <- tyO (x ==) t
   st <- get
   put (st {tyDef = insertArr (x, t) (tyDef st)})
 
-tyO :: (TyNom -> Bool) -> Typ -> TyM Typ
+tyO :: TyMonad m => (TyNom -> Bool) -> Typ -> m Typ
 tyO bad t = do
   t <- hnf t
   case t of
@@ -285,7 +302,7 @@ tyO bad t = do
     Bit _ -> pure (Bit ())
     Cable ts -> Cable <$> traverse (tyO bad) ts
 
-defineWire :: Maybe Typ -> Wire -> TyM Typ
+defineWire :: TyMonad m => Maybe Typ -> Wire -> m Typ
 defineWire mt x = do
   g <- gets wiCxt
   case findArr x g of
@@ -310,7 +327,7 @@ defineWire mt x = do
       put (st {wiCxt = insertArr (x, (True, ty)) g})
       return ty
 
-useWire :: Wire -> TyM Typ
+useWire :: TyMonad m => Wire -> m Typ
 useWire x = do
   g <- gets wiCxt
   case findArr x g of
@@ -321,7 +338,7 @@ useWire x = do
       put (st {wiCxt = insertArr (x, (False, ty)) g})
       return ty
 
-schedule :: Task -> TyM ()
+schedule :: TyMonad m => Task -> m ()
 schedule ta = do
   st <- get
   put (st {sched = ta : sched st})
@@ -332,7 +349,7 @@ schedule ta = do
 ------------------------------------------------------------------------------
 
 class Hnf t where
-  hnf :: t -> TyM t
+  hnf :: TyMonad m => t -> m t
 
 instance Hnf Typ where
   hnf (TyV u) = tyvH u where
@@ -353,7 +370,7 @@ instance (Hnf s, Hnf t) => Hnf (s, t) where
 instance Hnf t => Hnf [t] where
   hnf = traverse hnf
 
-norm :: Typ -> TyM Typ
+norm :: TyMonad m => Typ -> m Typ
 norm t = hnf t >>= \ t -> case t of
   Cable ts -> Cable <$> traverse norm ts
   _ -> return t
@@ -377,18 +394,18 @@ actOnTypedDef f (Def (fn, ps) es meqns)
   <*> traverse (traverse (actOnTypedEqn f)) meqns
 actOnTypedDef f (Stub n args) = pure (Stub n args)
 
-normDef :: TypedDef -> TyM TypedDef
+normDef :: TyMonad m => TypedDef -> m TypedDef
 normDef = actOnTypedDef norm
 
 ------------------------------------------------------------------------------
 -- unification
 ------------------------------------------------------------------------------
 
-tyEq :: (Typ, Typ) -> TyM ()
+tyEq :: TyMonad m => (Typ, Typ) -> m ()
 tyEq st = hnf st >>= \ st -> case st of
   (Bit _,    Bit _)    -> return ()
   (Cable ss, Cable ts)
-    | length ss == length ts -> foldMap tyEq (zip ss ts)
+    | length ss == length ts -> traverse_ tyEq (zip ss ts)
     | otherwise -> tyErr CableWidth
   (Bit _,    Cable _)  -> tyErr BitCable
   (Cable _,  Bit _)    -> tyErr BitCable
@@ -426,30 +443,3 @@ instance Applicative (Ty t) where
 
 instance Functor (Ty t) where
   fmap = ap . return
-
-instance Monad TyM where
-  return x = TyM $ \ g s -> Right (x, s)
-  TyM af >>= k = TyM $ \ g s -> case af g s of
-    Left e -> Left e
-    Right (a, s) -> tyM (k a) g s
-
-instance Applicative TyM where
-  pure = return
-  (<*>) = ap
-
-instance Functor TyM where
-  fmap = ap . return
-
-instance Monoid x => Monoid (TyM x) where
-  mempty = pure mempty
-  mappend = (<>)
-instance Semigroup x => Semigroup (TyM x) where
-  mx <> my = (<>) <$> mx <*> my
-
-instance MonadState TySt TyM where
-  get = TyM $ \ g s -> Right (s, s)
-  put s = TyM $ \ g _ -> Right ((), s)
-
-instance MonadReader (Bwd TyClue) TyM where
-  ask = TyM $ \ g s -> Right (g, s)
-  local f a = TyM $ tyM a . f

@@ -1,11 +1,14 @@
-I was trying to make sense of the following code:
+Circuit not is defined.
 
-f(<Bit>) -> <Bit>
-f(X) = ?A
+Circuit and is defined.
 
-There were some signals I couldn't compute from inputs.
+Circuit or is defined.
 
-I can't remember any more about what I thought I was doing.
+Found holes in circuit f:
+  A : <Bit>
+  B : <Bit>
+  C : <Bit>
+  D : [<Bit>, <Bit>]
 
 Circuit f has been stubbed out.
 
