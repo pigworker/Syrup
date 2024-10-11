@@ -91,15 +91,16 @@ type DECC = DEC' String
 type DEC  = DEC' Void
 
 data EXPT
-  = Tabulate String
-  | Simulate String [Va] [[Va]]
+  = Anf String
   | Bisimilarity String String
-  | Display String
-  | Print String
-  | Typing String
-  | Anf String
   | Costing [String] String
+  | Display String
+  | Dnf String
+  | Print String
   | Simplify String
+  | Simulate String [Va] [[Va]]
+  | Typing String
+  | Tabulate String
   deriving Show
 
 data Va

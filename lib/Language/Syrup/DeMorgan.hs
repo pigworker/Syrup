@@ -9,14 +9,13 @@
 
 module Language.Syrup.DeMorgan where
 
-import Control.Monad (guard, (>=>))
-import Control.Monad.Reader
+import Control.Monad (guard)
+import Control.Monad.Reader (MonadReader, Reader, runReader)
 import Control.Monad.State
 
 import Data.Maybe (fromMaybe)
-import Data.Monoid (First(First, getFirst))
 
-import Language.Syrup.BigArray
+import Language.Syrup.BigArray (findArr, foldMapArr)
 import Language.Syrup.Ded
 import Language.Syrup.Syn
 import Language.Syrup.Ty
@@ -26,6 +25,7 @@ import Debug.Trace
 
 ------------------------------------------------------------------------
 -- Deploying De Morgan's laws to simplify circuits
+-- Trying to be clever about circuit depth
 ------------------------------------------------------------------------
 
 deMorgan :: CoEnv -> Def' ty -> Def' ty
@@ -58,15 +58,6 @@ type DeMorganM ty = StateT [Eqn' ty] (Reader CoEnv)
 
 class DeMorgan ty t where
   simplify :: Polarity ty -> t -> DeMorganM ty t
-
-isRemarkable :: String -> DeMorganM ty (Maybe Remarkable)
-isRemarkable f = asks (findArr f >=> rmk)
-
-getRemarkable :: Remarkable -> DeMorganM ty (Maybe String)
-getRemarkable f = do
-  arr <- ask
-  pure $ getFirst $ flip foldMapArr arr $ \ (k, v) ->
-    First $ k <$ guard (rmk v == Just f)
 
 isAssignment :: String -> Eqn' ty -> Either (Exp' ty) (Eqn' ty)
 isAssignment x eqn@([PVar _ y] :=: [e])

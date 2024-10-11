@@ -51,8 +51,8 @@ isBisimilar c d = case bisimReport c d of
   Report (Bisimilar{}) -> True
   _ -> False
 
-isRemarkable :: Compo -> Maybe Remarkable
-isRemarkable cmp
+checkRemarkable :: Compo -> Maybe Remarkable
+checkRemarkable cmp
   | null (memTys cmp)
   , [o] <- oupTys cmp
   , Bit _ <- getOutputType o
@@ -64,7 +64,7 @@ isRemarkable cmp
               <|> IsAndGate  <$ guard (isBisimilar cmp andCompo)
               <|> IsOrGate   <$ guard (isBisimilar cmp orCompo)
          _ -> Nothing
-isRemarkable _ = Nothing
+checkRemarkable _ = Nothing
 
 maybeRemarkable :: String -> Maybe Remarkable -> [Feedback]
 maybeRemarkable str Nothing = []
@@ -121,7 +121,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
                          foldMap support (mO ++ qs1) `subSet` k2) of
                 ([], True, True) -> do
                   let mems = concat $ reverse $ memTy st
-                  let rmk = guard isrmk >> isRemarkable gc
+                  let rmk = guard isrmk >> checkRemarkable gc
                       gc = Compo
                         { monick = g
                         , rmk = rmk

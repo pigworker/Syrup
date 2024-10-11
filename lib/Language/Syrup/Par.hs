@@ -310,6 +310,7 @@ pEXPT =
   pCommand "display" Display
   <|> pCommand "print" Print
   <|> pCommand "anf" Anf
+  <|> pCommand "dnf" Dnf
   <|> pCommand "type" Typing
   <|> pCommand "simplify" Simplify
   <|> Costing <$ pTokIs (Id "cost") <* pSpc <*> pSupp <* pSpc <*> pVar <* pSpc <* pEOI

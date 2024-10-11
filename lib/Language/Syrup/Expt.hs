@@ -27,7 +27,8 @@ import Data.Void (Void)
 import Language.Syrup.Anf
 import Language.Syrup.BigArray
 import Language.Syrup.Cst
-import Language.Syrup.DeMorgan
+import Language.Syrup.DeMorgan (deMorgan)
+import Language.Syrup.DNF (dnf)
 import Language.Syrup.Dot
 import Language.Syrup.Fdk
 import Language.Syrup.Opt
@@ -84,6 +85,9 @@ experiment (Display x) = withImplem x $ \ i -> do
       findExecutable "dot" >>= \case
         Nothing -> pure "Could not find the `dot` executable :("
         Just{} -> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
+experiment (Dnf x) = withImplem x $ \ i -> do
+  env <- use hasLens
+  tell $ Seq.singleton $ RawCode $ lines (showTyped (dnf env i))
 experiment (Anf x) = withImplem x $ \ i ->
   tell $ Seq.singleton $ RawCode $ lines (showTyped (toANF i))
 experiment (Costing nms x) = do
