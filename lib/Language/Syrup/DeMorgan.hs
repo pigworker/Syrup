@@ -60,7 +60,7 @@ isAssignment :: String -> Eqn' ty -> Either (Exp' ty) (Eqn' ty)
 isAssignment x eqn@([PVar _ y] :=: [e])
   | x == y = Left e
   | otherwise = Right eqn
-isAssignement x eqn = Right eqn
+isAssignment x eqn = Right eqn
 
 isDefined :: String -> DeMorganM ty (Maybe (Exp' ty))
 isDefined x = do
