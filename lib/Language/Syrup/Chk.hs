@@ -12,18 +12,16 @@ module Language.Syrup.Chk where
 
 import Control.Applicative ((<|>))
 import Control.Monad (guard)
-import Control.Monad.Except (runExceptT)
 import Control.Monad.Reader (local, runReaderT)
-import Control.Monad.State (MonadState, runStateT, execStateT, get, gets, put)
-import Control.Monad.Writer (MonadWriter, runWriter, runWriterT, tell)
+import Control.Monad.State (runStateT, execStateT, get, gets, put)
+import Control.Monad.Writer (runWriter, runWriterT, tell)
 
 import Data.Bifunctor (bimap)
 import Data.Char (isAlpha)
-import Data.Foldable (traverse_, toList, fold)
+import Data.Foldable (traverse_, fold)
 import Data.List (intercalate)
 import Data.Maybe (isJust, fromJust)
 import Data.Monoid (Last(Last), First(..))
-import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import Data.Traversable (for)
 import Data.Void (Void, absurd)
@@ -36,7 +34,7 @@ import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Va
 
-import Utilities.Lens (Has, hasLens, use, (%=))
+import Utilities.Lens (hasLens, use, (%=))
 
 ------------------------------------------------------------------------------
 -- Checking whether a component is remarkable

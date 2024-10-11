@@ -6,7 +6,6 @@
 
 module Language.Syrup.Lnt where
 
-import Data.Foldable (toList)
 import Data.List (intercalate)
 
 import Language.Syrup.BigArray

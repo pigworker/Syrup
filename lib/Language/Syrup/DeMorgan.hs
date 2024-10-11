@@ -10,18 +10,15 @@
 module Language.Syrup.DeMorgan where
 
 import Control.Monad (guard)
-import Control.Monad.Reader (MonadReader, Reader, runReader)
+import Control.Monad.Reader (Reader, runReader)
 import Control.Monad.State
 
 import Data.Maybe (fromMaybe)
 
-import Language.Syrup.BigArray (findArr, foldMapArr)
 import Language.Syrup.Ded
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Utils (partitionWith)
-
-import Debug.Trace
 
 ------------------------------------------------------------------------
 -- Deploying De Morgan's laws to simplify circuits
