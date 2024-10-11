@@ -10,14 +10,13 @@
 
 module Language.Syrup.Expt where
 
-import Control.Arrow ((***))
 import Control.Monad.Reader (MonadReader, asks)
-import Control.Monad.State (MonadState, gets, StateT(StateT), execStateT, get, put, runStateT)
-import Control.Monad.Writer (MonadWriter, tell)
+import Control.Monad.State (gets, StateT(StateT), execStateT, get, put, runStateT)
+import Control.Monad.Writer (tell)
 
 import qualified Data.Bifunctor as Bi
 import Data.Function (on)
-import Data.List (find, intercalate, partition, sortBy)
+import Data.List (find, intercalate, sortBy)
 import Data.Maybe (fromJust)
 import Data.Monoid (Endo(Endo), appEndo, Sum(Sum))
 import qualified Data.Sequence as Seq

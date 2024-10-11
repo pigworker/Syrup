@@ -14,9 +14,9 @@ module Language.Syrup.Ty where
 import Control.Applicative ((<|>))
 import Control.Monad (ap, guard, (>=>))
 import Control.Monad.Except (MonadError, throwError)
-import Control.Monad.Reader (MonadReader, ask, asks, local, runReader)
+import Control.Monad.Reader (MonadReader, ask, asks, runReader)
 import Control.Monad.State (MonadState, get, gets, put)
-import Control.Monad.Writer (MonadWriter, tell)
+import Control.Monad.Writer (MonadWriter)
 
 import Data.Foldable (traverse_)
 import Data.Monoid (First(..))
