@@ -1,0 +1,11 @@
+Circuit not is defined.
+
+Circuit and is defined.
+
+Circuit or is defined.
+
+Circuit complex is defined.
+
+complex(<Bit>, <Bit>, <Bit>) -> <Bit>
+complex(X, Y, Z) = or(and(not(X), not(Y)), and(not(X), not(Z)))
+

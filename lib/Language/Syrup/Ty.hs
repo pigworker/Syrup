@@ -12,13 +12,14 @@
 module Language.Syrup.Ty where
 
 import Control.Applicative ((<|>))
-import Control.Monad (ap, guard)
+import Control.Monad (ap, guard, (>=>))
 import Control.Monad.Except (MonadError, throwError)
-import Control.Monad.Reader (MonadReader, ask, local)
+import Control.Monad.Reader (MonadReader, ask, asks, local, runReader)
 import Control.Monad.State (MonadState, get, gets, put)
 import Control.Monad.Writer (MonadWriter, tell)
 
 import Data.Foldable (traverse_)
+import Data.Monoid (First(..))
 import Data.Sequence (Seq)
 import Data.Void (Void, absurd)
 
@@ -117,6 +118,31 @@ data Remarkable
   | IsOrGate
   deriving (Eq)
 
+isRemarkable :: MonadReader CoEnv m => String -> m (Maybe Remarkable)
+isRemarkable f = asks (findArr f >=> rmk)
+
+getRemarkable :: MonadReader CoEnv m => Remarkable -> m (Maybe String)
+getRemarkable f = do
+  arr <- ask
+  pure $ getFirst $ flip foldMapArr arr $ \ (k, v) ->
+    First $ k <$ guard (rmk v == Just f)
+
+data AllRemarkables ty = AllRemarkables
+  { bitTypeName  :: ty
+  , zeroGateName :: String
+  , notGateName  :: String
+  , orGateName   :: String
+  , andGateName  :: String
+  }
+
+allRemarkables :: CoEnv -> ty -> Maybe (AllRemarkables ty)
+allRemarkables env ty = do
+  zeroN <- runReader (getRemarkable IsZeroGate) env
+  notN  <- runReader (getRemarkable IsNotGate)  env
+  orN   <- runReader (getRemarkable IsOrGate)   env
+  andN  <- runReader (getRemarkable IsAndGate)  env
+  pure (AllRemarkables ty zeroN notN orN andN)
+
 data Compo = Compo
   { monick :: String
   , rmk    :: Maybe Remarkable
@@ -129,6 +155,7 @@ data Compo = Compo
   , stage1 :: [Va] -- memory, stage1 inputs
            -> [Va] -- new memory, stage1 outputs
   }
+
 instance Show Compo where
   show _ = "<component>"
 

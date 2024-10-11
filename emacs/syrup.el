@@ -13,7 +13,7 @@
 (setq syrup-symbols-regexp   (regexp-opt syrup-symbols))
 (setq syrup-types-regexp "\<[[:alpha:]][[:alnum:]]*\>")
 (setq syrup-functions-regexp "\\([[:alpha:]][[:alnum:]]*\\)\(")
-(setq syrup-experiments-regexp "\\(experiment\\|type\\|anf\\|simplify\\|print\\|display\\)[[:space:]]+\\([[:alpha:]][[:alnum:]]*\\)")
+(setq syrup-experiments-regexp "\\(experiment\\|type\\|anf\\|simplify\\|print\\|display\\|dnf\\)[[:space:]]+\\([[:alpha:]][[:alnum:]]*\\)")
 (setq syrup-bisimulations-regexp "\\(experiment\\)[[:space:]]+\\([[:alpha:]][[:alnum:]]*\\)[[:space:]]+=[[:space:]]+\\([[:alpha:]][[:alnum:]]*\\)")
 
 ;; clear memory
