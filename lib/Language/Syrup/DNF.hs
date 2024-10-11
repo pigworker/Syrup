@@ -11,6 +11,7 @@
 
 module Language.Syrup.DNF where
 
+import Control.Applicative (liftA2)
 import Control.Monad (guard, join)
 import Control.Monad.Reader (MonadReader, runReader)
 
