@@ -180,6 +180,7 @@ guts (Dec (g, ss) ts) (Stub f msg)
 stubOut :: Dec -> Compo
 stubOut (Dec (g, ss) ts) = Compo
   { monick = g
+  , rmk = Nothing
   , defn = Nothing
   , memTys = []
   , inpTys = InputWire  Nothing <$> ss
