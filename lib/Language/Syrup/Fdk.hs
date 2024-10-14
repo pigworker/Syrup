@@ -5,66 +5,199 @@
 ------------------------------------------------------------------------------
 
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Language.Syrup.Fdk where
 
 import Control.Monad.State (MonadState, get, put, evalState)
 import Control.Monad.Writer (MonadWriter, tell)
 
-import Data.List (intercalate)
+import Data.Kind (Type)
+import Data.List (intercalate, intersperse)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 
 import Utilities.HTML (asHTML, escapeHTML)
 import qualified Utilities.HTML as HTML
 
-import Language.Syrup.Opt
+import Language.Syrup.BigArray (Set, isEmptyArr, foldMapSet)
+import Language.Syrup.Opt (Options, quiet)
+
+------------------------------------------------------------------------------
+-- Feedback classes
+
+type MonadRenderHTML m =
+  ( MonadState Int m
+  )
+
+class Categorise t where
+  categorise :: t -> FeedbackStatus
+
+class Render t where
+  type Builder t :: Type
+  render :: t -> String
+  renderHTML :: MonadRenderHTML m => t -> m (Builder t)
+
+plural :: [a] -> String -> String -> String
+plural [_] str _ = str
+plural _   str s = str ++ s
+
+------------------------------------------------------------------------------
+-- Feedback status
+
+data FeedbackStatus
+  = Success
+  | Comment
+  | Warning
+  | Error
+  deriving Eq
+
+instance Semigroup FeedbackStatus where
+  Success <> f = f
+  e <> Success = e
+  Comment <> f = f
+  e <> Comment = e
+  Warning <> f = f
+  e <> Warning = e
+  _ <> _       = Error
+
+instance Render FeedbackStatus where
+  type Builder FeedbackStatus = String -> String
+
+  render = \case
+    Success -> ""
+    Comment -> ""
+    Warning -> "Warning"
+    Error -> "Error"
+
+  renderHTML fcl = pure $ HTML.span ["class=" ++ show ("syrup-" ++ feedbackClass fcl)] where
+    feedbackClass = \case
+      Success -> "happy"
+      Comment -> "comment"
+      Warning -> "warning"
+      Error -> "error"
+
+------------------------------------------------------------------------------
+-- Scope errors
+
+type Name  = String
+type Names = Set Name
+
+data ScopeLevel = Local | Global
+  deriving (Eq)
+
+levelMsg :: ScopeLevel -> String
+levelMsg = \case
+  Local  -> "local"
+  Global -> "top-level"
+
+data ScopeError
+  = OutOfScope ScopeLevel Name Names
+    -- name that cannot be resolved & suggestions
+  | Shadowing  ScopeLevel Names
+    -- shadowing an existing variable
+
+instance Categorise ScopeError where
+  categorise = \case
+    OutOfScope{}       -> Error
+    Shadowing Local _  -> Error
+    Shadowing Global _ -> Warning
+
+metaRender :: (String -> String) -> ScopeError -> String
+metaRender f e = concat $ case e of
+    OutOfScope l n ns ->
+      let names = foldMapSet (pure . f) ns in
+      "You tried to use "
+      : n
+      : " but it is not in scope."
+      : if isEmptyArr ns then [] else
+        "\n"
+        : plural names "Did you mean" " one of these"
+        : ": "
+        : intersperse ", " names
+        ++ ["?"]
+    Shadowing l ns ->
+      let names = foldMapSet (pure . f) ns in
+      "You are redefining the "
+      : levelMsg l
+      : " " : plural names "variable" "s"
+      : " " : intersperse ", " names
+      ++ ["."]
+
+
+instance Render ScopeError where
+  type Builder ScopeError = String
+
+  render = metaRender id
+  renderHTML = pure . metaRender HTML.code
 
 data Feedback
-  = SyntaxError [String]
-  | ScopeError [String]
-  | Lint [String]
+  -- errors
+  = ANoExecutable String
+  | AScopeError ScopeError
+  | ASyntaxError [String]
+  | ATypeError [String]
+  | AnAmbiguousDefinition String [[String]]
+  | AnUndefinedCircuit String
+  | AnUndefinedType String
+  | AnUnknownIdentifier String
+
+  -- warnings
+  | AMissingImplementation String
+  | AStubbedOut String
+
+  -- comments
+  | ACircuitDefined String
+  | ALint [String]
+  | ATypeDefined String
+
+  -- successes
+  | ADotGraph [String]
+  | ARawCode [String]
+  | ATruthTable String [String]
   | AnExperiment [String]
-  | DotGraph [String]
-  | SVGGraph [String]
-  | NoExecutable String
-  | RawCode [String]
-  | TruthTable String [String]
-  | CircuitDefined String
-  | TypeDefined String
-  | StubbedOut String
-  | TypeError [String]
-  | UnknownIdentifier String
-  | MissingImplementation String
-  | Ambiguous String [[String]]
-  | Undefined String
-  | UndefinedType String
+  | AnSVGGraph [String]
+
+
   | GenericLog [String] -- TODO: get rid of!
+
+instance Categorise Feedback where
+  categorise = \case
+    -- errors
+    ANoExecutable{} -> Error
+    AScopeError{} -> Error
+    ASyntaxError{} -> Error
+    ATypeError{} -> Error
+    AnAmbiguousDefinition{} -> Error
+    AnUndefinedCircuit{} -> Error
+    AnUndefinedType{} -> Error
+    AnUnknownIdentifier{} -> Error
+
+    -- warnings
+    AMissingImplementation{} -> Warning
+    AStubbedOut{} -> Warning
+
+    -- comments
+    ACircuitDefined{} -> Comment
+    ALint{} -> Comment
+    ATypeDefined{} -> Comment
+
+    -- successes
+    ADotGraph{} -> Success
+    ARawCode{} -> Success
+    ATruthTable{} -> Success
+    AnExperiment{} -> Success
+    AnSVGGraph{} -> Success
+
 
 anExperiment :: MonadWriter (Seq Feedback) m => [String] -> m ()
 anExperiment ls = tell $ Seq.singleton $ AnExperiment ls
 
 keep :: Options -> Feedback -> Bool
-keep opts = \case
-  CircuitDefined{} -> not (quiet opts)
-  TypeDefined{} -> not (quiet opts)
-  StubbedOut{} -> not (quiet opts)
-  Lint{} -> not (quiet opts)
-  SyntaxError{} -> True
-  ScopeError{} -> True
-  NoExecutable{} -> True
-  AnExperiment{} -> True
-  RawCode{} -> True
-  DotGraph{} -> True
-  SVGGraph{} -> True
-  TypeError{} -> True
-  TruthTable{} -> True
-  UnknownIdentifier{} -> True
-  MissingImplementation{} -> True
-  Ambiguous{} -> True
-  Undefined{} -> True
-  UndefinedType{} -> True
-  GenericLog{} -> True
+keep opts fdk
+  = not (quiet opts)
+  && categorise fdk /= Comment
+  && case fdk of { AStubbedOut{} -> False; _ -> True }
 
 fresh :: MonadState Int m => m Int
 fresh = do
@@ -76,6 +209,12 @@ fresh = do
 identifier :: String -> String
 identifier = HTML.code . escapeHTML
 
+instance Render Feedback where
+  type Builder Feedback = String
+  render = undefined
+  renderHTML = undefined
+
+{-
 renderHTML :: MonadState Int m => Feedback -> m String
 renderHTML = \case
   AnExperiment ls -> pure $ asHTML ls
@@ -156,17 +295,22 @@ feedback opts = (. filter (keep opts)) $ case outputFormat opts of
     , "    white-space: pre;"
     , "    margin: 1em 0;"
     , "  }"
+    , "  .syrup-comment:before {"
+    , "    content: \" \";"
+    , "    padding: 0 6px 0 0;"
+    , "  }"
     , "  .syrup-happy:before {"
     , "    content: \"\\2705\";"
     , "    padding: 0 6px 0 0;"
     , "  }"
-    , "  .syrup-sad:before {"
+    , "  .syrup-error:before {"
     , "    content: \"\\274C\";"
     , "    padding: 0 6px 0 0;"
     , "  }"
-    , "  .syrup-unimpressed:before {"
+    , "  .syrup-warning:before {"
     , "    content: \"\\26A0\\FE0F\";"
     , "    padding: 0 6px 0 0;"
     , "  }"
     , "</style>"
     ]
+-}

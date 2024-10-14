@@ -55,10 +55,10 @@ grokSy (Right (Declaration dec@(DEC (f, _) _), s) : src) = do
   mdef <- case getDefsOf f rest of
     [defs] -> pure (Just defs)
     zs@(_ : _ : _) -> do
-      tell $ Seq.singleton $ Ambiguous f (map (lines . snd) zs)
+      tell $ Seq.singleton $ AnAmbiguousDefinition f (map (lines . snd) zs)
       pure Nothing
     [] -> do
-      tell $ Seq.singleton $ Undefined f
+      tell $ Seq.singleton $ AnUndefinedCircuit f
       pure Nothing
   (_, mtydef) <- mkComponent' True (dec, s) mdef
   whenJust mtydef $ (hasLens %=) . flip addDef

@@ -27,9 +27,6 @@ import Language.Syrup.BigArray
 import Language.Syrup.Fdk
 import Language.Syrup.Syn
 
-type Name  = String
-type Names = Set Name
-
 data Scope = Scope
   { global :: Names
   , local  :: Names
@@ -41,67 +38,10 @@ emptyScope = Scope emptyArr emptyArr
 globalScope :: Names -> Scope
 globalScope gl = Scope gl emptyArr
 
-data ScopeLevel = Local | Global
-  deriving (Eq)
-
-levelMsg :: ScopeLevel -> String
-levelMsg = \case
-  Local  -> "local"
-  Global -> "top-level"
-
 newtype Extension (l :: ScopeLevel) = Extend { getExtension :: Names }
 
 emptyExtension :: Extension l
 emptyExtension = Extend emptyArr
-
-data ScopeError
-  = OutOfScope ScopeLevel Name Names
-    -- name that cannot be resolved & suggestions
-  | Shadowing  ScopeLevel Names
-    -- shadowing an existing variable
-
-data ErrorStatus = Warning | Error
-  deriving Show
-
-instance Semigroup ErrorStatus where
-  Warning <> e = e
-  e <> Warning = e
-  _ <> _       = Error
-
-instance Monoid ErrorStatus where
-  mempty  = Warning
-  mappend = (<>)
-
-errorStatus :: ScopeError -> ErrorStatus
-errorStatus = \case
-  OutOfScope{}       -> Error
-  Shadowing Local _  -> Error
-  Shadowing Global _ -> Warning
-
-errMsg :: ScopeError -> Feedback
-errMsg e = ScopeError $ concat $ show (errorStatus e) : ": " : case e of
-  OutOfScope _ n ns ->
-    let names = foldMapSet pure ns in
-    "You tried to use "
-    : n
-    : " but it is not in scope."
-    : if isEmptyArr ns then [] else
-      "\n"
-      : plural names "Did you mean" " one of these"
-      : ": "
-      : intersperse ", " names
-      ++ ["?"]
-  Shadowing l ns ->
-    let names = foldMapSet pure ns in
-    "You are redefining the "
-    : levelMsg l
-    : " " : plural names "variable" "s"
-    : " " : intersperse ", " names
-    ++ ["."]
-
-  where
-    plural [_] str _ = str
-    plural _   str s = str ++ s
 
 newtype ScopeM a = ScopeM { runScopeM :: ([ScopeError], a) }
   deriving (Functor, Applicative, Monad)
