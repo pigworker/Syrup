@@ -79,7 +79,7 @@ raw :: String -> [Token]
 raw "" = []
 raw (c : s) | elem c " \t\n" = spaces 1 s
 raw (c : s) | elem c solos = Sym [c] : raw s
-raw (c : s) | c == '?' = alphanum QM B0 s
+raw (c : c' : s) | c == '?', isAlphaNumU c' = alphanum QM (B0 :< c') s
 raw (c : s) | isAlphaNumU c = alphanum Id (B0 :< c) s
 raw (c : s) = symbol (B0 :< c) s
 

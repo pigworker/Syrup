@@ -12,3 +12,16 @@ Found holes in circuit f:
 
 Circuit f has been stubbed out.
 
+I was trying to make sense of the following code:
+
+problematic() = ?
+
+I got stuck here: 
+  problematic() =  {HERE} ? 
+I was looking for a definition.
+At that point, it made sense, but then I found stuff I didn't expect.
+
+You haven't defined problematic just now.
+
+Circuit problematic has been stubbed out.
+

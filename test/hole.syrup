@@ -12,3 +12,6 @@ f(<Bit>) -> <Bit>
 f(X) = !R & S & ?A & (?B | ?C) where
 
   [R,S] = ?D
+
+problematic() -> <Bit>
+problematic() = ?
