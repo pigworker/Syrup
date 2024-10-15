@@ -10,24 +10,41 @@
     content: "\2705";
     padding: 0 6px 0 0;
   }
-  .syrup-sad:before {
+  .syrup-comment:before {
+    content: " ";
+    padding: 0 6px 0 0;
+  }
+  .syrup-warning:before {
+    content: "\26A0\FE0F";
+    padding: 0 6px 0 0;
+  }
+  .syrup-error:before {
     content: "\274C";
     padding: 0 6px 0 0;
   }
-  .syrup-unimpressed:before {
-    content: "\26A0\FE0F";
+  .syrup-internal:before {
+    content: "\1F480";
     padding: 0 6px 0 0;
   }
 </style>
 
-<span class="syrup-sad">You haven't defined the circuit <code>undefined</code> just now.</span><br />
-<span class="syrup-unimpressed">Circuit <code>undefined</code> has been stubbed out.</span><br />
-<span class="syrup-happy">Circuit <code>not</code> is defined.</span><br />
+<span class="syrup-error"></span>
+You haven't defined the circuit <code>undefined</code> just now.
+<br />
+<span class="syrup-warning"></span>
+Circuit <code>undefined</code> has been stubbed out.
+<br />
+<span class="syrup-comment"></span>
+Circuit <code>not</code> is defined.
+<br />
+<span class="syrup-happy"></span>
 <span class="syrup-code">not(&lt;Bit&gt;) -&gt; &lt;Bit&gt;
 not(X) = Z where
   Z = nand(X, X)
 
-</span><br />
+</span>
+<br />
+<span class="syrup-happy"></span>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -38,14 +55,20 @@ not(X) = Z where
   }
 </script>
 <div id="GRAPH1"></div>
+
 <br />
-<span class="syrup-happy">Circuit <code>and</code> is defined.</span><br />
+<span class="syrup-comment"></span>
+Circuit <code>and</code> is defined.
+<br />
+<span class="syrup-happy"></span>
 <span class="syrup-code">and(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 and(X, Y) = Z where
   A = nand(X, Y)
   Z = not(A)
 
-</span><br />
+</span>
+<br />
+<span class="syrup-happy"></span>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -56,14 +79,20 @@ and(X, Y) = Z where
   }
 </script>
 <div id="GRAPH2"></div>
+
 <br />
-<span class="syrup-happy">Circuit <code>or</code> is defined.</span><br />
+<span class="syrup-comment"></span>
+Circuit <code>or</code> is defined.
+<br />
+<span class="syrup-happy"></span>
 <span class="syrup-code">or(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 or(X, Y) = Z where
   A, B = not(X), not(Y)
   Z = nand(A, B)
 
-</span><br />
+</span>
+<br />
+<span class="syrup-happy"></span>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -74,11 +103,17 @@ or(X, Y) = Z where
   }
 </script>
 <div id="GRAPH3"></div>
+
 <br />
-<span class="syrup-happy">Circuit <code>nor</code> is defined.</span><br />
+<span class="syrup-comment"></span>
+Circuit <code>nor</code> is defined.
+<br />
+<span class="syrup-happy"></span>
 <span class="syrup-code">nor(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 nor(X, Y) = not(or(X, Y))
-</span><br />
+</span>
+<br />
+<span class="syrup-happy"></span>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -89,15 +124,21 @@ nor(X, Y) = not(or(X, Y))
   }
 </script>
 <div id="GRAPH4"></div>
+
 <br />
-<span class="syrup-happy">Circuit <code>xor</code> is defined.</span><br />
+<span class="syrup-comment"></span>
+Circuit <code>xor</code> is defined.
+<br />
+<span class="syrup-happy"></span>
 <span class="syrup-code">xor(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 xor(X, Y) = Z where
   A, B = or(X, Y), and(X, Y)
   C = not(B)
   Z = and(A, C)
 
-</span><br />
+</span>
+<br />
+<span class="syrup-happy"></span>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -108,14 +149,20 @@ xor(X, Y) = Z where
   }
 </script>
 <div id="GRAPH5"></div>
+
 <br />
-<span class="syrup-happy">Circuit <code>hadd</code> is defined.</span><br />
+<span class="syrup-comment"></span>
+Circuit <code>hadd</code> is defined.
+<br />
+<span class="syrup-happy"></span>
 <span class="syrup-code">hadd(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;, &lt;Bit&gt;
 hadd(X1, Y1) = C2, S1 where
   C2 = and(X1, Y1)
   S1 = xor(X1, Y1)
 
-</span><br />
+</span>
+<br />
+<span class="syrup-happy"></span>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -126,15 +173,21 @@ hadd(X1, Y1) = C2, S1 where
   }
 </script>
 <div id="GRAPH6"></div>
+
 <br />
-<span class="syrup-happy">Circuit <code>fadd</code> is defined.</span><br />
+<span class="syrup-comment"></span>
+Circuit <code>fadd</code> is defined.
+<br />
+<span class="syrup-happy"></span>
 <span class="syrup-code">fadd(&lt;Bit&gt;, &lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;, &lt;Bit&gt;
 fadd(X1, Y1, C1) = C2, Z1 where
   D2, D1 = hadd(X1, Y1)
   E2, Z1 = hadd(D1, C1)
   C2 = xor(D2, E2)
 
-</span><br />
+</span>
+<br />
+<span class="syrup-happy"></span>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -145,7 +198,9 @@ fadd(X1, Y1, C1) = C2, Z1 where
   }
 </script>
 <div id="GRAPH7"></div>
+
 <br />
+<span class="syrup-happy"></span>
 <pre>Truth table for fadd:
 X1 Y1 C1 | C2 Z1
 ---------|------
@@ -157,15 +212,23 @@ X1 Y1 C1 | C2 Z1
 1  0  1  | 1  0 
 1  1  0  | 1  0 
 1  1  1  | 1  1 
-</pre><br />
-<span class="syrup-happy">Type <code>&lt;Bit2&gt;</code> is defined.</span><br />
-<span class="syrup-happy">Circuit <code>adc2</code> is defined.</span><br />
+</pre>
+<br />
+<span class="syrup-comment"></span>
+Type <code>&lt;Bit2&gt;</code> is defined.
+<br />
+<span class="syrup-comment"></span>
+Circuit <code>adc2</code> is defined.
+<br />
+<span class="syrup-happy"></span>
 <span class="syrup-code">adc2([&lt;Bit&gt;, &lt;Bit&gt;], [&lt;Bit&gt;, &lt;Bit&gt;], &lt;Bit&gt;) -&gt; &lt;Bit&gt;, [&lt;Bit&gt;, &lt;Bit&gt;]
 adc2([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   C2, Z1 = fadd(X1, Y1, C1)
   C4, Z2 = fadd(X2, Y2, C2)
 
-</span><br />
+</span>
+<br />
+<span class="syrup-happy"></span>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -176,11 +239,17 @@ adc2([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   }
 </script>
 <div id="GRAPH8"></div>
+
 <br />
-<span class="syrup-happy">Circuit <code>one</code> is defined.</span><br />
+<span class="syrup-comment"></span>
+Circuit <code>one</code> is defined.
+<br />
+<span class="syrup-happy"></span>
 <span class="syrup-code">one() -&gt; &lt;Bit&gt;
 one() = not(zero())
-</span><br />
+</span>
+<br />
+<span class="syrup-happy"></span>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -191,11 +260,17 @@ one() = not(zero())
   }
 </script>
 <div id="GRAPH9"></div>
+
 <br />
-<span class="syrup-happy">Circuit <code>mux</code> is defined.</span><br />
+<span class="syrup-comment"></span>
+Circuit <code>mux</code> is defined.
+<br />
+<span class="syrup-happy"></span>
 <span class="syrup-code">mux(&lt;Bit&gt;, &lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 mux(C, X, Y) = or(and(C, X), and(not(C), Y))
-</span><br />
+</span>
+<br />
+<span class="syrup-happy"></span>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -206,8 +281,12 @@ mux(C, X, Y) = or(and(C, X), and(not(C), Y))
   }
 </script>
 <div id="GRAPH10"></div>
+
 <br />
-<span class="syrup-happy">Circuit <code>adc2par</code> is defined.</span><br />
+<span class="syrup-comment"></span>
+Circuit <code>adc2par</code> is defined.
+<br />
+<span class="syrup-happy"></span>
 <span class="syrup-code">adc2par([&lt;Bit&gt;, &lt;Bit&gt;], [&lt;Bit&gt;, &lt;Bit&gt;], &lt;Bit&gt;) -&gt; &lt;Bit&gt;, [&lt;Bit&gt;, &lt;Bit&gt;]
 adc2par([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   C2, Z1 = fadd(X1, Y1, C1)
@@ -216,7 +295,9 @@ adc2par([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   C4 = mux(C2, C41, C40)
   Z2 = mux(C2, Z21, Z20)
 
-</span><br />
+</span>
+<br />
+<span class="syrup-happy"></span>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -227,4 +308,5 @@ adc2par([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   }
 </script>
 <div id="GRAPH11"></div>
+
 <br />

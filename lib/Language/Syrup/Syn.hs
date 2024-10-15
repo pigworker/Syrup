@@ -66,7 +66,7 @@ type Eqn = Eqn' ()
 data Eqn' ty = [Pat' ty String] :=: [Exp' ty]
 type Def = Def' ()
 data Def' ty
-  = Stub String Feedback
+  = Stub String [Feedback]
   -- stubbed out definition together with error msg
   | Def (String,[Pat' ty String]) [Exp' ty] (Maybe [Eqn' ty])
 

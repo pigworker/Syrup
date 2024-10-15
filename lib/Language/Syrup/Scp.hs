@@ -207,11 +207,12 @@ instance Scoped (Source' a) where
     Definition d  -> emptyExtension <$ scopecheck ga d
     Experiment e  -> emptyExtension <$ scopecheck ga e
 
-stub :: (Source' a, String) -> Feedback
-     -> [Either [Feedback] (Source' a, String)]
-     -> [Either [Feedback] (Source' a, String)]
-stub (Definition (Def (nm, _) _ _), src) msg rst = Right (Definition (Stub nm msg), src) : rst
-stub _ msg rst = Left msg : rst
+stub :: (Source' a, String) -> [Feedback]
+     -> [Either Feedback (Source' a, String)]
+     -> [Either Feedback (Source' a, String)]
+stub (Definition (Def (nm, _) _ _), src) msg rst
+   = Right (Definition (Stub nm msg), src) : rst
+stub _ msg rst = map Left msg ++ rst
 
 check :: Scope -> [Either Feedback (Source' a, String)] -> [Either Feedback (Source' a, String)]
 check ga []                     = []
@@ -220,9 +221,8 @@ check ga (Right (d , src) : ds) = do
   let (errs, e) = runScopeM (scopecheck ga d)
   let ga'       = ga `extend` e
 
-  let status    = foldMap errorStatus errs
-  let msg       = errMsg <$> errs
-  case status of
-    Error               -> stub (d, src) msg (check ga' ds)
-    Warning | null msg  ->            Right (d, src) : check ga' ds
-            | otherwise -> Left msg : Right (d, src) : check ga' ds
+  let status    = foldMap categorise errs
+  let msg       = AScopeError <$> errs
+  case isErroring status of
+    True  -> stub (d, src) msg (check ga' ds)
+    False -> map Left msg ++ Right (d, src) : check ga' ds

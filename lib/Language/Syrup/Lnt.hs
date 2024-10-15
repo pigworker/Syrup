@@ -21,9 +21,9 @@ class Lint t where
 lint :: Lint t => t -> [Feedback]
 lint t = foldMap ($ t) linters
 
-plural :: [a] -> String -> String -> String
-plural [p] x _  = x
-plural _   _ xs = xs
+be :: [a] -> String
+be [_] = "is"
+be _ = "are"
 
 instance ty ~ () => Lint (Def' ty) where
   linters = [ emptyWhere
@@ -32,7 +32,7 @@ instance ty ~ () => Lint (Def' ty) where
             ] where
 
     emptyWhere = \case
-      Def (fun, _) _ (Just []) -> pure $ Lint
+      Def (fun, _) _ (Just []) -> pure $ ALint
         [ "Warning: empty where clause in the definition of " ++ fun ++ "."
         , "Did you forget to indent the block of local definitions using spaces?"
         ]
@@ -40,20 +40,20 @@ instance ty ~ () => Lint (Def' ty) where
 
     needlessSplits d = do
       let ps = abstractableCables d
-      if null ps then [] else pure $ Lint
-        [ "Warning: the " ++ plural ps "cable " "cables "
+      if null ps then [] else pure $ ALint
+        [ "Warning: the " ++ plural ps "cable" "s" ++ " "
           ++ intercalate ", " (show <$> ps)
-          ++ plural ps " is" " are"
+          ++ " " ++ be ps
           ++ " taken apart only to be reconstructed or unused."
         , "Did you consider giving each cable a name without breaking it up?"
         ]
 
     deadcode d = case foldMapSet pure (unused d) of
       [] -> []
-      ns -> pure $ Lint
-        [ "Warning: the " ++ plural ns "wire " "wires "
+      ns -> pure $ ALint
+        [ "Warning: the " ++ plural ns "wire" "s" ++ " "
           ++ intercalate ", " ns
-          ++ plural ns " is" " are"
+          ++ " " ++ be ns
           ++ " defined but never used."
         ]
 

@@ -54,38 +54,38 @@ type MonadExperiment s m =
 withCompo :: MonadCompo s m
           => String -> (Compo -> m ()) -> m ()
 withCompo x k = gets (findArr x . (^. hasLens)) >>= \case
-  Nothing -> tell $ Seq.singleton (UnknownIdentifier x)
+  Nothing -> tell $ Seq.singleton (AnUnknownIdentifier x)
   Just c -> k c
 
 withImplem :: MonadCompo s m
            => String -> (TypedDef -> m ()) -> m ()
 withImplem x k = withCompo x $ \ c -> case defn c of
-  Nothing -> tell $ Seq.singleton (MissingImplementation x)
+  Nothing -> tell $ Seq.singleton (AMissingImplementation x)
   Just i -> k i
 
 experiment :: MonadExperiment s m => EXPT -> m ()
 experiment (Tabulate x) = withCompo x $ \ c ->
-  tell $ Seq.singleton $ TruthTable x $ displayTabulation (tabulate c)
+  tell $ Seq.singleton $ ATruthTable x $ displayTabulation (tabulate c)
 experiment (Simulate x m0 iss) = withCompo x $ \ c ->
   anExperiment $ ["Simulation for " ++ x ++ ":"] ++
     runCompo c m0 iss
 experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc ->
   anExperiment $ report (l, r) (bisimReport lc rc)
 experiment (Print x) = withImplem x $ \ i ->
-  tell $ Seq.singleton $ RawCode $ lines (showTyped i)
+  tell $ Seq.singleton $ ARawCode $ lines (showTyped i)
 experiment (Typing x) = withCompo x $ \ c ->
   anExperiment $ lines (showType x (inpTys c) (oupTys c))
 experiment (Display x) = withImplem x $ \ i -> do
   st <- use hasLens
   let dot = whiteBoxDef st i
   asks graphFormat >>= \ opts -> tell $ Seq.singleton $ case opts of
-    SourceDot -> DotGraph dot
+    SourceDot -> ADotGraph dot
     RenderedSVG -> unsafePerformIO $
       findExecutable "dot" >>= \case
-        Nothing -> pure (NoExecutable "dot")
-        Just{} -> SVGGraph . lines <$> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
+        Nothing -> pure (ANoExecutable "dot")
+        Just{} -> AnSVGGraph . lines <$> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
 experiment (Anf x) = withImplem x $ \ i ->
-  tell $ Seq.singleton $ RawCode $ lines (showTyped (toANF i))
+  tell $ Seq.singleton $ ARawCode $ lines (showTyped (toANF i))
 experiment (Costing nms x) = do
   g <- use hasLens
   let support = foldMap singleton nms
@@ -97,7 +97,7 @@ experiment (Costing nms x) = do
       ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
 experiment (Simplify x) = withImplem x $ \ i -> do
   g <- use hasLens
-  tell $ Seq.singleton $ RawCode $ lines (showTyped $ deMorgan g i)
+  tell $ Seq.singleton $ ARawCode $ lines (showTyped $ deMorgan g i)
 
 ------------------------------------------------------------------------------
 -- running tine sequences

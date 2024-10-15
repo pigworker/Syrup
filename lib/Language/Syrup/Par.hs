@@ -16,7 +16,7 @@ import Data.Monoid (Last(..))
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
-import Language.Syrup.Fdk (Feedback(SyntaxError))
+import Language.Syrup.Fdk (Feedback(ASyntaxError))
 import Language.Syrup.Lex
 import Language.Syrup.Syn
 
@@ -341,7 +341,7 @@ syrupFile = map syrupSource . lexFile
 
 syrupSource :: (String, [Token]) -> Either Feedback (SourceC, String)
 syrupSource (s, ts) = case par pSource en st of
-    Left e -> Left (SyntaxError $ syntaxError e)
+    Left e -> Left (ASyntaxError $ syntaxError e)
     Right (x, _) -> Right (x, s)
   where
     en = ParEn

@@ -1,6 +1,6 @@
 Circuit not is defined.
 
-I was trying to make sense of the following code:
+Error: I was trying to make sense of the following code:
 
 not2(<Bit>) -> <Bit>
 not2(c) = !C
@@ -9,15 +9,16 @@ not2(c) = !C
 Error: You tried to use C but it is not in scope.
 Did you mean: c?
 
-Circuit not2 has been stubbed out.
 
-Warning: You are redefining the top-level variable nand.
+Warning: Circuit not2 has been stubbed out.
+
+Error: You are redefining the top-level variable nand.
 
 Circuit nand is defined.
 
 Warning: the wire N is defined but never used.
 
-I was trying to make sense of the following code:
+Error: I was trying to make sense of the following code:
 
 and(<Bit>,<Bit>) -> <Bit>
 and(X,Y) = !n where
@@ -28,7 +29,8 @@ and(X,Y) = !n where
 Error: You tried to use n but it is not in scope.
 Did you mean: N?
 
-Circuit and has been stubbed out.
+
+Warning: Circuit and has been stubbed out.
 
 Circuit or is defined.
 
@@ -38,7 +40,7 @@ Circuit h1 is defined.
 
 Warning: the wires CIN, CiN are defined but never used.
 
-I was trying to make sense of the following code:
+Error: I was trying to make sense of the following code:
 
 f1(<Bit>,<Bit>) -> <Bit>,<Bit>
 f1(X,Y,CIN) = Cin,Z where
@@ -49,10 +51,12 @@ f1(X,Y,CIN) = Cin,Z where
 
 
 Error: You are redefining the local variable CIN.
+
 Error: You tried to use Cin but it is not in scope.
 Did you mean one of these: CIN, CIn, CiN?
 
-Circuit f1 has been stubbed out.
+
+Warning: Circuit f1 has been stubbed out.
 
 Circuit tff is defined.
 

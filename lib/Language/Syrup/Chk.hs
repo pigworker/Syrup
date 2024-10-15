@@ -13,8 +13,8 @@ module Language.Syrup.Chk where
 import Control.Applicative ((<|>))
 import Control.Monad (guard)
 import Control.Monad.Reader (local)
-import Control.Monad.State (MonadState, execStateT, get, gets, put)
-import Control.Monad.Writer (MonadWriter, runWriter, tell)
+import Control.Monad.State (execStateT, get, gets, put)
+import Control.Monad.Writer (runWriter, tell)
 
 import Data.Bifunctor (bimap)
 import Data.Char (isAlpha)
@@ -22,7 +22,6 @@ import Data.Foldable (traverse_, toList)
 import Data.List (intercalate)
 import Data.Maybe (isJust, fromJust)
 import Data.Monoid (Last(Last))
-import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import Data.Traversable (for)
 import Data.Void (Void, absurd)
@@ -35,7 +34,7 @@ import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Va
 
-import Utilities.Lens (Has, hasLens, use, (%=))
+import Utilities.Lens (hasLens, use, (%=))
 
 ------------------------------------------------------------------------------
 -- Checking whether a component is remarkable
@@ -97,8 +96,8 @@ mkComponent' isrmk (dec, decSrc) mdef =
              (tySt0 {coEnv = env}) of
         Left e -> do
           tell $ Seq.fromList
-            [ TypeError $ typeErrorReport e
-            , StubbedOut g
+            [ ATypeError $ typeErrorReport e
+            , AStubbedOut g
             ]
           hasLens %= insertArr (g, stubOut dec)
           pure (False, Nothing)
@@ -124,7 +123,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
                         , stage0 = plan (Plan mI ta0 qs0)
                         , stage1 = plan (Plan (mI ++ ps) ta1 (mO ++ qs1))
                         }
-                  tell $ Seq.fromList (CircuitDefined g : maybeRemarkable g rmk)
+                  tell $ Seq.fromList (ACircuitDefined g : maybeRemarkable g rmk)
                   hasLens %= insertArr (g, gc)
                   pure (True, Just def)
                 e -> do -- trace (show (sched st)) $
@@ -138,12 +137,12 @@ mkComponent' isrmk (dec, decSrc) mdef =
                         _ -> Junk
                   hasLens %= insertArr (g, stubOut dec)
                   tell $ Seq.fromList
-                    [ TypeError $ typeErrorReport (B0 :< TySOURCE decSrc defSrc, sin)
-                    , StubbedOut g
+                    [ ATypeError $ typeErrorReport (B0 :< TySOURCE decSrc defSrc, sin)
+                    , AStubbedOut g
                     ]
                   pure (False, Nothing)
     (dec@(Dec (g, ss) ts), Nothing) -> do
-      tell $ Seq.singleton (StubbedOut g)
+      tell $ Seq.singleton (AStubbedOut g)
       hasLens %= insertArr (g, stubOut dec)
       pure (False, Nothing)
 
@@ -173,7 +172,8 @@ guts (Dec (g, ss) ts) (Stub f msg)
 
 stubOut :: Dec -> Compo
 stubOut (Dec (g, ss) ts) = Compo
-  { monick = g
+  { rmk = Nothing
+  , monick = g
   , defn = Nothing
   , memTys = []
   , inpTys = InputWire  Nothing <$> ss
