@@ -163,6 +163,7 @@ data Feedback
 
   -- comments
   | ACircuitDefined String
+  | AFoundHoles String [String]
   | ALint [String]
   | ATypeDefined String
 
@@ -191,6 +192,7 @@ instance Categorise Feedback where
 
     -- comments
     ACircuitDefined{} -> Comment
+    AFoundHoles{} -> Comment
     ALint{} -> Comment
     ATypeDefined{} -> Comment
 
@@ -200,7 +202,6 @@ instance Categorise Feedback where
     ATruthTable{} -> Success
     AnExperiment{} -> Success
     AnSVGGraph{} -> Success
-
 
 anExperiment :: MonadWriter (Seq Feedback) m => [String] -> m ()
 anExperiment ls = tell $ Seq.singleton $ AnExperiment ls
@@ -234,6 +235,7 @@ instance Render Feedback where
       AnExperiment ls -> ls
       ALint ls -> ls
       ADotGraph ls -> ls
+      AFoundHoles f ls -> ("Found holes in circuit " ++ f ++ ":") : ls
       AnSVGGraph ls -> ls
       ARawCode ls -> ls
       ASyntaxError ls -> ls
@@ -276,6 +278,9 @@ instance Render Feedback where
           , "</script>"
           , "<div id=" ++ show ("GRAPH" ++ n) ++ "></div>"
           ]
+
+      AFoundHoles f ls -> pure ("Found holes in circuit " ++ identifier f ++ ":" ++ HTML.br ++ asHTML ls)
+
       ALint ls -> pure (asHTML ls)
       ANoExecutable exe -> pure ("Could not find the " ++ identifier exe ++ " executable :(")
       AnSVGGraph ls -> pure (unlines ls)

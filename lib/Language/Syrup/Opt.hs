@@ -6,8 +6,6 @@
 
 module Language.Syrup.Opt where
 
-import Data.Set
-
 data GraphFormat
   = RenderedSVG
   | SourceDot

@@ -91,6 +91,7 @@ data ParYelp
   | WantedBrk Bracket Token
   | WantedIdGotKeyword String
   | WantedIdSymbolic Token
+  | WantedQMSymbolic Token
   deriving Show
 
 
@@ -131,6 +132,13 @@ pVar = do
   let moan (Id kw) = WantedIdGotKeyword kw
       moan t = WantedIdSymbolic t
   pClue (SEEKING "variable") (pTok moan happy)
+
+pHol :: Par String
+pHol = do
+  let happy (QM x) = Just x
+      happy _ = Nothing
+  let moan t = WantedQMSymbolic t
+  pClue (SEEKING "hole") (pTok moan happy)
 
 pSpc :: Par ()
 pSpc = () <$ (many . pTok (const AARGH) $ \ t -> case t of
@@ -259,6 +267,7 @@ pWee = pClue (SEEKING "an expression") $
       (pVar >>= \ f -> App [] f <$ pSpc <*> pBrk Round
         (SEEKING $ "input for " ++ f) (pAllSep (pTokIs (Sym ",")) pExp))
   <|> Var () <$> pVar <* pPeek notApp
+  <|> Hol () <$> pHol
   <|> Cab () <$> pBrk Square (SEEKING "cable contents")
                  (pSep (pTokIs (Sym ",")) pExp)
   <|> (App [] "not" . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
@@ -302,6 +311,7 @@ pEXPT =
   pCommand "display" Display
   <|> pCommand "print" Print
   <|> pCommand "anf" Anf
+  <|> pCommand "dnf" Dnf
   <|> pCommand "type" Typing
   <|> pCommand "simplify" Simplify
   <|> Costing <$ pTokIs (Id "cost") <* pSpc <*> pSupp <* pSpc <*> pVar <* pSpc <* pEOI
@@ -405,7 +415,9 @@ syntaxError (Explanation cz tzs y) = concat
     yelp (WantedIdSymbolic t) = concat
       ["I was hoping for a variable, but I found ", show t
       ," which doesn't look like a variable."]
-
+    yelp (WantedIdSymbolic t) = concat
+      ["I was hoping for a hole, but I found ", show t
+      ," which doesn't look like a hole."]
 
 
 ------------------------------------------------------------------------------

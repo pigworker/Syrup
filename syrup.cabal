@@ -77,6 +77,7 @@ library
                     , Language.Syrup.Cst
                     , Language.Syrup.Ded
                     , Language.Syrup.DeMorgan
+                    , Language.Syrup.DNF
                     , Language.Syrup.Dot
                     , Language.Syrup.Expt
                     , Language.Syrup.Fdk

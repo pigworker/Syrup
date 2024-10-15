@@ -6,7 +6,6 @@
 
 module Language.Syrup.Lnt where
 
-import Data.Foldable (toList)
 import Data.List (intercalate)
 
 import Language.Syrup.BigArray
@@ -86,6 +85,7 @@ abstractThisCable ps e = isEmptyArr (foldMap support ps `intersectSet` go e) whe
   go e | e == cable = mempty
        | otherwise  = case e of
     Var _ x    -> singleton x
+    Hol _ x    -> mempty
     App _ _ es -> foldMap go es
     Cab _ es   -> foldMap go es
 

@@ -12,16 +12,16 @@ module Language.Syrup.Chk where
 
 import Control.Applicative ((<|>))
 import Control.Monad (guard)
-import Control.Monad.Reader (local)
-import Control.Monad.State (execStateT, get, gets, put)
-import Control.Monad.Writer (runWriter, tell)
+import Control.Monad.Reader (local, runReaderT)
+import Control.Monad.State (execStateT, runStateT, get, gets, put)
+import Control.Monad.Writer (runWriterT, runWriter, tell)
 
 import Data.Bifunctor (bimap)
 import Data.Char (isAlpha)
-import Data.Foldable (traverse_, toList)
+import Data.Foldable (traverse_, fold)
 import Data.List (intercalate)
 import Data.Maybe (isJust, fromJust)
-import Data.Monoid (Last(Last))
+import Data.Monoid (Last(Last), First(..))
 import qualified Data.Sequence as Seq
 import Data.Traversable (for)
 import Data.Void (Void, absurd)
@@ -49,8 +49,8 @@ isBisimilar c d = case bisimReport c d of
   Report (Bisimilar{}) -> True
   _ -> False
 
-isRemarkable :: Compo -> Maybe Remarkable
-isRemarkable cmp
+checkRemarkable :: Compo -> Maybe Remarkable
+checkRemarkable cmp
   | null (memTys cmp)
   , [o] <- oupTys cmp
   , Bit _ <- getOutputType o
@@ -62,7 +62,7 @@ isRemarkable cmp
               <|> IsAndGate  <$ guard (isBisimilar cmp andCompo)
               <|> IsOrGate   <$ guard (isBisimilar cmp orCompo)
          _ -> Nothing
-isRemarkable _ = Nothing
+checkRemarkable _ = Nothing
 
 maybeRemarkable :: String -> Maybe Remarkable -> [Feedback]
 maybeRemarkable str Nothing = []
@@ -91,17 +91,24 @@ mkComponent' isrmk (dec, decSrc) mdef =
   case (cookDec dec, mdef) of
     (dec@(Dec (g, ss) ts), Just (def, defSrc)) -> do
       env <- use hasLens
-      case tyM (guts dec def)
-             (B0 :< TySOURCE decSrc defSrc)
+      case runWriterT $ runStateT (runReaderT (guts dec def) (B0 :< TySOURCE decSrc defSrc))
              (tySt0 {coEnv = env}) of
-        Left e -> do
+        Left (TyFailure ctx e) -> do
           tell $ Seq.fromList
-            [ ATypeError $ typeErrorReport e
+            [ ATypeError $ typeErrorReport (ctx, e)
             , AStubbedOut g
             ]
           hasLens %= insertArr (g, stubOut dec)
           pure (False, Nothing)
-        Right (((ps, rhs), (qs0, qs1), def), st) ->
+        Right ((((ps, rhs), (qs0, qs1), def), st), YesHasHoles) -> do
+          hasLens %= insertArr (g, stubOut dec)
+          tell $ Seq.fromList
+            [ AFoundHoles g $ flip foldMapArr (allHoles def) $ \ (k, v) ->
+                ["  ?" ++ k ++ " : " ++ maybe "?" show (getFirst v)]
+            , AStubbedOut g
+            ]
+          pure (False, Nothing)
+        Right ((((ps, rhs), (qs0, qs1), def), st), NoHasNoHoles) ->
           let mI  = memIn st
               mO  = memOu st
               ((ta0, k1), tar) =
@@ -112,7 +119,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
                          foldMap support (mO ++ qs1) `subSet` k2) of
                 ([], True, True) -> do
                   let mems = concat $ reverse $ memTy st
-                  let rmk = guard isrmk >> isRemarkable gc
+                  let rmk = guard isrmk >> checkRemarkable gc
                       gc = Compo
                         { monick = g
                         , rmk = rmk
@@ -152,7 +159,7 @@ mkComponent :: MonadCompo s m
             -> m (Bool, Maybe TypedDef)
 mkComponent = mkComponent' False
 
-guts :: Dec -> Def -> TyM (([Pat], [Exp]), ([Pat], [Pat]), TypedDef)
+guts :: TyMonad m => Dec -> Def -> m (([Pat], [Exp]), ([Pat], [Pat]), TypedDef)
 guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   | f /= g = tyErr (DecDef f g)
   | otherwise = do
@@ -162,7 +169,7 @@ guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   (qs, tyes) <- local (:< TyOUTPUTS ts' es) $ chkExps (map (, Nothing) ts') es
   st <- get
   eqs <- traverse (traverse (\ eq -> local (:< TyEQN eq) $ chkEqn eq)) eqs
-  (qs', (qs0, qs1)) <- foldMap stage ts
+  (qs', (qs0, qs1)) <- fold <$> traverse stage ts
   solders qs' qs
   def <- normDef (Def (f, typs) tyes eqs)
   return ((ps, es), (qs0, qs1), def)
@@ -172,8 +179,8 @@ guts (Dec (g, ss) ts) (Stub f msg)
 
 stubOut :: Dec -> Compo
 stubOut (Dec (g, ss) ts) = Compo
-  { rmk = Nothing
-  , monick = g
+  { monick = g
+  , rmk = Nothing
   , defn = Nothing
   , memTys = []
   , inpTys = InputWire  Nothing <$> ss
@@ -183,14 +190,14 @@ stubOut (Dec (g, ss) ts) = Compo
   } where (ts0, ts1) = foldMap splitTy2 ts
 
 
-decPats :: [Typ] -> [Pat] -> TyM [TypedPat]
+decPats :: TyMonad m => [Typ] -> [Pat] -> m [TypedPat]
 decPats [] [] = return []
 decPats [] ps = tyErr LongPats
 decPats ss [] = tyErr ShortPats
 decPats (s : ss) (p : ps) = (:) <$> decPat s p <*> decPats ss ps
 
-decPat :: Typ -> Pat -> TyM TypedPat
-decPat s (PVar () x) = PVar s x <$ defineWire (Just s) x
+decPat :: TyMonad m => Typ -> Pat -> m TypedPat
+decPat s (PVar () x) = PVar s x <$ defineWire (Just s) (Physical x)
 decPat s@(Cable ss) (PCab () ps)
   | length ss == length ps = PCab s <$> decPats ss ps
   | otherwise = tyErr CableWidth
@@ -201,35 +208,35 @@ decPat _ (PCab _ _) = tyErr BitCable
 -- where-equations
 ------------------------------------------------------------------------------
 
-chkEqn :: Eqn -> TyM TypedEqn
+chkEqn :: TyMonad m => Eqn -> m TypedEqn
 chkEqn eqn@(qs :=: es) = do
   tqs <- traverse defPat qs
   (ps, es) <- chkExps (map (fmap Just) tqs) es
   solders qs ps
   pure (map snd tqs :=: es)
 
-defPat :: Pat -> TyM (Typ, TypedPat)
+defPat :: TyMonad m => Pat -> m (Typ, TypedPat)
 defPat (PVar () x)  = do
-  ty <- defineWire Nothing x
+  ty <- defineWire Nothing (Physical x)
   pure (ty, PVar ty x)
 defPat (PCab () ps) = do
   (tys, pats) <- unzip <$> traverse defPat ps
   let ty = Cable tys
   pure (ty, PCab ty pats)
 
-chkExps :: [(Typ, Maybe TypedPat)] -> [Exp] -> TyM ([Pat], [TypedExp])
+chkExps :: TyMonad m => [(Typ, Maybe TypedPat)] -> [Exp] -> m ([Pat], [TypedExp])
 chkExps []  []       = return ([], [])
 chkExps tqs []       = tyErr LongPats
 chkExps tqs (e : es) = do
   (ps, tqs, e) <- local (:< TyEXP e (fst <$> tqs)) $ chkExp tqs e
   bimap (ps ++) (e :) <$> chkExps tqs es
 
-solders :: [Pat] -> [Pat] -> TyM ()
+solders :: TyMonad m => [Pat] -> [Pat] -> m ()
 solders [] [] = return ()
 solders (q : qs) (p : ps) = solder q p >> solders qs ps
 solders _ _ = tyErr BUGSolderMismatch
 
-solder :: Pat -> Pat -> TyM ()
+solder :: TyMonad m => Pat -> Pat -> m ()
 solder (PCab () qs) (PCab () ps) = solders qs ps
 solder q p = schedule ([q] :<- (id, [p]))
 
@@ -250,13 +257,18 @@ memRenamings ps os = concat $ zipWith memRenaming ps os
 renameMem :: [(CellName, String)] -> MemoryCell -> MemoryCell
 renameMem rho (MemoryCell mc t) = MemoryCell (fmap CellName $ mc >>= flip lookup rho) t
 
-chkExp :: [(Typ, Maybe TypedPat)]
+chkExp :: TyMonad m
+       => [(Typ, Maybe TypedPat)]
        -> Exp
-       -> TyM ([Pat], [(Typ, Maybe TypedPat)], TypedExp)
-chkExp ((t,_) : ts) (Var () x) = do
-  s <- useWire x
+       -> m ([Pat], [(Typ, Maybe TypedPat)], TypedExp)
+chkExp ((t,_) : tqs) (Var () x) = do
+  s <- useWire (Physical x)
   local (:< TyWIRE x s t) $ tyEq (s, t)
-  return ([PVar () x], ts, Var s x)
+  return ([PVar () x], tqs, Var s x)
+chkExp ((t,_) : tqs) (Hol () x) = do
+  s <- defineWire (Just t) (Holey x)
+  tell YesHasHoles
+  return ([PVar () ('?':x)], tqs, Hol s x)
 chkExp tqs e@(App _ fn es) = do
   env <- gets coEnv
   f <- case findArr fn env of
@@ -270,11 +282,11 @@ chkExp tqs e@(App _ fn es) = do
   let mTy = getCellType <$> memTys
   mIn <- for mTy $ \ ty -> do
     w <- wiF
-    defineWire (Just (stanTy ty)) w
+    defineWire (Just (stanTy ty)) (Physical w)
     return (PVar () w)
   mOu <- for mTy $ \ ty -> do
     w <- wiF
-    defineWire (Just (stanTy ty)) w
+    defineWire (Just (stanTy ty))(Physical w)
     return (PVar () w)
   st <- get
   put $ st { memTy = memTys : memTy st
@@ -284,7 +296,7 @@ chkExp tqs e@(App _ fn es) = do
   let iTy = getInputType <$> inpTys f
   (ps, es) <- local (:< TyAPP f es) $ chkExps (map (\t -> (stanTy t, Nothing)) iTy) es
   let oTy = getOutputType <$> oupTys f
-  (qs, (qs0, qs1)) <- foldMap stage oTy
+  (qs, (qs0, qs1)) <- fold <$> traverse stage oTy
   schedule (qs0 :<- (stage0 f, mIn))
   schedule ((mOu ++ qs1) :<- (stage1 f, mIn ++ ps))
   let oTy' = map stanTy oTy
@@ -304,19 +316,19 @@ chkExp (tq : tqs) (Cab () es) = do
   return ([PCab () ps], tqs, Cab (Cable (map fst sqs)) es)
 chkExp [] _ = tyErr ShortPats
 
-yield :: [Typ] -> [(Typ, a)] -> TyM [(Typ, a)]
+yield :: TyMonad m => [Typ] -> [(Typ, a)] -> m [(Typ, a)]
 yield []       tqs = return tqs
 yield (s : ss) []  = tyErr ShortPats
 yield (s : ss) ((t , q) : tqs) = tyEq (s, t) >> yield ss tqs
 
-stage :: Ty2 -> TyM ([Pat], ([Pat], [Pat]))
+stage :: TyMonad m => Ty2 -> m ([Pat], ([Pat], [Pat]))
 stage (TyV x) = absurd x
 stage (Bit t) = do
   w <- wiF
-  defineWire (Just (Bit ())) w
+  defineWire (Just (Bit ())) (Physical w)
   return ([PVar () w], case t of {T0 -> ([PVar () w], []); T1 -> ([], [PVar () w])})
 stage (Cable ts) = do
-  (qs, (qs0, qs1)) <- foldMap stage ts
+  (qs, (qs0, qs1)) <- fold <$> traverse stage ts
   return ([PCab () qs], ([PCab () qs0], [PCab () qs1]))
 
 ------------------------------------------------------------------------------
