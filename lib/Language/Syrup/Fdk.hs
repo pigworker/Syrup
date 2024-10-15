@@ -86,8 +86,7 @@ instance Render FeedbackStatus where
     Error -> "Error"
     Internal -> "Internal error"
 
-  renderHTML fcl = pure $ HTML.span ["class=" ++ show ("syrup-" ++ feedbackClass fcl)] "" where
-    feedbackClass = \case
+  renderHTML = pure . \case
       Success -> "happy"
       Comment -> "comment"
       Warning -> "warning"
@@ -168,11 +167,11 @@ data Feedback
   | ATypeDefined String
 
   -- successes
-  | ADotGraph [String]
-  | ARawCode [String]
+  | ADotGraph String [String]
+  | ARawCode String String [String]
   | ATruthTable String [String]
-  | AnExperiment [String]
-  | AnSVGGraph [String]
+  | AnExperiment String [String] [String]
+  | AnSVGGraph String [String]
 
 instance Categorise Feedback where
   categorise = \case
@@ -187,12 +186,12 @@ instance Categorise Feedback where
     AnUnknownIdentifier{} -> Error
 
     -- warnings
+    AFoundHoles{} -> Warning
     AMissingImplementation{} -> Warning
     AStubbedOut{} -> Warning
 
     -- comments
     ACircuitDefined{} -> Comment
-    AFoundHoles{} -> Comment
     ALint{} -> Comment
     ATypeDefined{} -> Comment
 
@@ -203,8 +202,8 @@ instance Categorise Feedback where
     AnExperiment{} -> Success
     AnSVGGraph{} -> Success
 
-anExperiment :: MonadWriter (Seq Feedback) m => [String] -> m ()
-anExperiment ls = tell $ Seq.singleton $ AnExperiment ls
+anExperiment :: MonadWriter (Seq Feedback) m => String -> [String] -> [String] -> m ()
+anExperiment str xs ls = tell $ Seq.singleton $ AnExperiment str xs ls
 
 keep :: Options -> Feedback -> Bool
 keep opts fdk
@@ -232,12 +231,12 @@ instance Render Feedback where
     prepend x (y : xs) = (x <> y : xs)
 
     go = \case
-      AnExperiment ls -> ls
+      AnExperiment str xs ls -> (str ++ " " ++ intercalate ", " xs ++ ":") : ls
       ALint ls -> ls
-      ADotGraph ls -> ls
+      ADotGraph x ls -> ("Displaying " ++ x) : ls
       AFoundHoles f ls -> ("Found holes in circuit " ++ f ++ ":") : ls
-      AnSVGGraph ls -> ls
-      ARawCode ls -> ls
+      AnSVGGraph x ls ->  ("Displaying " ++ x ++ ":") : ls
+      ARawCode str x ls -> (str ++ " " ++ x ++ ":") : ls
       ASyntaxError ls -> ls
       AScopeError ls -> render ls
       ANoExecutable exe -> ["Could not find the " ++ exe ++ " executable :("]
@@ -256,18 +255,23 @@ instance Render Feedback where
 
   renderHTML e = do
     cat <- renderHTML (categorise e)
+    let div = HTML.div ["class=" ++ show ("syrup-" ++ cat)]
     msg <- goHTML e
-    pure (unlines [cat, msg])
+    pure (div msg)
 
 
     where
 
     goHTML = \case
-      AnExperiment ls -> pure $ asHTML ls
-      ADotGraph ls -> do
+      AnExperiment str x ls -> pure $ unlines
+        [ str ++ " " ++ intercalate ", " (identifier <$> x) ++ ":" ++ HTML.br
+        , asHTML ls
+        ]
+      ADotGraph x ls -> do
         n <- show <$> fresh
         pure $ unlines
-          [ "<script type=" ++ show "module" ++ ">"
+          [ "Displaying " ++ identifier x ++ ":" ++ HTML.br
+          , "<script type=" ++ show "module" ++ ">"
           , "  import { Graphviz } from \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js\";"
           , "  if (Graphviz) {"
           , "    const graphviz = await Graphviz.load();"
@@ -283,8 +287,11 @@ instance Render Feedback where
 
       ALint ls -> pure (asHTML ls)
       ANoExecutable exe -> pure ("Could not find the " ++ identifier exe ++ " executable :(")
-      AnSVGGraph ls -> pure (unlines ls)
-      ARawCode ls -> pure $ HTML.span ["class=" ++ show "syrup-code"] (unlines $ escapeHTML <$> ls)
+      AnSVGGraph x ls -> pure (unlines (("Displaying " ++ identifier x ++ ":" ++ HTML.br) : ls))
+      ARawCode str x ls -> pure $ unlines
+        [ str ++ "  " ++ identifier x ++ ":" ++ HTML.br
+        , HTML.div ["class=" ++ show "syrup-code"] (unlines $ escapeHTML <$> ls)
+        ]
       ATruthTable x ls -> pure (HTML.pre $ unlines $ map escapeHTML (("Truth table for " ++ x ++ ":") : ls))
       ASyntaxError ls -> pure (asHTML ls)
       AScopeError ls -> renderHTML ls
@@ -319,7 +326,7 @@ feedback opts = (. filter (keep opts)) $ case outputFormat opts of
     , "    padding: 0 6px 0 0;"
     , "  }"
     , "  .syrup-comment:before {"
-    , "    content: \" \";"
+    , "    content: \"\\2705\";"
     , "    padding: 0 6px 0 0;"
     , "  }"
     , "  .syrup-warning:before {"

@@ -67,40 +67,44 @@ experiment :: MonadExperiment s m => EXPT -> m ()
 experiment (Tabulate x) = withCompo x $ \ c ->
   tell $ Seq.singleton $ ATruthTable x $ displayTabulation (tabulate c)
 experiment (Simulate x m0 iss) = withCompo x $ \ c ->
-  anExperiment $ ["Simulation for " ++ x ++ ":"] ++
-    runCompo c m0 iss
+  anExperiment "Simulation for" [x] $ runCompo c m0 iss
 experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc ->
-  anExperiment $ report (l, r) (bisimReport lc rc)
+  anExperiment "Bisimulation between" [l, r] $ report (l, r) (bisimReport lc rc)
 experiment (Print x) = withImplem x $ \ i ->
-  tell $ Seq.singleton $ ARawCode $ lines (showTyped i)
+  tell $ Seq.singleton $ ARawCode "Printing" x $ lines (showTyped i)
 experiment (Typing x) = withCompo x $ \ c ->
-  anExperiment $ lines (showType x (inpTys c) (oupTys c))
+  anExperiment "Typing for" [x] $ lines (showType x (inpTys c) (oupTys c))
 experiment (Display x) = withImplem x $ \ i -> do
   st <- use hasLens
   let dot = whiteBoxDef st i
   asks graphFormat >>= \ opts -> tell $ Seq.singleton $ case opts of
-    SourceDot -> ADotGraph dot
+    SourceDot -> ADotGraph x dot
     RenderedSVG -> unsafePerformIO $
       findExecutable "dot" >>= \case
         Nothing -> pure (ANoExecutable "dot")
-        Just{} -> AnSVGGraph . lines <$> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
+        Just{} -> AnSVGGraph x . lines <$> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
 experiment (Dnf x) = withImplem x $ \ i -> do
   env <- use hasLens
-  tell $ Seq.singleton $ ARawCode $ lines (showTyped (dnf env i))
+  tell $ Seq.singleton
+    $ ARawCode "Disjunctive Normal Form of" x
+    $ lines (showTyped (dnf env i))
 experiment (Anf x) = withImplem x $ \ i ->
-  tell $ Seq.singleton $ ARawCode $ lines (showTyped (toANF i))
+  tell $ Seq.singleton
+    $ ARawCode "A Normal Form of" x
+    $ lines (showTyped (toANF i))
 experiment (Costing nms x) = do
   g <- use hasLens
   let support = foldMap singleton nms
   let cost = costing g support x
-  anExperiment $
-    (x ++ "'s cost is as follows:") :
+  anExperiment "Cost for" [x] $
     flip foldMapArr cost (\ (x, Sum k) ->
       let copies = "cop" ++ if k > 1 then "ies" else "y" in
       ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
 experiment (Simplify x) = withImplem x $ \ i -> do
   g <- use hasLens
-  tell $ Seq.singleton $ ARawCode $ lines (showTyped $ deMorgan g i)
+  tell $ Seq.singleton
+    $ ARawCode "Simplification of" x
+    $ lines (showTyped $ deMorgan g i)
 
 ------------------------------------------------------------------------------
 -- running tine sequences

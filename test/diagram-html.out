@@ -11,7 +11,7 @@
     padding: 0 6px 0 0;
   }
   .syrup-comment:before {
-    content: " ";
+    content: "\2705";
     padding: 0 6px 0 0;
   }
   .syrup-warning:before {
@@ -28,10 +28,8 @@
   }
 </style>
 
-<span class="syrup-comment"></span>
-Circuit <code>not</code> is defined.
-<br />
-<span class="syrup-happy"></span>
+<div class="syrup-comment">Circuit <code>not</code> is defined.</div><br />
+<div class="syrup-happy">Displaying <code>not</code>:<br />
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -42,5 +40,4 @@ Circuit <code>not</code> is defined.
   }
 </script>
 <div id="GRAPH1"></div>
-
-<br />
+</div><br />

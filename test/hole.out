@@ -4,7 +4,7 @@ Circuit and is defined.
 
 Circuit or is defined.
 
-Found holes in circuit f:
+Warning: Found holes in circuit f:
   ?A : <Bit>
   ?B : <Bit>
   ?C : <Bit>

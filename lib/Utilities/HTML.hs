@@ -34,3 +34,12 @@ span attrs doc = concat
       , doc
       , "</span>"
       ]
+
+div :: [String] -> String -> String
+div attrs doc = concat
+      [ "<div "
+      , unwords attrs
+      , ">"
+      , doc
+      , "</div>"
+      ]
