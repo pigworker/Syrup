@@ -19,15 +19,13 @@ import Control.Monad (foldM, unless, when)
 
 import Data.Bifunctor ()
 import Data.Char (toLower)
+import Data.Foldable (traverse_)
 import Data.List (intersperse)
 import Data.Monoid ()
-import Data.Foldable (traverse_)
 
-import Language.Syrup.Syn
 import Language.Syrup.BigArray
-
-type Name  = String
-type Names = Set Name
+import Language.Syrup.Fdk
+import Language.Syrup.Syn
 
 data Scope = Scope
   { global :: Names
@@ -40,67 +38,10 @@ emptyScope = Scope emptyArr emptyArr
 globalScope :: Names -> Scope
 globalScope gl = Scope gl emptyArr
 
-data ScopeLevel = Local | Global
-  deriving (Eq)
-
-levelMsg :: ScopeLevel -> String
-levelMsg = \case
-  Local  -> "local"
-  Global -> "top-level"
-
 newtype Extension (l :: ScopeLevel) = Extend { getExtension :: Names }
 
 emptyExtension :: Extension l
 emptyExtension = Extend emptyArr
-
-data ScopeError
-  = OutOfScope ScopeLevel Name Names
-    -- name that cannot be resolved & suggestions
-  | Shadowing  ScopeLevel Names
-    -- shadowing an existing variable
-
-data ErrorStatus = Warning | Error
-  deriving Show
-
-instance Semigroup ErrorStatus where
-  Warning <> e = e
-  e <> Warning = e
-  _ <> _       = Error
-
-instance Monoid ErrorStatus where
-  mempty  = Warning
-  mappend = (<>)
-
-errorStatus :: ScopeError -> ErrorStatus
-errorStatus = \case
-  OutOfScope{}       -> Error
-  Shadowing Local _  -> Error
-  Shadowing Global _ -> Warning
-
-errMsg :: ScopeError -> String
-errMsg e = concat $ show (errorStatus e) : ": " : case e of
-  OutOfScope _ n ns ->
-    let names = foldMapSet pure ns in
-    "You tried to use "
-    : n
-    : " but it is not in scope."
-    : if isEmptyArr ns then [] else
-      "\n"
-      : plural names "Did you mean" " one of these"
-      : ": "
-      : intersperse ", " names
-      ++ ["?"]
-  Shadowing l ns ->
-    let names = foldMapSet pure ns in
-    "You are redefining the "
-    : levelMsg l
-    : " " : plural names "variable" "s"
-    : " " : intersperse ", " names
-    ++ ["."]
-
-  where
-    plural [_] str _ = str
-    plural _   str s = str ++ s
 
 newtype ScopeM a = ScopeM { runScopeM :: ([ScopeError], a) }
   deriving (Functor, Applicative, Monad)
@@ -271,22 +212,22 @@ instance Scoped (Source' a) where
     Definition d  -> emptyExtension <$ scopecheck ga d
     Experiment e  -> emptyExtension <$ scopecheck ga e
 
-stub :: (Source' a, String) -> [String]
-     -> [Either [String] (Source' a, String)]
-     -> [Either [String] (Source' a, String)]
-stub (Definition (Def (nm, _) _ _), src) msg rst = Right (Definition (Stub nm msg), src) : rst
-stub _ msg rst = Left msg : rst
+stub :: (Source' a, String) -> [Feedback]
+     -> [Either Feedback (Source' a, String)]
+     -> [Either Feedback (Source' a, String)]
+stub (Definition (Def (nm, _) _ _), src) msg rst
+   = Right (Definition (Stub nm msg), src) : rst
+stub _ msg rst = map Left msg ++ rst
 
-check :: Scope -> [Either [String] (Source' a, String)] -> [Either [String] (Source' a, String)]
+check :: Scope -> [Either Feedback (Source' a, String)] -> [Either Feedback (Source' a, String)]
 check ga []                     = []
 check ga (Left err        : ds) = Left err : check ga ds
 check ga (Right (d , src) : ds) = do
   let (errs, e) = runScopeM (scopecheck ga d)
   let ga'       = ga `extend` e
 
-  let status    = foldMap errorStatus errs
-  let msg       = errMsg <$> errs
-  case status of
-    Error               -> stub (d, src) msg (check ga' ds)
-    Warning | null msg  ->            Right (d, src) : check ga' ds
-            | otherwise -> Left msg : Right (d, src) : check ga' ds
+  let status    = foldMap categorise errs
+  let msg       = AScopeError <$> errs
+  case isErroring status of
+    True  -> stub (d, src) msg (check ga' ds)
+    False -> map Left msg ++ Right (d, src) : check ga' ds

@@ -2,11 +2,13 @@ Circuit not is defined.
 
 Circuit f is defined.
 
+Simplification of f:
 f(<Bit>) -> <Bit>
 f(X) = not(X)
 
 Circuit g is defined.
 
+Simplification of g:
 g(<Bit>) -> <Bit>, <Bit>, <Bit>, <Bit>
 g(X) = X, not(X), Z, E where
   E = not(X)
@@ -15,11 +17,13 @@ g(X) = X, not(X), Z, E where
 
 Circuit and is defined.
 
+Simplification of and:
 and(<Bit>, <Bit>) -> <Bit>
 and(X, Y) = not(nand(X, Y))
 
 Circuit h is defined.
 
+Simplification of h:
 h(<Bit>, <Bit>) -> <Bit>
 h(X, Y) = nand(X, Y)
 
@@ -27,26 +31,31 @@ Circuit or is defined.
 
 Circuit i is defined.
 
+Simplification of i:
 i(<Bit>, <Bit>) -> <Bit>
 i(X, Y) = and(X, not(Y))
 
 Circuit j is defined.
 
+Simplification of j:
 j(<Bit>, <Bit>) -> <Bit>
 j(X, Y) = nand(X, Y)
 
 Circuit k is defined.
 
+Simplification of k:
 k(<Bit>, <Bit>) -> <Bit>
 k(X, Y) = nand(and(X, Y), X)
 
 Circuit l is defined.
 
+Simplification of l:
 l(<Bit>, <Bit>) -> <Bit>
 l(X, Y) = and(X, Y)
 
 Circuit m is defined.
 
+Simplification of m:
 m(<Bit>, <Bit>) -> <Bit>
 m(X, Y) = nand(X, Y)
 

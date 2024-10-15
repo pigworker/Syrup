@@ -157,10 +157,12 @@ Simulation for jkff:
 12 {1} 00 -> 1
 13 {1}
 
+Bisimulation between dff, ndnff:
 dff behaves like ndnff
   {1} ~ {0}
   {0} ~ {1}
 
+Bisimulation between dff, tff:
 dff can be distinguished from all possible states of tff
 when dff has memory {0}
 if tff has memory like {1}, try inputs 0
@@ -178,20 +180,25 @@ Simulation for tff:
 2 {1} 0 -> 1
 3 {1}
 
+Bisimulation between tff, jkt:
 tff behaves like jkt
   {1} ~ {1}
   {0} ~ {0}
 
+Bisimulation between nand, nor:
 nand has a behaviour that nor does not match
   nand(01) = 1 but nor(01) = 0
   nand(10) = 1 but nor(10) = 0
 
+Bisimulation between nand, nand:
 nand behaves like nand
   {} ~ {}
 
+Bisimulation between xor1, xor2:
 xor1 behaves like xor2
   {} ~ {}
 
+Bisimulation between xor, or:
 xor has a behaviour that or does not match
   xor(11) = 0 but or(11) = 1
 
@@ -212,6 +219,7 @@ T { Q2 Q1 -> Q2 Q1 }
   { 1  0  -> 1  1  } 1
   { 1  1  -> 0  1  } 0
 
+Bisimulation between tff, guff:
 tff can be distinguished from all possible states of guff
 when tff has memory {0}
 if guff has memory like {11}, try inputs 0;1;0
@@ -231,6 +239,7 @@ Simulation for guff:
 2 {00} 0 -> 0
 3 {11}
 
+Bisimulation between tff, tff2:
 tff behaves like tff2
   {1} ~ {01,10}
   {0} ~ {00,11}
@@ -755,6 +764,7 @@ Truth table for adc4:
 [[11] [11]] [[11] [11]] 0  | 1  [[11] [10]]
 [[11] [11]] [[11] [11]] 1  | 1  [[11] [11]]
 
+Displaying fadd:
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
@@ -870,6 +880,7 @@ Truth table for adc4:
 </g>
 </svg>
 
+Displaying adc2:
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
@@ -1017,6 +1028,7 @@ Truth table for adc4:
 </g>
 </svg>
 
+Displaying adc4:
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">

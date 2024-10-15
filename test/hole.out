@@ -4,15 +4,15 @@ Circuit and is defined.
 
 Circuit or is defined.
 
-Found holes in circuit f:
-  A : <Bit>
-  B : <Bit>
-  C : <Bit>
-  D : [<Bit>, <Bit>]
+Warning: Found holes in circuit f:
+  ?A : <Bit>
+  ?B : <Bit>
+  ?C : <Bit>
+  ?D : [<Bit>, <Bit>]
 
-Circuit f has been stubbed out.
+Warning: Circuit f has been stubbed out.
 
-I was trying to make sense of the following code:
+Error: I was trying to make sense of the following code:
 
 problematic() = ?
 
@@ -21,7 +21,7 @@ I got stuck here:
 I was looking for a definition.
 At that point, it made sense, but then I found stuff I didn't expect.
 
-You haven't defined problematic just now.
+Error: You haven't defined the circuit problematic just now.
 
-Circuit problematic has been stubbed out.
+Warning: Circuit problematic has been stubbed out.
 

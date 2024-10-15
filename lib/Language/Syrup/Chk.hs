@@ -13,8 +13,8 @@ module Language.Syrup.Chk where
 import Control.Applicative ((<|>))
 import Control.Monad (guard)
 import Control.Monad.Reader (local, runReaderT)
-import Control.Monad.State (runStateT, execStateT, get, gets, put)
-import Control.Monad.Writer (runWriter, runWriterT, tell)
+import Control.Monad.State (execStateT, runStateT, get, gets, put)
+import Control.Monad.Writer (runWriterT, runWriter, tell)
 
 import Data.Bifunctor (bimap)
 import Data.Char (isAlpha)
@@ -95,17 +95,17 @@ mkComponent' isrmk (dec, decSrc) mdef =
              (tySt0 {coEnv = env}) of
         Left (TyFailure ctx e) -> do
           tell $ Seq.fromList
-            [ TypeError $ typeErrorReport (ctx, e)
-            , StubbedOut g
+            [ ATypeError $ typeErrorReport (ctx, e)
+            , AStubbedOut g
             ]
           hasLens %= insertArr (g, stubOut dec)
           pure (False, Nothing)
         Right ((((ps, rhs), (qs0, qs1), def), st), YesHasHoles) -> do
           hasLens %= insertArr (g, stubOut dec)
           tell $ Seq.fromList
-            [ FoundHoles g $ flip foldMapArr (allHoles def) $ \ (k, v) ->
-                ["  " ++ k ++ " : " ++ maybe "?" show (getFirst v)]
-            , StubbedOut g
+            [ AFoundHoles g $ flip foldMapArr (allHoles def) $ \ (k, v) ->
+                ["  ?" ++ k ++ " : " ++ maybe "?" show (getFirst v)]
+            , AStubbedOut g
             ]
           pure (False, Nothing)
         Right ((((ps, rhs), (qs0, qs1), def), st), NoHasNoHoles) ->
@@ -130,7 +130,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
                         , stage0 = plan (Plan mI ta0 qs0)
                         , stage1 = plan (Plan (mI ++ ps) ta1 (mO ++ qs1))
                         }
-                  tell $ Seq.fromList (CircuitDefined g : maybeRemarkable g rmk)
+                  tell $ Seq.fromList (ACircuitDefined g : maybeRemarkable g rmk)
                   hasLens %= insertArr (g, gc)
                   pure (True, Just def)
                 e -> do -- trace (show (sched st)) $
@@ -144,12 +144,12 @@ mkComponent' isrmk (dec, decSrc) mdef =
                         _ -> Junk
                   hasLens %= insertArr (g, stubOut dec)
                   tell $ Seq.fromList
-                    [ TypeError $ typeErrorReport (B0 :< TySOURCE decSrc defSrc, sin)
-                    , StubbedOut g
+                    [ ATypeError $ typeErrorReport (B0 :< TySOURCE decSrc defSrc, sin)
+                    , AStubbedOut g
                     ]
                   pure (False, Nothing)
     (dec@(Dec (g, ss) ts), Nothing) -> do
-      tell $ Seq.singleton (StubbedOut g)
+      tell $ Seq.singleton (AStubbedOut g)
       hasLens %= insertArr (g, stubOut dec)
       pure (False, Nothing)
 
@@ -372,7 +372,7 @@ typeErrorReport (cz, e) = concat
     problem (DecDef c f) = [ concat
       [ "I found a declaration for ", c
       , " but its definition was for ", f, "."] ]
-    problem (Stubbed msg) = msg
+    problem (Stubbed msg) = render msg
     problem (DuplicateWire x) = [ concat
       ["I found more than one signal called ", x, "."] ]
     problem LongPats  = ["I found fewer signals than I needed."]

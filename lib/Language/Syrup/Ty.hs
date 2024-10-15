@@ -240,7 +240,7 @@ data TyErr
   | BitCable              -- a bit has been connected to a cable!
   | CableLoop             -- there's a spatial loop!
   | DecDef String String  -- declaration and definition names mismatch!
-  | Stubbed [String]      -- definition already stubbed out!
+  | Stubbed [Feedback]    -- definition already stubbed out!
   | DuplicateWire String  -- same name used for two wires!
   | ConflictingHoles String -- same name used for two holes with different types
   | LongPats              -- too many patterns for the types!
@@ -250,7 +250,7 @@ data TyErr
   | Stage1 (Set String)   -- couldn't compute from memory and inputs!
   | Junk                  -- spurious extra stuff!
   | BUGSolderMismatch     -- soldering fails to match up properly (my fault)
-  deriving Show
+--  deriving Show
 
 tyErr :: TyMonad m => TyErr -> m x
 tyErr e = do

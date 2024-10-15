@@ -1,7 +1,7 @@
 Warning: empty where clause in the definition of and.
 Did you forget to indent the block of local definitions using spaces?
 
-I was trying to make sense of the following code:
+Error: I was trying to make sense of the following code:
 
 and(<Bit>,<Bit>) -> <Bit>
 and(X,Y) = notnand where
@@ -9,9 +9,10 @@ and(X,Y) = notnand where
 
 Error: You tried to use notnand but it is not in scope.
 
-Circuit and has been stubbed out.
 
-I was trying to make sense of the following code:
+Warning: Circuit and has been stubbed out.
+
+Error: I was trying to make sense of the following code:
 
 notnand = nand(nand(X,Y),nand(X,Y))
 

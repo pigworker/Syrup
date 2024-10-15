@@ -14,52 +14,52 @@ Circuit mux is defined.
 
 Circuit xor2 is defined.
 
-not's cost is as follows:
+Cost for not:
   1 copy of nand
 
-and's cost is as follows:
+Cost for and:
   2 copies of nand
 
-or's cost is as follows:
+Cost for or:
   3 copies of nand
 
-or's cost is as follows:
+Cost for or:
   1 copy of or
 
-or's cost is as follows:
+Cost for or:
   1 copy of nand
   2 copies of not
 
-xor's cost is as follows:
+Cost for xor:
   9 copies of nand
 
-xor's cost is as follows:
+Cost for xor:
   2 copies of and
   2 copies of not
   1 copy of or
 
-eq's cost is as follows:
+Cost for eq:
   2 copies of and
   3 copies of not
   1 copy of or
 
-zero's cost is as follows:
+Cost for zero:
   1 copy of zero
 
-one's cost is as follows:
+Cost for one:
   1 copy of nand
   1 copy of zero
 
-one's cost is as follows:
+Cost for one:
   1 copy of not
   1 copy of zero
 
-mux's cost is as follows:
+Cost for mux:
   2 copies of and
   1 copy of not
   1 copy of or
 
-xor2's cost is as follows:
+Cost for xor2:
   1 copy of mux
   1 copy of nand
 

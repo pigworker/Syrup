@@ -39,11 +39,13 @@ subAlias rho c = case c of
   Definition d -> pure (rho, pure (Definition d))
   Experiment e -> pure (rho, pure (Experiment e))
 
-inlineAliases :: TyEnv -> [Either [String] (SourceC, String)] -> (TyEnv, [Either Feedback (Source, String)])
+inlineAliases :: TyEnv
+              -> [Either Feedback (SourceC, String)]
+              -> (TyEnv, [Either Feedback (Source, String)])
 inlineAliases rho []                     = (rho, [])
-inlineAliases rho (Left s : tl)          = (Left (GenericLog s) :) <$> inlineAliases rho tl
+inlineAliases rho (Left s : tl)          = (Left s :) <$> inlineAliases rho tl
 inlineAliases rho (Right (srcc, s) : tl) =
   case subAlias rho srcc of
-    Right (rho, Left ty)   -> (Left (TypeDefined ty) :)  <$> inlineAliases rho tl
-    Right (rho, Right src) -> (Right (src, s) :)         <$> inlineAliases rho tl
-    Left x                 -> (Left (UndefinedType x) :) <$> inlineAliases rho tl
+    Right (rho, Left ty)   -> (Left (ATypeDefined ty) :)   <$> inlineAliases rho tl
+    Right (rho, Right src) -> (Right (src, s) :)           <$> inlineAliases rho tl
+    Left x                 -> (Left (AnUndefinedType x) :) <$> inlineAliases rho tl

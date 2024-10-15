@@ -52,7 +52,7 @@ Truth table for count2tff:
  { 1  0  -> 0  1  } [0  1 ]
  { 1  1  -> 0  0  } [1  1 ]
 
-Warning: You are redefining the top-level variable dff.
+Error: You are redefining the top-level variable dff.
 
 Circuit dff is defined.
 
@@ -64,7 +64,7 @@ D { QD -> QD } QD
 1 { 0  -> 1  } 0 
   { 1  -> 1  } 1 
 
-Warning: You are redefining the top-level variable zero.
+Error: You are redefining the top-level variable zero.
 
 Circuit zero is defined.
 

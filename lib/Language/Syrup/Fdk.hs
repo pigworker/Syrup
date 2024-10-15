@@ -11,54 +11,205 @@ module Language.Syrup.Fdk where
 import Control.Monad.State (MonadState, get, put, evalState)
 import Control.Monad.Writer (MonadWriter, tell)
 
-import Data.List (intercalate)
+import Data.List (intercalate, intersperse)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 
 import Utilities.HTML (asHTML, escapeHTML)
 import qualified Utilities.HTML as HTML
 
-import Language.Syrup.Opt
+import Language.Syrup.BigArray (Set, isEmptyArr, foldMapSet)
+import Language.Syrup.Opt (Options(..), quiet, OutputFormat(..))
+
+------------------------------------------------------------------------------
+-- Feedback classes
+
+type MonadRenderHTML m =
+  ( MonadState Int m
+  )
+
+class Categorise t where
+  categorise :: t -> FeedbackStatus
+
+class Render t where
+  render :: t -> [String]
+  renderHTML :: MonadRenderHTML m => t -> m String
+
+instance Render t => Render [t] where
+  render = concatMap ((++ [""]) . render)
+  renderHTML = fmap (intercalate HTML.br) . traverse renderHTML
+
+plural :: [a] -> String -> String -> String
+plural []  str _ = str
+plural [_] str _ = str
+plural _   str s = str ++ s
+
+------------------------------------------------------------------------------
+-- Feedback status
+
+data FeedbackStatus
+  = Success
+  | Comment
+  | Warning
+  | Error
+  | Internal
+  deriving Eq
+
+isErroring :: FeedbackStatus -> Bool
+isErroring = \case
+  Success  -> False
+  Comment  -> False
+  Warning  -> False
+  Error    -> True
+  Internal -> True
+
+instance Semigroup FeedbackStatus where
+  Success <> f = f
+  e <> Success = e
+  Comment <> f = f
+  e <> Comment = e
+  Warning <> f = f
+  e <> Warning = e
+  Error <> f   = f
+  e <> Error   = e
+  _ <> _       = Internal
+
+instance Monoid FeedbackStatus where
+  mempty = Success
+  mappend = (<>)
+
+instance Render FeedbackStatus where
+  render = pure . \case
+    Success -> ""
+    Comment -> ""
+    Warning -> "Warning"
+    Error -> "Error"
+    Internal -> "Internal error"
+
+  renderHTML = pure . \case
+      Success -> "happy"
+      Comment -> "comment"
+      Warning -> "warning"
+      Error -> "error"
+      Internal -> "internal"
+
+------------------------------------------------------------------------------
+-- Scope errors
+
+type Name  = String
+type Names = Set Name
+
+data ScopeLevel = Local | Global
+  deriving (Eq)
+
+levelMsg :: ScopeLevel -> String
+levelMsg = \case
+  Local  -> "local"
+  Global -> "top-level"
+
+data ScopeError
+  = OutOfScope ScopeLevel Name Names
+    -- name that cannot be resolved & suggestions
+  | Shadowing  ScopeLevel Names
+    -- shadowing an existing variable
+
+instance Categorise ScopeError where
+  categorise = \case
+    OutOfScope{}       -> Error
+    Shadowing Local _  -> Error
+    Shadowing Global _ -> Warning
+
+metaRender :: (String -> String) -> ScopeError -> String
+metaRender f e = concat $ case e of
+    OutOfScope l n ns ->
+      let names = foldMapSet (pure . f) ns in
+      "You tried to use "
+      : n
+      : " but it is not in scope."
+      : if isEmptyArr ns then [] else
+        "\n"
+        : plural names "Did you mean" " one of these"
+        : ": "
+        : intersperse ", " names
+        ++ ["?"]
+    Shadowing l ns ->
+      let names = foldMapSet (pure . f) ns in
+      "You are redefining the "
+      : levelMsg l
+      : " " : plural names "variable" "s"
+      : " " : intersperse ", " names
+      ++ ["."]
+
+
+instance Render ScopeError where
+  render = pure . metaRender id
+  renderHTML = pure . metaRender identifier
 
 data Feedback
-  = AnExperiment [String]
-  | DotGraph [String]
-  | SVGGraph [String]
-  | RawCode [String]
-  | TruthTable String [String]
-  | CircuitDefined String
-  | TypeDefined String
-  | StubbedOut String
-  | FoundHoles String [String]
-  | TypeError [String]
-  | UnknownIdentifier String
-  | MissingImplementation String
-  | Ambiguous String [[String]]
-  | Undefined String
-  | UndefinedType String
-  | GenericLog [String] -- TODO: get rid of!
+  -- errors
+  = ANoExecutable String
+  | AScopeError ScopeError
+  | ASyntaxError [String]
+  | ATypeError [String]
+  | AnAmbiguousDefinition String [[String]]
+  | AnUndefinedCircuit String
+  | AnUndefinedType String
+  | AnUnknownIdentifier String
 
-anExperiment :: MonadWriter (Seq Feedback) m => [String] -> m ()
-anExperiment ls = tell $ Seq.singleton $ AnExperiment ls
+  -- warnings
+  | AMissingImplementation String
+  | AStubbedOut String
+
+  -- comments
+  | ACircuitDefined String
+  | AFoundHoles String [String]
+  | ALint [String]
+  | ATypeDefined String
+
+  -- successes
+  | ADotGraph String [String]
+  | ARawCode String String [String]
+  | ATruthTable String [String]
+  | AnExperiment String [String] [String]
+  | AnSVGGraph String [String]
+
+instance Categorise Feedback where
+  categorise = \case
+    -- errors
+    ANoExecutable{} -> Error
+    AScopeError{} -> Error
+    ASyntaxError{} -> Error
+    ATypeError{} -> Error
+    AnAmbiguousDefinition{} -> Error
+    AnUndefinedCircuit{} -> Error
+    AnUndefinedType{} -> Error
+    AnUnknownIdentifier{} -> Error
+
+    -- warnings
+    AFoundHoles{} -> Warning
+    AMissingImplementation{} -> Warning
+    AStubbedOut{} -> Warning
+
+    -- comments
+    ACircuitDefined{} -> Comment
+    ALint{} -> Comment
+    ATypeDefined{} -> Comment
+
+    -- successes
+    ADotGraph{} -> Success
+    ARawCode{} -> Success
+    ATruthTable{} -> Success
+    AnExperiment{} -> Success
+    AnSVGGraph{} -> Success
+
+anExperiment :: MonadWriter (Seq Feedback) m => String -> [String] -> [String] -> m ()
+anExperiment str xs ls = tell $ Seq.singleton $ AnExperiment str xs ls
 
 keep :: Options -> Feedback -> Bool
-keep opts = \case
-  CircuitDefined{} -> not (quiet opts)
-  TypeDefined{} -> not (quiet opts)
-  StubbedOut{} -> not (quiet opts)
-  AnExperiment{} -> True
-  RawCode{} -> True
-  FoundHoles{} -> True
-  DotGraph{} -> True
-  SVGGraph{} -> True
-  TypeError{} -> True
-  TruthTable{} -> True
-  UnknownIdentifier{} -> True
-  MissingImplementation{} -> True
-  Ambiguous{} -> True
-  Undefined{} -> True
-  UndefinedType{} -> True
-  GenericLog{} -> True
+keep opts fdk
+  = not (quiet opts)
+  || (categorise fdk /= Comment
+  && case fdk of { AStubbedOut{} -> False; _ -> True })
 
 fresh :: MonadState Int m => m Int
 fresh = do
@@ -70,70 +221,94 @@ fresh = do
 identifier :: String -> String
 identifier = HTML.code . escapeHTML
 
-renderHTML :: MonadState Int m => Feedback -> m String
-renderHTML = \case
-  AnExperiment ls -> pure $ asHTML ls
-  DotGraph ls -> do
-    n <- show <$> fresh
-    pure $ unlines
-      [ "<script type=" ++ show "module" ++ ">"
-      , "  import { Graphviz } from \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js\";"
-      , "  if (Graphviz) {"
-      , "    const graphviz = await Graphviz.load();"
-      , "    const dot" ++ n ++ " = " ++ show (unlines ls) ++ ";"
-      , "    const svg" ++ n ++ " = graphviz.dot(dot" ++ n ++ ");"
-      , "    document.getElementById(\"GRAPH" ++ n ++ "\").innerHTML = svg" ++ n ++ ";"
-      , "  }"
-      , "</script>"
-      , "<div id=" ++ show ("GRAPH" ++ n) ++ "></div>"
-      ]
-  SVGGraph ls -> pure (unlines ls)
-  RawCode ls -> pure $ HTML.span ["class=" ++ show "syrup-code"] (unlines $ escapeHTML <$> ls)
-  TruthTable x ls -> pure (HTML.pre $ unlines $ map escapeHTML (("Truth table for " ++ x ++ ":") : ls))
+instance Render Feedback where
+  render e =
+    let preamb = concat (render $ categorise e) in
+    prepend (plural preamb preamb ": ") (go e) where
 
-  CircuitDefined str -> pure (yay $ "Circuit " ++ identifier str ++ " is defined.")
-  TypeDefined str -> pure (yay $ "Type " ++ identifier ("<" ++ str ++ ">") ++ " is defined.")
-  StubbedOut nm -> pure (meh $ "Circuit " ++ identifier nm ++ " has been stubbed out.")
-  FoundHoles f ls -> pure (meh $ "Found holes in circuit " ++ identifier f ++ ":" ++ HTML.br ++ asHTML ls)
-  TypeError ls -> pure (asHTML ls)
-  UnknownIdentifier x -> pure (nay $ "I don't know what " ++ identifier x ++ " is.")
-  MissingImplementation x -> pure (nay $ "I don't have an implementation for " ++ identifier x ++ ".")
-  Ambiguous f zs ->
-    pure (nay $ asHTML (("I don't know which of the following is your preferred " ++ f ++ ":") : intercalate [""] zs))
-  Undefined f -> pure (nay $ "You haven't defined the circuit " ++ identifier f ++ " just now.")
-  UndefinedType x -> pure (nay $ "You haven't defined the type " ++ identifier x ++ " just now.")
-  GenericLog ss -> pure (asHTML ss)
+    prepend :: Semigroup a => a -> [a] -> [a]
+    prepend x []       = [x]
+    prepend x (y : xs) = (x <> y : xs)
 
-  where
-    syrupspan txt = HTML.span ["class=" ++ show ("syrup-" ++ txt)]
-    yay = syrupspan "happy"
-    meh = syrupspan "unimpressed"
-    nay = syrupspan "sad"
+    go = \case
+      AnExperiment str xs ls -> (str ++ " " ++ intercalate ", " xs ++ ":") : ls
+      ALint ls -> ls
+      ADotGraph x ls -> ("Displaying " ++ x) : ls
+      AFoundHoles f ls -> ("Found holes in circuit " ++ f ++ ":") : ls
+      AnSVGGraph x ls ->  ("Displaying " ++ x ++ ":") : ls
+      ARawCode str x ls -> (str ++ " " ++ x ++ ":") : ls
+      ASyntaxError ls -> ls
+      AScopeError ls -> render ls
+      ANoExecutable exe -> ["Could not find the " ++ exe ++ " executable :("]
+      ATruthTable x ls -> ("Truth table for " ++ x ++ ":") : ls
+      ACircuitDefined str -> ["Circuit " ++ str ++ " is defined."]
+      ATypeDefined str -> ["Type <" ++ str ++ "> is defined."]
+      AStubbedOut nm -> ["Circuit " ++ nm ++ " has been stubbed out."]
+      ATypeError ls -> ls
+      AnUnknownIdentifier x -> ["I don't know what " ++ x ++ " is."]
+      AMissingImplementation x -> ["I don't have an implementation for " ++ x ++ "."]
+      AnAmbiguousDefinition f zs ->
+        ["I don't know which of the following is your preferred " ++ f ++ ":"]
+        ++ intercalate [""] zs
+      AnUndefinedCircuit f -> ["You haven't defined the circuit " ++ f ++ " just now."]
+      AnUndefinedType x -> ["You haven't defined the type alias " ++ x ++ " just now."]
 
-render :: Feedback -> [String]
-render = \case
-  AnExperiment ls -> ls
-  DotGraph ls -> ls
-  SVGGraph ls -> ls
-  RawCode ls -> ls
-  TruthTable x ls -> ("Truth table for " ++ x ++ ":") : ls
-  CircuitDefined str -> ["Circuit " ++ str ++ " is defined."]
-  TypeDefined str -> ["Type <" ++ str ++ "> is defined."]
-  StubbedOut nm -> ["Circuit " ++ nm ++ " has been stubbed out."]
-  FoundHoles f ls -> ("Found holes in circuit " ++ f ++ ":") : ls
-  TypeError ls -> ls
-  UnknownIdentifier x -> ["I don't know what " ++ x ++ " is."]
-  MissingImplementation x -> ["I don't have an implementation for " ++ x ++ "."]
-  Ambiguous f zs ->
-    ["I don't know which of the following is your preferred " ++ f ++ ":"]
-    ++ intercalate [""] zs
-  Undefined f -> ["You haven't defined " ++ f ++ " just now."]
-  UndefinedType x -> ["You haven't defined the type alias " ++ x ++ " just now."]
-  GenericLog ss -> ss
+  renderHTML e = do
+    cat <- renderHTML (categorise e)
+    let div = HTML.div ["class=" ++ show ("syrup-" ++ cat)]
+    msg <- goHTML e
+    pure (div msg)
+
+
+    where
+
+    goHTML = \case
+      AnExperiment str x ls -> pure $ unlines
+        [ str ++ " " ++ intercalate ", " (identifier <$> x) ++ ":" ++ HTML.br
+        , asHTML ls
+        ]
+      ADotGraph x ls -> do
+        n <- show <$> fresh
+        pure $ unlines
+          [ "Displaying " ++ identifier x ++ ":" ++ HTML.br
+          , "<script type=" ++ show "module" ++ ">"
+          , "  import { Graphviz } from \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js\";"
+          , "  if (Graphviz) {"
+          , "    const graphviz = await Graphviz.load();"
+          , "    const dot" ++ n ++ " = " ++ show (unlines ls) ++ ";"
+          , "    const svg" ++ n ++ " = graphviz.dot(dot" ++ n ++ ");"
+          , "    document.getElementById(\"GRAPH" ++ n ++ "\").innerHTML = svg" ++ n ++ ";"
+          , "  }"
+          , "</script>"
+          , "<div id=" ++ show ("GRAPH" ++ n) ++ "></div>"
+          ]
+
+      AFoundHoles f ls -> pure ("Found holes in circuit " ++ identifier f ++ ":" ++ HTML.br ++ asHTML ls)
+
+      ALint ls -> pure (asHTML ls)
+      ANoExecutable exe -> pure ("Could not find the " ++ identifier exe ++ " executable :(")
+      AnSVGGraph x ls -> pure (unlines (("Displaying " ++ identifier x ++ ":" ++ HTML.br) : ls))
+      ARawCode str x ls -> pure $ unlines
+        [ str ++ "  " ++ identifier x ++ ":" ++ HTML.br
+        , HTML.div ["class=" ++ show "syrup-code"] (unlines $ escapeHTML <$> ls)
+        ]
+      ATruthTable x ls -> pure (HTML.pre $ unlines $ map escapeHTML (("Truth table for " ++ x ++ ":") : ls))
+      ASyntaxError ls -> pure (asHTML ls)
+      AScopeError ls -> renderHTML ls
+      ACircuitDefined str -> pure ("Circuit " ++ identifier str ++ " is defined.")
+      ATypeDefined str -> pure ("Type " ++ identifier ("<" ++ str ++ ">") ++ " is defined.")
+      AStubbedOut nm -> pure ("Circuit " ++ identifier nm ++ " has been stubbed out.")
+      ATypeError ls -> pure (asHTML ls)
+      AnUnknownIdentifier x -> pure ("I don't know what " ++ identifier x ++ " is.")
+      AMissingImplementation x -> pure ("I don't have an implementation for " ++ identifier x ++ ".")
+      AnAmbiguousDefinition f zs ->
+        pure (asHTML (("I don't know which of the following is your preferred " ++ f ++ ":") : intercalate [""] zs))
+      AnUndefinedCircuit f -> pure ("You haven't defined the circuit " ++ identifier f ++ " just now.")
+      AnUndefinedType x -> pure ("You haven't defined the type " ++ identifier x ++ " just now.")
 
 feedback :: Options -> [Feedback] -> [String]
 feedback opts = (. filter (keep opts)) $ case outputFormat opts of
-  TextOutput -> concatMap ((++ [""]) . render)
+  TextOutput -> render
   HTMLOutput -> (headerHTML:) . map (++ HTML.br) . flip evalState 0 . traverse renderHTML
 
   where
@@ -150,12 +325,20 @@ feedback opts = (. filter (keep opts)) $ case outputFormat opts of
     , "    content: \"\\2705\";"
     , "    padding: 0 6px 0 0;"
     , "  }"
-    , "  .syrup-sad:before {"
+    , "  .syrup-comment:before {"
+    , "    content: \"\\2705\";"
+    , "    padding: 0 6px 0 0;"
+    , "  }"
+    , "  .syrup-warning:before {"
+    , "    content: \"\\26A0\\FE0F\";"
+    , "    padding: 0 6px 0 0;"
+    , "  }"
+    , "  .syrup-error:before {"
     , "    content: \"\\274C\";"
     , "    padding: 0 6px 0 0;"
     , "  }"
-    , "  .syrup-unimpressed:before {"
-    , "    content: \"\\26A0\\FE0F\";"
+    , "  .syrup-internal:before {"
+    , "    content: \"\\1F480\";"
     , "    padding: 0 6px 0 0;"
     , "  }"
     , "</style>"

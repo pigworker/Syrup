@@ -1,5 +1,6 @@
 Circuit duplicate is defined.
 
+A Normal Form of duplicate:
 duplicate(<Bit>) -> <Bit>, <Bit>
 duplicate(X) = __VIRTUAL__2, __VIRTUAL__3 where
   __VIRTUAL__0, __VIRTUAL__1 = [X, X]
@@ -7,6 +8,7 @@ duplicate(X) = __VIRTUAL__2, __VIRTUAL__3 where
   Z = nand(__VIRTUAL__0, __VIRTUAL__1)
 
 
+Displaying duplicate:
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
