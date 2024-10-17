@@ -14,6 +14,8 @@ module Language.Syrup.Run where
 import Control.Monad.State (execStateT)
 import Control.Monad.Writer (tell, runWriter)
 import Control.Monad.Reader (runReaderT)
+
+import Data.Either (partitionEithers)
 import Data.Foldable (toList)
 import Data.Functor (void)
 import qualified Data.Sequence as Seq
@@ -34,11 +36,12 @@ import Language.Syrup.Utils
 import Utilities.Lens (Has, hasLens, (.=), use, (%=))
 import Utilities.Monad (whenJust)
 
-getDefsOf :: String -> [Either a (Source, String)] -> [(Def, String)]
-getDefsOf f src = src >>= \case
-  Right (Definition def@(Def (g, _) _ _), s) | g == f -> [(def,s)]
-  Right (Definition def@(Stub g _)      , s) | g == f -> [(def,s)]
-  _ -> []
+getDefsOf :: String
+          -> [Either a (Source, String)]
+          -> ([Either a (Source, String)], [(Def, String)])
+getDefsOf f xs = partitionEithers $ flip map xs $ \case
+  Right (Definition def, s) | defName def == f -> Right (def,s)
+  src -> Left src
 
 grokSy :: MonadExperiment s m
        => [Either Feedback (Source, String)]
@@ -48,10 +51,11 @@ grokSy (Left ss : src) = do
   tell $ Seq.singleton ss
   grokSy src
 grokSy (Right (Declaration dec@(DEC (f, _) _), s) : src) = do
-  let (warn, rest)  = spanMaybe isLeft src
+  let (warn, rest0)  = spanMaybe isLeft src
   mapM_ (tell . Seq.singleton) warn
-  mdef <- case getDefsOf f rest of
-    [defs] -> pure (Just defs)
+  let (rest, defs) = getDefsOf f rest0
+  mdef <- case defs of
+    [def] -> pure (Just def)
     zs@(_ : _ : _) -> do
       tell $ Seq.singleton $ AnAmbiguousDefinition f (map (lines . snd) zs)
       pure Nothing
@@ -64,7 +68,8 @@ grokSy (Right (Declaration dec@(DEC (f, _) _), s) : src) = do
 grokSy (Right (Experiment expt, _) : src) = do
   experiment expt
   grokSy src
-grokSy (Right (Definition d, _) : src) =
+grokSy (Right (Definition d, _) : src) = do
+  tell $ Seq.singleton $ AnUndeclaredCircuit (defName d)
   grokSy src
 
 data SyrupEnv = SyrupEnv
