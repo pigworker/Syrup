@@ -3,8 +3,8 @@ Circuit not is defined.
 Circuit f is defined.
 
 Simplification of f:
-!<Bit> -> <Bit>
-!X = !X
+f(<Bit>) -> <Bit>
+f(X) = !X
 
 Circuit g is defined.
 
@@ -49,8 +49,8 @@ k(X, Y) = nand(X & Y, X)
 Circuit l is defined.
 
 Simplification of l:
-<Bit> & <Bit> -> <Bit>
-X & Y = X & Y
+l(<Bit>, <Bit>) -> <Bit>
+l(X, Y) = X & Y
 
 Circuit m is defined.
 
