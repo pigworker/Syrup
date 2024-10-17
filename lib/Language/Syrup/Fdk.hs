@@ -295,7 +295,7 @@ instance Render Feedback where
         [ str ++ "  " ++ identifier x ++ ":" ++ HTML.br
         , HTML.div ["class=" ++ show "syrup-code"] (unlines $ escapeHTML <$> ls)
         ]
-      ATruthTable x ls -> pure (HTML.pre $ unlines $ map escapeHTML (("Truth table for " ++ x ++ ":") : ls))
+      ATruthTable x ls -> pure (unlines ["Truth table for " ++ identifier x ++ ":" ++ HTML.br, HTML.pre (unlines ls)])
       ASyntaxError ls -> pure (asHTML ls)
       AScopeError ls -> renderHTML ls
       ACircuitDefined str -> pure ("Circuit " ++ identifier str ++ " is defined.")

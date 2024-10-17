@@ -169,8 +169,8 @@ fadd(X1, Y1, C1) = C2, Z1 where
 </script>
 <div id="GRAPH7"></div>
 </div><br />
-<div class="syrup-happy"><pre>Truth table for fadd:
-X1 Y1 C1 | C2 Z1
+<div class="syrup-happy">Truth table for <code>fadd</code>:<br />
+<pre>X1 Y1 C1 | C2 Z1
 ---------|------
 0  0  0  | 0  0 
 0  0  1  | 0  1 
@@ -180,7 +180,8 @@ X1 Y1 C1 | C2 Z1
 1  0  1  | 1  0 
 1  1  0  | 1  0 
 1  1  1  | 1  1 
-</pre></div><br />
+</pre>
+</div><br />
 <div class="syrup-comment">Type <code>&lt;Bit2&gt;</code> is defined.</div><br />
 <div class="syrup-comment">Circuit <code>adc2</code> is defined.</div><br />
 <div class="syrup-happy">Printing  <code>adc2</code>:<br />
