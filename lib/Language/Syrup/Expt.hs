@@ -31,6 +31,7 @@ import Language.Syrup.DNF (dnf)
 import Language.Syrup.Dot
 import Language.Syrup.Fdk
 import Language.Syrup.Opt
+import Language.Syrup.Pretty (prettyShow)
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Utils
@@ -70,8 +71,10 @@ experiment (Simulate x m0 iss) = withCompo x $ \ c ->
   anExperiment "Simulation for" [x] $ runCompo c m0 iss
 experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc ->
   anExperiment "Bisimulation between" [l, r] $ report (l, r) (bisimReport lc rc)
-experiment (Print x) = withImplem x $ \ i ->
-  tell $ Seq.singleton $ ARawCode "Printing" x $ lines (showTyped i)
+experiment (Print x) = withImplem x $ \ i -> do
+  g <- use hasLens
+  let txt = prettyShow g i
+  tell $ Seq.singleton $ ARawCode "Printing" x $ lines txt
 experiment (Typing x) = withCompo x $ \ c ->
   anExperiment "Typing for" [x] $ lines (showType x (inpTys c) (oupTys c))
 experiment (Display x) = withImplem x $ \ i -> do
@@ -85,13 +88,16 @@ experiment (Display x) = withImplem x $ \ i -> do
         Just{} -> AnSVGGraph x . lines <$> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
 experiment (Dnf x) = withImplem x $ \ i -> do
   env <- use hasLens
+  let txt = prettyShow env (dnf env i)
   tell $ Seq.singleton
     $ ARawCode "Disjunctive Normal Form of" x
-    $ lines (showTyped (dnf env i))
-experiment (Anf x) = withImplem x $ \ i ->
+    $ lines txt
+experiment (Anf x) = withImplem x $ \ i -> do
+  env <- use hasLens
+  let txt = prettyShow env (toANF i)
   tell $ Seq.singleton
     $ ARawCode "A Normal Form of" x
-    $ lines (showTyped (toANF i))
+    $ lines txt
 experiment (Costing nms x) = do
   g <- use hasLens
   let support = foldMap singleton nms
@@ -102,9 +108,10 @@ experiment (Costing nms x) = do
       ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
 experiment (Simplify x) = withImplem x $ \ i -> do
   g <- use hasLens
+  let txt = prettyShow g (deMorgan g i)
   tell $ Seq.singleton
     $ ARawCode "Simplification of" x
-    $ lines (showTyped $ deMorgan g i)
+    $ lines txt
 
 ------------------------------------------------------------------------------
 -- running tine sequences

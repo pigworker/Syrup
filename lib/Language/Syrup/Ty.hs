@@ -57,6 +57,7 @@ showType fn is os = concat
   ]
 
 showTyped :: TypedDef -> String
+showTyped Stub{} = "Stubbed out definition"
 showTyped d@(Def (fn, ps) rhs _)
   = unlines $
   [ concat [ fn,  "(", csepShow pstys, ")"

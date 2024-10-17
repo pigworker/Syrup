@@ -96,4 +96,3 @@ adc2([X1, X0], [Y1, Y0], CI) = CO, [Z1, Z0] where
   C1, Z0 = fadd(X0, Y0, CI)
   CO, Z1 = fadd(X1, Y1, C1)
 
-
