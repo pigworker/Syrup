@@ -32,10 +32,9 @@
 <div class="syrup-warning">Circuit <code>undefined</code> has been stubbed out.</div><br />
 <div class="syrup-comment">Circuit <code>not</code> is defined.</div><br />
 <div class="syrup-happy">Printing  <code>not</code>:<br />
-<div class="syrup-code">not(&lt;Bit&gt;) -&gt; &lt;Bit&gt;
-not(X) = Z where
+<div class="syrup-code">!&lt;Bit&gt; -&gt; &lt;Bit&gt;
+!X = Z where
   Z = nand(X, X)
-
 </div>
 </div><br />
 <div class="syrup-happy">Displaying <code>not</code>:<br />
@@ -52,11 +51,10 @@ not(X) = Z where
 </div><br />
 <div class="syrup-comment">Circuit <code>and</code> is defined.</div><br />
 <div class="syrup-happy">Printing  <code>and</code>:<br />
-<div class="syrup-code">and(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
-and(X, Y) = Z where
+<div class="syrup-code">&lt;Bit&gt; &amp; &lt;Bit&gt; -&gt; &lt;Bit&gt;
+X &amp; Y = Z where
   A = nand(X, Y)
-  Z = not(A)
-
+  Z = !A
 </div>
 </div><br />
 <div class="syrup-happy">Displaying <code>and</code>:<br />
@@ -73,11 +71,10 @@ and(X, Y) = Z where
 </div><br />
 <div class="syrup-comment">Circuit <code>or</code> is defined.</div><br />
 <div class="syrup-happy">Printing  <code>or</code>:<br />
-<div class="syrup-code">or(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
-or(X, Y) = Z where
-  A, B = not(X), not(Y)
+<div class="syrup-code">&lt;Bit&gt; | &lt;Bit&gt; -&gt; &lt;Bit&gt;
+X | Y = Z where
+  A, B = !X, !Y
   Z = nand(A, B)
-
 </div>
 </div><br />
 <div class="syrup-happy">Displaying <code>or</code>:<br />
@@ -95,7 +92,7 @@ or(X, Y) = Z where
 <div class="syrup-comment">Circuit <code>nor</code> is defined.</div><br />
 <div class="syrup-happy">Printing  <code>nor</code>:<br />
 <div class="syrup-code">nor(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
-nor(X, Y) = not(or(X, Y))
+nor(X, Y) = !(X | Y)
 </div>
 </div><br />
 <div class="syrup-happy">Displaying <code>nor</code>:<br />
@@ -114,10 +111,9 @@ nor(X, Y) = not(or(X, Y))
 <div class="syrup-happy">Printing  <code>xor</code>:<br />
 <div class="syrup-code">xor(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 xor(X, Y) = Z where
-  A, B = or(X, Y), and(X, Y)
-  C = not(B)
-  Z = and(A, C)
-
+  A, B = X | Y, X &amp; Y
+  C = !B
+  Z = A &amp; C
 </div>
 </div><br />
 <div class="syrup-happy">Displaying <code>xor</code>:<br />
@@ -136,9 +132,8 @@ xor(X, Y) = Z where
 <div class="syrup-happy">Printing  <code>hadd</code>:<br />
 <div class="syrup-code">hadd(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;, &lt;Bit&gt;
 hadd(X1, Y1) = C2, S1 where
-  C2 = and(X1, Y1)
+  C2 = X1 &amp; Y1
   S1 = xor(X1, Y1)
-
 </div>
 </div><br />
 <div class="syrup-happy">Displaying <code>hadd</code>:<br />
@@ -160,7 +155,6 @@ fadd(X1, Y1, C1) = C2, Z1 where
   D2, D1 = hadd(X1, Y1)
   E2, Z1 = hadd(D1, C1)
   C2 = xor(D2, E2)
-
 </div>
 </div><br />
 <div class="syrup-happy">Displaying <code>fadd</code>:<br />
@@ -194,7 +188,6 @@ X1 Y1 C1 | C2 Z1
 adc2([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   C2, Z1 = fadd(X1, Y1, C1)
   C4, Z2 = fadd(X2, Y2, C2)
-
 </div>
 </div><br />
 <div class="syrup-happy">Displaying <code>adc2</code>:<br />
@@ -212,7 +205,7 @@ adc2([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
 <div class="syrup-comment">Circuit <code>one</code> is defined.</div><br />
 <div class="syrup-happy">Printing  <code>one</code>:<br />
 <div class="syrup-code">one() -&gt; &lt;Bit&gt;
-one() = not(zero())
+one() = !zero()
 </div>
 </div><br />
 <div class="syrup-happy">Displaying <code>one</code>:<br />
@@ -230,7 +223,7 @@ one() = not(zero())
 <div class="syrup-comment">Circuit <code>mux</code> is defined.</div><br />
 <div class="syrup-happy">Printing  <code>mux</code>:<br />
 <div class="syrup-code">mux(&lt;Bit&gt;, &lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
-mux(C, X, Y) = or(and(C, X), and(not(C), Y))
+mux(C, X, Y) = C &amp; X | !C &amp; Y
 </div>
 </div><br />
 <div class="syrup-happy">Displaying <code>mux</code>:<br />
@@ -254,7 +247,6 @@ adc2par([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   C41, Z21 = fadd(X2, Y2, one())
   C4 = mux(C2, C41, C40)
   Z2 = mux(C2, Z21, Z20)
-
 </div>
 </div><br />
 <div class="syrup-happy">Displaying <code>adc2par</code>:<br />

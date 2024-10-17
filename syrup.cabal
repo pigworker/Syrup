@@ -88,6 +88,7 @@ library
                     , Language.Syrup.Lnt
                     , Language.Syrup.Opt
                     , Language.Syrup.Par
+                    , Language.Syrup.Pretty
                     , Language.Syrup.Pty
                     , Language.Syrup.Run
                     , Language.Syrup.Scp

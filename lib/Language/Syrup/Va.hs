@@ -33,7 +33,7 @@ instance Show Va where
 -- plans
 ------------------------------------------------------------------------------
 
-data Plan = Plan [Pat] [Task] [Pat] deriving Show
+data Plan = Plan [Pat] [Task] [Pat]
 
 plan :: Plan -> [Va] -> [Va]
 plan (Plan ips tas ops) ivs = fmap (pval g') ops where
@@ -46,9 +46,11 @@ plan (Plan ips tas ops) ivs = fmap (pval g') ops where
 ------------------------------------------------------------------------------
 
 data Task = [Pat] :<- ([Va] -> [Va], [Pat])
+
+{-
 instance Show Task where
   show (qs :<- (_, ps)) = show qs ++ " <- " ++ show ps
-
+-}
 task :: Env -> Task -> Env
 task g (qs :<- (f, ps)) = match qs (f (fmap (pval g) ps)) g
 

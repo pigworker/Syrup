@@ -10,7 +10,6 @@
 module Language.Syrup.Syn where
 
 import Data.Kind (Type)
-import Data.List (intercalate)
 import Data.Monoid (Sum(..), First(..))
 import Data.Void (Void)
 
@@ -22,7 +21,6 @@ data Source' a
   | TypeAlias (a, TY' a)
   | Definition Def
   | Experiment EXPT
-  deriving Show
 
 -- Concrete and internal sources
 type SourceC = Source' String
@@ -192,34 +190,3 @@ instance IsCircuit (Eqn' ty) where
 
 support :: IsCircuit t => t -> Set String
 support p = () <$ allVars p
-
-------------------------------------------------------------------------------
--- ugly-printing
-------------------------------------------------------------------------------
-
-instance Show (Exp' ty) where
-  show (Var _ x)    = x
-  show (Hol _ x)    = concat ["?", x]
-  show (App _ f es) = concat [f, "(", csepShow es, ")"]
-  show (Cab _ es)   = concat ["[", csepShow es, "]"]
-
-instance a ~ String => Show (Pat' ty a) where
-  show (PVar _ x)  = x
-  show (PCab _ ps) = concat ["[", csepShow ps, "]"]
-
-instance Show (Eqn' ty) where
-  show (ps :=: es) = concat [csepShow ps, " = ", csepShow es]
-
-instance Show (Def' ty) where
-  show = \case
-    Stub{} -> "Stubbed out definition"
-    Def (nm, ps) rhs eqns ->
-      concat [ nm
-             , "(", csepShow ps, ")"
-             , " = ", csepShow rhs
-             , flip (maybe "") eqns $ \ eqns ->
-                 unlines (" where" : map (("  " ++) . show) eqns)
-             ]
-
-csepShow :: Show x => [x] -> String
-csepShow = intercalate ", " . map show

@@ -31,6 +31,7 @@ import Language.Syrup.DNF (dnf)
 import Language.Syrup.Dot
 import Language.Syrup.Fdk
 import Language.Syrup.Opt
+import Language.Syrup.Pretty (basicShow, prettyShow, ASet(..), ATuple(..))
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Utils
@@ -70,10 +71,16 @@ experiment (Simulate x m0 iss) = withCompo x $ \ c ->
   anExperiment "Simulation for" [x] $ runCompo c m0 iss
 experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc ->
   anExperiment "Bisimulation between" [l, r] $ report (l, r) (bisimReport lc rc)
-experiment (Print x) = withImplem x $ \ i ->
-  tell $ Seq.singleton $ ARawCode "Printing" x $ lines (showTyped i)
-experiment (Typing x) = withCompo x $ \ c ->
-  anExperiment "Typing for" [x] $ lines (showType x (inpTys c) (oupTys c))
+experiment (Print x) = withImplem x $ \ i -> do
+  g <- use hasLens
+  let txt = prettyShow g i
+  tell $ Seq.singleton $ ARawCode "Printing" x $ lines txt
+experiment (Typing x) = withCompo x $ \ c -> do
+  g <- use hasLens
+  let txt = prettyShow g $ TypeDecl x
+              (getInputType <$> inpTys c)
+              (getOutputType <$> oupTys c)
+  anExperiment "Typing for" [x] $ lines txt
 experiment (Display x) = withImplem x $ \ i -> do
   st <- use hasLens
   let dot = whiteBoxDef st i
@@ -85,13 +92,16 @@ experiment (Display x) = withImplem x $ \ i -> do
         Just{} -> AnSVGGraph x . lines <$> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
 experiment (Dnf x) = withImplem x $ \ i -> do
   env <- use hasLens
+  let txt = prettyShow env (dnf env i)
   tell $ Seq.singleton
     $ ARawCode "Disjunctive Normal Form of" x
-    $ lines (showTyped (dnf env i))
-experiment (Anf x) = withImplem x $ \ i ->
+    $ lines txt
+experiment (Anf x) = withImplem x $ \ i -> do
+  env <- use hasLens
+  let txt = prettyShow env (toANF i)
   tell $ Seq.singleton
     $ ARawCode "A Normal Form of" x
-    $ lines (showTyped (toANF i))
+    $ lines txt
 experiment (Costing nms x) = do
   g <- use hasLens
   let support = foldMap singleton nms
@@ -102,9 +112,10 @@ experiment (Costing nms x) = do
       ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
 experiment (Simplify x) = withImplem x $ \ i -> do
   g <- use hasLens
+  let txt = prettyShow g (deMorgan g i)
   tell $ Seq.singleton
     $ ARawCode "Simplification of" x
-    $ lines (showTyped $ deMorgan g i)
+    $ lines txt
 
 ------------------------------------------------------------------------------
 -- running tine sequences
@@ -113,13 +124,11 @@ experiment (Simplify x) = withImplem x $ \ i -> do
 runCompo :: Compo -> [Va] -> [[Va]] -> [String]
 runCompo c m0 iss
   | not (tyVaChks mTys m0)
-  = [ concat ["Memory for ", monick c, " has type {",
-              csepShow mTys, "}"]
+  = [ concat ["Memory for ", monick c, " has type ", basicShow (ASet mTys)]
     , concat ["That can't store {", foldMap show m0, "}."]
     ]
   | Just is <- find (not . tyVaChks iTys) iss
-  = [ concat ["Inputs for ", monick c, " are typed ",
-              csepShow iTys, ""]
+  = [ concat ["Inputs for ", monick c, " are typed ", basicShow (ATuple iTys)]
     , concat ["That can't accept ", foldMap show is, "."]
     ]
   | otherwise = render (go 0 m0 iss)
@@ -450,18 +459,16 @@ data Report' st st'
               (st', Arr st  [[Va]]))
       (AbstractCompo' st')
   | Bisimilar (AbstractCompo' st) (Bisim st st') (AbstractCompo' st')
-  deriving Show
+
 
 data Report = forall st st'.
   (Ord st, Ord st', Show st, Show st') => Report (Report' st st')
 
 report :: (String, String) -> Report -> [String]
 report (lnom, rnom) (Report (Incompatible (lis, los) (ris, ros))) =
-  [lnom ++ " and " ++ rnom ++ " are incompatible"
-  ,concat [lnom, "(", csepShow lis, ") -> ", csepShow los
-          ]
-  ,concat [rnom, "(", csepShow ris, ") -> ", csepShow ros
-          ]
+  [ lnom ++ " and " ++ rnom ++ " are incompatible"
+  , basicShow (TypeDecl lnom lis los)
+  , basicShow (TypeDecl rnom ris ros)
   ]
 report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
   [lnom ++ " has a behaviour that " ++ rnom ++ " does not match"]
