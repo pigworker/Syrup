@@ -69,7 +69,11 @@ type Def = Def' ()
 data Def' ty
   = Stub String [Feedback]
   -- stubbed out definition together with error msg
-  | Def (String,[Pat' ty String]) [Exp' ty] (Maybe [Eqn' ty])
+  | Def (String, [Pat' ty String]) [Exp' ty] (Maybe [Eqn' ty])
+
+defName :: Def' ty -> String
+defName (Stub f _) = f
+defName (Def (f, _) _ _) = f
 
 data TY' a
   = BIT

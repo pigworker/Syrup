@@ -152,6 +152,7 @@ data Feedback
   | ASyntaxError [String]
   | ATypeError [String]
   | AnAmbiguousDefinition String [[String]]
+  | AnUndeclaredCircuit String
   | AnUndefinedCircuit String
   | AnUndefinedType String
   | AnUnknownIdentifier String
@@ -181,6 +182,7 @@ instance Categorise Feedback where
     ASyntaxError{} -> Error
     ATypeError{} -> Error
     AnAmbiguousDefinition{} -> Error
+    AnUndeclaredCircuit{} -> Error
     AnUndefinedCircuit{} -> Error
     AnUndefinedType{} -> Error
     AnUnknownIdentifier{} -> Error
@@ -231,27 +233,28 @@ instance Render Feedback where
     prepend x (y : xs) = (x <> y : xs)
 
     go = \case
-      AnExperiment str xs ls -> (str ++ " " ++ intercalate ", " xs ++ ":") : ls
-      ALint ls -> ls
+      ACircuitDefined str -> ["Circuit " ++ str ++ " is defined."]
       ADotGraph x ls -> ("Displaying " ++ x) : ls
       AFoundHoles f ls -> ("Found holes in circuit " ++ f ++ ":") : ls
-      AnSVGGraph x ls ->  ("Displaying " ++ x ++ ":") : ls
-      ARawCode str x ls -> (str ++ " " ++ x ++ ":") : ls
-      ASyntaxError ls -> ls
-      AScopeError ls -> render ls
-      ANoExecutable exe -> ["Could not find the " ++ exe ++ " executable :("]
-      ATruthTable x ls -> ("Truth table for " ++ x ++ ":") : ls
-      ACircuitDefined str -> ["Circuit " ++ str ++ " is defined."]
-      ATypeDefined str -> ["Type <" ++ str ++ "> is defined."]
-      AStubbedOut nm -> ["Circuit " ++ nm ++ " has been stubbed out."]
-      ATypeError ls -> ls
-      AnUnknownIdentifier x -> ["I don't know what " ++ x ++ " is."]
+      ALint ls -> ls
       AMissingImplementation x -> ["I don't have an implementation for " ++ x ++ "."]
+      ANoExecutable exe -> ["Could not find the " ++ exe ++ " executable :("]
+      ARawCode str x ls -> (str ++ " " ++ x ++ ":") : ls
+      AScopeError ls -> render ls
+      AStubbedOut nm -> ["Circuit " ++ nm ++ " has been stubbed out."]
+      ASyntaxError ls -> ls
+      ATruthTable x ls -> ("Truth table for " ++ x ++ ":") : ls
+      ATypeDefined str -> ["Type <" ++ str ++ "> is defined."]
+      ATypeError ls -> ls
       AnAmbiguousDefinition f zs ->
         ["I don't know which of the following is your preferred " ++ f ++ ":"]
         ++ intercalate [""] zs
+      AnExperiment str xs ls -> (str ++ " " ++ intercalate ", " xs ++ ":") : ls
+      AnSVGGraph x ls ->  ("Displaying " ++ x ++ ":") : ls
+      AnUndeclaredCircuit f -> ["You haven't declared the circuit " ++ f ++ " just now."]
       AnUndefinedCircuit f -> ["You haven't defined the circuit " ++ f ++ " just now."]
       AnUndefinedType x -> ["You haven't defined the type alias " ++ x ++ " just now."]
+      AnUnknownIdentifier x -> ["I don't know what " ++ x ++ " is."]
 
   renderHTML e = do
     cat <- renderHTML (categorise e)
@@ -304,6 +307,7 @@ instance Render Feedback where
       AnAmbiguousDefinition f zs ->
         pure (asHTML (("I don't know which of the following is your preferred " ++ f ++ ":") : intercalate [""] zs))
       AnUndefinedCircuit f -> pure ("You haven't defined the circuit " ++ identifier f ++ " just now.")
+      AnUndeclaredCircuit f -> pure ("You haven't declared the circuit " ++ identifier f ++ " just now.")
       AnUndefinedType x -> pure ("You haven't defined the type " ++ identifier x ++ " just now.")
 
 feedback :: Options -> [Feedback] -> [String]
