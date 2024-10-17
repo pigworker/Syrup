@@ -11,6 +11,7 @@ import Data.List (intercalate)
 import Language.Syrup.BigArray
 import Language.Syrup.Ded
 import Language.Syrup.Fdk
+import Language.Syrup.Pretty
 import Language.Syrup.Syn
 
 class Lint t where
@@ -41,7 +42,7 @@ instance ty ~ () => Lint (Def' ty) where
       let ps = abstractableCables d
       if null ps then [] else pure $ ALint
         [ "Warning: the " ++ plural ps "cable" "s" ++ " "
-          ++ intercalate ", " (show <$> ps)
+          ++ intercalate ", " (basicShow . AList <$> ps)
           ++ " " ++ be ps
           ++ " taken apart only to be reconstructed or unused."
         , "Did you consider giving each cable a name without breaking it up?"

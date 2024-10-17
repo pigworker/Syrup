@@ -14,6 +14,7 @@ import Data.Traversable (for)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Fsh
+import Language.Syrup.Pretty (basicShow)
 import Language.Syrup.Smp
 import Language.Syrup.Syn
 import Language.Syrup.Ty
@@ -118,7 +119,7 @@ elabPat :: TypedPat -> ANF (Input, [Input], [LetBinding])
 elabPat p = case p of
   PVar ty x -> let vx = Input False ty Nothing x in pure (vx, [vx], [])
   PCab ty ps -> do
-    x <- Input True ty (Just $ show p) <$> freshVirtualName
+    x <- Input True ty (Just $ basicShow p) <$> freshVirtualName
     ias <- mapM elabPat ps
     let (is, iss, eqnss) = unzip3 ias
     pure (x, concat iss, (wire <$> is, FanOut x) : concat eqnss)
@@ -127,7 +128,7 @@ declareAlias :: TypedExp -> ANF (Output, [Assignment])
 declareAlias e = do
   vn <- freshVirtualName
   let ty = getTyp e
-  let out = Output True ty (show <$> exPat e) vn
+  let out = Output True ty (basicShow <$> exPat e) vn
   pure (out, [([out], e)])
 
 elabExp :: TypedExp -> ANF (Output, [Assignment])
@@ -278,7 +279,7 @@ toANF d = fromMaybe d $ uncurry fromGate <$> toGate d
 
 test :: IO ()
 test = do
-  let runner = print . toANF
+  let runner = putStrLn . basicShow . toANF
   runner foo
   runner and4
   runner and4'

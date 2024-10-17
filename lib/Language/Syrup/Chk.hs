@@ -30,6 +30,7 @@ import Language.Syrup.BigArray
 import Language.Syrup.Bwd
 import Language.Syrup.Expt
 import Language.Syrup.Fdk
+import Language.Syrup.Pretty (basicShow, csepShow)
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Va
@@ -104,7 +105,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
           hasLens %= insertArr (g, stubOut dec)
           tell $ Seq.fromList
             [ AFoundHoles g $ flip foldMapArr (allHoles def) $ \ (k, v) ->
-                ["  ?" ++ k ++ " : " ++ maybe "?" show (getFirst v)]
+                ["  ?" ++ k ++ " : " ++ maybe "?" basicShow (getFirst v)]
             , AStubbedOut g
             ]
           pure (False, Nothing)
@@ -337,7 +338,6 @@ stage (Cable ts) = do
 
 data Dec
   = Dec (String, [Ty1]) [Ty2]
-  deriving Show
 
 cookDec :: DEC -> Dec
 cookDec (DEC (f, is) os) =
@@ -397,7 +397,7 @@ typeErrorReport (cz, e) = concat
     context (Stubbed _) = const []
     context _ = ("" :) . context'
     context' (_ :< TyEQN eq) =
-      ["At the time, I was checking this equation:", show eq]
+      ["At the time, I was checking this equation:", basicShow eq]
     context' (_ :< TyOUTPUTS ts es) =
       [ "I was trying to get outputs"
       , "  " ++ csepShow ts
@@ -416,7 +416,7 @@ typeErrorReport (cz, e) = concat
       [ "I was hoping to get the beginning of these"
       , "  " ++ csepShow ts
       , "from the expression"
-      , "  " ++ show e
+      , "  " ++ basicShow e
       , "at the time."
       ]
     context' (_ :< TyCAB es ts) =
@@ -435,8 +435,8 @@ typeErrorReport (cz, e) = concat
       ]
     context' (g :< TyWIRE x s t) =
       [ "I was trying to connect " ++ ww x
-      , "but it carried a signal of type " ++ show s
-      , "where a signal of type " ++ show t
+      , "but it carried a signal of type " ++ basicShow s
+      , "where a signal of type " ++ basicShow t
       , "was expected."
       ] ++ context' g
       where

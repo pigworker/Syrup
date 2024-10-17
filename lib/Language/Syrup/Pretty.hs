@@ -13,12 +13,14 @@ module Language.Syrup.Pretty where
 import Control.Monad.Reader (MonadReader, runReader)
 
 import Data.Foldable (fold)
-import Data.List (intersperse)
+import Data.List (intercalate, intersperse)
+import Data.Void (Void, absurd)
 
 import Prelude hiding (unwords, unlines)
 
-import Language.Syrup.Syn (Exp'(..), Pat'(..), Eqn'(..), Def'(..), patTy, expTys)
-import Language.Syrup.Ty (Ty(..), TypedDef, CoEnv, Remarkable(..), isRemarkable)
+import Language.Syrup.BigArray (emptyArr)
+import Language.Syrup.Syn
+import Language.Syrup.Ty
 
 ------------------------------------------------------------------------
 -- Doc type and basic combinators
@@ -33,6 +35,9 @@ d <+> e = d <> Doc " " <> e
 
 between :: Doc -> Doc -> (Doc -> Doc)
 between left right middle = fold [left, middle, right]
+
+curlies :: Doc -> Doc
+curlies = between (Doc "{") (Doc "}")
 
 square :: Doc -> Doc
 square = between (Doc "[") (Doc "]")
@@ -62,6 +67,9 @@ list = square . csep
 tuple :: [Doc] -> Doc
 tuple = parens . csep
 
+set :: [Doc] -> Doc
+set = curlies . csep
+
 questionMark :: Doc
 questionMark = Doc "?"
 
@@ -84,6 +92,10 @@ data PrecedenceLevel
   | NegatedClause
   deriving (Eq, Ord, Enum, Bounded)
 
+newtype AList a = AList [a]
+newtype ATuple a = ATuple [a]
+newtype ASet a = ASet [a]
+
 class Pretty t where
   pretty :: MonadPretty m => t -> m Doc
   pretty = prettyPrec minBound
@@ -96,6 +108,21 @@ instance Pretty String where
 instance Pretty Integer where
   prettyPrec _ = pretty . show
 
+instance Pretty Void where
+  prettyPrec _ = absurd
+
+instance Pretty () where
+  prettyPrec _ _ = pretty "()"
+
+instance Pretty a => Pretty (AList a) where
+  prettyPrec _ (AList xs) = list <$> traverse pretty xs
+
+instance Pretty a => Pretty (ATuple a) where
+  prettyPrec _ (ATuple xs) = tuple <$> traverse pretty xs
+
+instance Pretty a => Pretty (ASet a) where
+  prettyPrec _ (ASet xs) = set <$> traverse pretty xs
+
 ------------------------------------------------------------------------
 -- Pretty instances
 
@@ -107,8 +134,8 @@ data FunctionCall a = FunctionCall
 defaultApp :: (MonadPretty m, Pretty a) => String -> [a] -> m Doc
 defaultApp f es = do
   f <- pretty f
-  es <- traverse pretty es
-  pure $ fold [f, tuple es]
+  args <- pretty (ATuple es)
+  pure $ fold [f, args]
 
 instance Pretty a => Pretty (FunctionCall a) where
   prettyPrec lvl = \case
@@ -131,20 +158,20 @@ instance Pretty (Exp' ty) where
   prettyPrec lvl = \case
     Var _ x -> pretty x
     Hol _ x -> (questionMark <>) <$> pretty x
-    Cab _ es -> list <$> traverse pretty es
+    Cab _ es -> pretty (AList es)
     App _ f es -> prettyPrec lvl (FunctionCall f es)
 
 instance Pretty a => Pretty (Pat' ty a) where
   prettyPrec lvl = \case
     PVar _ a -> pretty a
-    PCab _ ps -> list <$> traverse pretty ps
+    PCab _ ps -> pretty (AList ps)
 
 
 instance Pretty x => Pretty (Ty t x) where
   prettyPrec lvl = \case
     TyV x -> between (Doc "<") (Doc ">") <$> pretty x
     Bit _ -> pure $ Doc "<Bit>"
-    Cable ps -> list <$> traverse pretty ps
+    Cable ps -> pretty (AList ps)
 
 instance Pretty (Eqn' ty) where
   prettyPrec _ (ps :=: es) = do
@@ -174,5 +201,17 @@ instance Pretty TypedDef where
       -- Combining everything
       pure $ unlines [decl, defn]
 
+instance (Pretty x, Pretty x') => Pretty (TypeDecl t x t' x') where
+  prettyPrec _ (TypeDecl fn is os) = do
+    lhsTy <- pretty (FunctionCall fn is)
+    rhsTy <- csep <$> traverse pretty os
+    pure $ unwords [lhsTy, Doc "->", rhsTy]
+
 prettyShow :: Pretty t => CoEnv -> t -> String
 prettyShow env = runDoc . flip runReader env . pretty
+
+basicShow :: Pretty t => t -> String
+basicShow = prettyShow emptyArr
+
+csepShow :: Pretty t => [t] -> String
+csepShow = intercalate ", " . map basicShow

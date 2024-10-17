@@ -50,25 +50,6 @@ type TypedExp = Exp' Typ
 type TypedEqn = Eqn' Typ
 type TypedDef = Def' Typ
 
-showType :: String -> [InputWire] -> [OutputWire] -> String
-showType fn is os = concat
-  [ fn,  "(", csepShow (getInputType <$> is), ")"
-  , " -> ", csepShow (getOutputType <$> os)
-  ]
-
-showTyped :: TypedDef -> String
-showTyped Stub{} = "Stubbed out definition"
-showTyped d@(Def (fn, ps) rhs _)
-  = unlines $
-  [ concat [ fn,  "(", csepShow pstys, ")"
-               , " -> ", csepShow rhstys
-           ]
-  , show d
-  ] where
-
-  pstys = map patTy ps
-  rhstys = map (head . expTys) rhs
-
 data Ti = T0 | T1 deriving (Show, Eq)
 
 sizeTy :: Ty a Void -> Int
@@ -83,7 +64,7 @@ newtype CellName = CellName { cellName :: String }
 data MemoryCell = MemoryCell
   { getCellName :: Maybe CellName
   , getCellType :: Ty1
-  } deriving (Show)
+  }
 
 data InputWire = InputWire
   { getInputPat  :: Maybe Pat
@@ -95,6 +76,8 @@ data OutputWire = OutputWire
   { getOutputPat  :: Maybe OPat
   , getOutputType :: Ty2
   }
+
+data TypeDecl t x t' x' = TypeDecl String [Ty t x] [Ty t' x']
 
 isProperOPat :: OPat -> Maybe OPat
 isProperOPat op = do
@@ -227,7 +210,7 @@ data TyClueF t
   | TyINPUTS [t] [Pat]          -- check input patterns against types
   | TyOUTPUTS [t] [Exp]         -- check output expressions against types
   | TyEQN Eqn                   -- check an equation
-  deriving (Show, Functor, Foldable, Traversable)
+  deriving (Functor, Foldable, Traversable)
 
 type TyClue = TyClueF Typ
 
@@ -274,7 +257,7 @@ data TySt = TySt
   , memIn  :: [Pat]          -- memory input patterns
   , memOu  :: [Pat]          -- memory output patterns
   , sched  :: [Task]         -- scheduled tasks so far
-  } deriving Show
+  }
 
 data Wire
   = Physical String
@@ -453,11 +436,6 @@ stub (Cable ts) = VC (fmap stub ts)
 ------------------------------------------------------------------------------
 -- boring instances
 ------------------------------------------------------------------------------
-
-instance Show x => Show (Ty t x) where
-  show (TyV x)    = "?" ++ show x
-  show (Bit t)    = "<Bit>"
-  show (Cable ts) = "[" ++ csepShow ts ++ "]"
 
 instance Monad (Ty t) where
   return = TyV
