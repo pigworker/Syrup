@@ -1,4 +1,4 @@
-Displaying not
+Displaying not:
 digraph whitebox {
   rankdir = TB;
   nodesep = 0.2;
@@ -12,7 +12,7 @@ digraph whitebox {
                </TABLE>>
     ];
 
-subgraph cluster_circuit__ {
+subgraph cluster_circuit__GATE_not_3 {
   style=invis;
 subgraph gate_3__0__0 {
   style = invis;

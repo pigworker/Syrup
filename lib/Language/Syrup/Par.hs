@@ -307,13 +307,13 @@ pCommand :: String -> (String -> EXPT) -> Par EXPT
 pCommand str con = con <$ pTokIs (Id str) <* pSpc <*> pVar <* pSpc <* pEOI
 
 pEXPT :: Par EXPT
-pEXPT =
-  pCommand "display" Display
-  <|> pCommand "print" Print
+pEXPT
+   =  pCommand "print" Print
   <|> pCommand "anf" Anf
   <|> pCommand "dnf" Dnf
   <|> pCommand "type" Typing
   <|> pCommand "simplify" Simplify
+  <|> Display <$ pTokIs (Id "display") <* pSpc <*> pSupp <* pSpc <*> pVar <* pSpc <* pEOI
   <|> Costing <$ pTokIs (Id "cost") <* pSpc <*> pSupp <* pSpc <*> pVar <* pSpc <* pEOI
   <|> FromOutputs
       <$ pTokIs (Id "definition")

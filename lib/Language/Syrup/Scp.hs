@@ -20,7 +20,6 @@ import Control.Monad (foldM, unless, when, void)
 import Data.Bifunctor ()
 import Data.Char (toLower)
 import Data.Foldable (traverse_)
-import Data.List (intersperse)
 import Data.Monoid ()
 
 import Language.Syrup.BigArray
@@ -184,7 +183,8 @@ instance Scoped EXPT where
       isGlobalVar ga nm
       isGlobalVar ga nm'
       pure emptyExtension
-    Display nm -> do
+    Display nms nm -> do
+      traverse_ (isGlobalVar ga) nms
       isGlobalVar ga nm
       pure emptyExtension
     Dnf nm -> do

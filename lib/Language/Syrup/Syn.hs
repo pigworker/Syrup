@@ -100,7 +100,7 @@ data EXPT
   = Anf String
   | Bisimilarity String String
   | Costing [String] String
-  | Display String
+  | Display [String] String
   | Dnf String
   | Print String
   | Simplify String
