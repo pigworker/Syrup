@@ -36,7 +36,7 @@ fadd(<Bit>, <Bit>, <Bit>) -> <Bit>, <Bit>
 fadd(X1, Y1, C1) = C2, Z1 where
   D2, D1 = hadd(X1, Y1)
   E2, Z1 = hadd(D1, C1)
-  C2 = xor(D2, E2)
+  _, C2 = hadd(D2, E2)
 
 jkff(<Bit>, <Bit>) -> @<Bit>
 jkff(J, K) = Q where

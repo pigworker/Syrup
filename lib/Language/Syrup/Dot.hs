@@ -146,18 +146,24 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
   let gateNode   = mkGate p nm
 
   ins <- for is $ \ (Input _ ty _ i) -> do
-     let node  = concat [gateNode, "__INPUTS:", i]
      let vnode = mkNode p i
      tellVirtual vnode
-     tellEdge ty node vnode False
-     pure node
+     case loc of
+       TopLevel -> do
+         let node  = concat [gateNode, "__INPUTS:", i]
+         tellEdge ty node vnode False
+         pure node
+       Unfolded -> pure vnode
 
   ous <- for os $ \ (Output _ ty _ o) -> do
-     let node  = concat [gateNode, "__OUTPUTS:", o]
-     let vnode = mkNode p o
-     tellVirtual vnode
-     tellEdge ty vnode node True
-     pure node
+    let vnode = mkNode p o
+    tellVirtual vnode
+    case loc of
+      TopLevel -> do
+        let node  = concat [gateNode, "__OUTPUTS:", o]
+        tellEdge ty vnode node True
+        pure node
+      Unfolded -> pure vnode
 
   let iports = map (declarePort 20 True . inputToPort) is
   let oports = map (declarePort 20 True . outputToPort) os
@@ -205,15 +211,15 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
           pure Nothing
         Just repr -> do
           id <- fresh
-          dotG <- do
+          (b, dotG) <- do
             let gt = repr transparent Unfolded (extend id p)
-            if f `notElem` transparent then pure (blackbox gt) else
+            if f `notElem` transparent then pure (True, blackbox gt) else
               case whitebox gt of
                 Left fdk -> do modify (<> fdk)
-                               pure (blackbox gt)
-                Right wbox -> pure wbox
+                               pure (True, blackbox gt)
+                Right wbox -> pure (False, wbox)
           for_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
-            tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") True
+            tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") b
           for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
             tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
           pure (Just $ circuitGraph dotG)
@@ -240,9 +246,9 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
       { inputPorts   = ins
       , outputPorts  = ous
       , circuitGraph =
-          [ iPorts
+          (case loc of { TopLevel -> [iPorts]; Unfolded -> [] }) ++
           -- needed to get the outputs at the bottom in e.g. tff
-          , "subgraph cluster_circuit__" ++ gateNode ++ " {"
+          [ "subgraph cluster_circuit__" ++ gateNode ++ " {"
           ] ++
           (case loc of
              TopLevel -> [ "  style=invis;" ]
@@ -252,9 +258,8 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
                , "  labeljust=l;"
                ]
           ) ++ concat gph ++
-          ["}"
-          , oPorts
-          ]
+          [ "}" ]
+          ++ (case loc of { TopLevel -> [oPorts]; Unfolded -> [] })
       }
 
 gate :: String
