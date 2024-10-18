@@ -204,6 +204,8 @@ instance Scoped EXPT where
     Simplify nm -> do
       isGlobalVar ga nm
       pure emptyExtension
+    FromOutputs{} -> do
+      pure emptyExtension
 
 instance Scoped (Source' a) where
   scopecheck ga = \case

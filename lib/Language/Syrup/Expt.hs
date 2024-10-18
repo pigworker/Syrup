@@ -27,7 +27,7 @@ import Language.Syrup.Anf
 import Language.Syrup.BigArray
 import Language.Syrup.Cst
 import Language.Syrup.DeMorgan (deMorgan)
-import Language.Syrup.DNF (dnf)
+import Language.Syrup.DNF (dnf, ttToDef)
 import Language.Syrup.Dot
 import Language.Syrup.Fdk
 import Language.Syrup.Opt
@@ -116,6 +116,15 @@ experiment (Simplify x) = withImplem x $ \ i -> do
   tell $ Seq.singleton
     $ ARawCode "Simplification of" x
     $ lines txt
+experiment (FromOutputs f xs bs) = do
+  g <- use hasLens
+  case ttToDef g f xs bs of
+    Nothing -> tell $ Seq.singleton (AnInvalidTruthTableOutput f)
+    Just def -> do
+      let txt = prettyShow g def
+      tell $ Seq.singleton
+        $ ARawCode "DNF circuit for" f
+        $ lines txt
 
 ------------------------------------------------------------------------------
 -- running tine sequences

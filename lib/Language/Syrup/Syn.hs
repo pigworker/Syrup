@@ -104,6 +104,7 @@ data EXPT
   | Simulate String [Va] [[Va]]
   | Typing String
   | Tabulate String
+  | FromOutputs String [String] [Bool]
   deriving Show
 
 data Va
