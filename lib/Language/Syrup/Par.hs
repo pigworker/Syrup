@@ -319,7 +319,7 @@ pEXPT =
       <$ pTokIs (Id "definition")
       <* pSpc <*> pVar
       <* pSpc <*> pBrk Square (SEEKING "Truth table variables")
-           (pAllSep (pTokIs (Sym ",")) pVar)
+           (pAllSep (pTokIs (Sym ",")) (InputName <$> pVar))
       <* pSpc <*> pBrk Square (SEEKING "Truth table values")
            (pAllSep (pTokIs (Sym ",")) (False <$ pTokIs (Sym "0") <|> True <$ pTokIs (Sym "1")))
   <|> pTokIs (Id "experiment") *> pSpc *>

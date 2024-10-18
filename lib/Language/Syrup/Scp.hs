@@ -15,7 +15,7 @@
 
 module Language.Syrup.Scp where
 
-import Control.Monad (foldM, unless, when)
+import Control.Monad (foldM, unless, when, void)
 
 import Data.Bifunctor ()
 import Data.Char (toLower)
@@ -106,6 +106,7 @@ isGlobalVar ga nm = do
 type family Level t :: ScopeLevel where
   Level [a]         = Level a
   Level (Maybe a)   = Level a
+  Level InputName   = 'Local
   Level Pat         = 'Local
   Level Eqn         = 'Local
   Level (DEC' a)    = 'Global
@@ -146,6 +147,7 @@ instance Scoped Exp where
       scopecheck ga es
     Cab _ es -> scopecheck ga es
 
+instance Scoped [InputName]
 instance Scoped [Pat]
 instance Scoped [Exp]
 
@@ -204,8 +206,12 @@ instance Scoped EXPT where
     Simplify nm -> do
       isGlobalVar ga nm
       pure emptyExtension
-    FromOutputs{} -> do
+    FromOutputs f xs bs -> do
+      void $ scopecheck ga xs
       pure emptyExtension
+
+instance Scoped InputName where
+  scopecheck ga (InputName x) = declareVar ga x
 
 instance Scoped (Source' a) where
   scopecheck ga = \case
