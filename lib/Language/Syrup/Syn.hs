@@ -93,6 +93,9 @@ data DEC' a = DEC (String,[TY' a]) [TY' a]
 type DECC = DEC' String
 type DEC  = DEC' Void
 
+data InputName = InputName { getInputName :: String }
+  deriving Show
+
 data EXPT
   = Anf String
   | Bisimilarity String String
@@ -104,7 +107,7 @@ data EXPT
   | Simulate String [Va] [[Va]]
   | Typing String
   | Tabulate String
-  | FromOutputs String [String] [Bool]
+  | FromOutputs String [InputName] [Bool]
   deriving Show
 
 data Va

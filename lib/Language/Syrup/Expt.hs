@@ -118,7 +118,7 @@ experiment (Simplify x) = withImplem x $ \ i -> do
     $ lines txt
 experiment (FromOutputs f xs bs) = do
   g <- use hasLens
-  case ttToDef g f xs bs of
+  case ttToDef g f (map getInputName xs) bs of
     Nothing -> tell $ Seq.singleton (AnInvalidTruthTableOutput f)
     Just def -> do
       let txt = prettyShow g def

@@ -8,3 +8,7 @@ or(<Bit>, <Bit>) -> <Bit>
 or(X,Y) = nand(!X,!Y)
 
 definition f [X,Y,Z] [0,0,0,0,1,0,0,1]
+definition g [X,Y,X] [0,0,0,0,1,0,0,1]
+definition h [] []
+definition i [X] [0]
+definition j [] [0]
