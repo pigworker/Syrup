@@ -33,7 +33,7 @@ Displaying adc2par:
 <title>whitebox</title>
 <polygon fill="white" stroke="transparent" points="-4,4 -4,-668 338,-668 338,4 -4,4"/>
 <g id="clust1" class="cluster">
-<title>cluster_circuit__</title>
+<title>cluster_circuit__GATE_adc2par_13</title>
 </g>
 <!-- GATE_adc2par_13__INPUTS -->
 <g id="node1" class="node">

@@ -146,8 +146,13 @@ instance Render ScopeError where
   renderHTML = pure . metaRender identifier
 
 data Feedback
-  -- errors
-  = ANoExecutable String
+  -- internal errors
+  = ACouldntFindCircuitDiagram String
+  | AnImpossibleError String
+
+  -- error
+  | ACannotDisplayStub String
+  | ANoExecutable String
   | AScopeError ScopeError
   | ASyntaxError [String]
   | ATypeError [String]
@@ -169,15 +174,20 @@ data Feedback
   | ATypeDefined String
 
   -- successes
-  | ADotGraph String [String]
+  | ADotGraph [String] String [String]
   | ARawCode String String [String]
   | ATruthTable String [String]
   | AnExperiment String [String] [String]
-  | AnSVGGraph String [String]
+  | AnSVGGraph [String] String [String]
 
 instance Categorise Feedback where
   categorise = \case
+    -- internal errors
+    AnImpossibleError{} -> Internal
+    ACouldntFindCircuitDiagram{} -> Internal
+
     -- errors
+    ACannotDisplayStub{} -> Error
     ANoExecutable{} -> Error
     AScopeError{} -> Error
     ASyntaxError{} -> Error
@@ -235,8 +245,14 @@ instance Render Feedback where
     prepend x (y : xs) = (x <> y : xs)
 
     go = \case
+      AnImpossibleError str -> ["The IMPOSSIBLE has happened: " ++ str ++ "."]
+      ACouldntFindCircuitDiagram nm -> ["Could not find the diagram for the circuit " ++ nm ++ "."]
+      ACannotDisplayStub nm ->  ["Cannot display a diagram for the stubbed out circuit " ++ nm ++ "."]
       ACircuitDefined str -> ["Circuit " ++ str ++ " is defined."]
-      ADotGraph x ls -> ("Displaying " ++ x) : ls
+      ADotGraph xs x ls -> ("Displaying " ++ x ++ extra ++ ":") : ls
+        where extra = case xs of
+                [] -> ""
+                _ -> concat [" (with ", intercalate ", " xs, " unfolded)"]
       AFoundHoles f ls -> ("Found holes in circuit " ++ f ++ ":") : ls
       ALint ls -> ls
       AMissingImplementation x -> ["I don't have an implementation for " ++ x ++ "."]
@@ -252,7 +268,10 @@ instance Render Feedback where
         ["I don't know which of the following is your preferred " ++ f ++ ":"]
         ++ intercalate [""] zs
       AnExperiment str xs ls -> (str ++ " " ++ intercalate ", " xs ++ ":") : ls
-      AnSVGGraph x ls ->  ("Displaying " ++ x ++ ":") : ls
+      AnSVGGraph xs x ls ->  ("Displaying " ++ x ++ extra ++ ":") : ls
+        where extra = case xs of
+                [] -> ""
+                _ -> concat [" (with ", intercalate ", " xs, " unfolded)"]
       AnUndeclaredCircuit f -> ["You haven't declared the circuit " ++ f ++ " just now."]
       AnUndefinedCircuit f -> ["You haven't defined the circuit " ++ f ++ " just now."]
       AnUndefinedType x -> ["You haven't defined the type alias " ++ x ++ " just now."]
@@ -269,14 +288,18 @@ instance Render Feedback where
     where
 
     goHTML = \case
+      AnImpossibleError str -> pure ("The IMPOSSIBLE has happened: " ++ str ++ ".")
+      ACouldntFindCircuitDiagram nm -> pure ("Could not find the diagram for the circuit " ++ identifier nm ++ ".")
+      ACannotDisplayStub nm -> pure ("Cannot display a diagram for the stubbed out circuit " ++ identifier nm ++ ".")
+
       AnExperiment str x ls -> pure $ unlines
         [ str ++ " " ++ intercalate ", " (identifier <$> x) ++ ":" ++ HTML.br
         , asHTML ls
         ]
-      ADotGraph x ls -> do
+      ADotGraph xs x ls -> do
         n <- show <$> fresh
         pure $ unlines
-          [ "Displaying " ++ identifier x ++ ":" ++ HTML.br
+          [ "Displaying " ++ identifier x ++ extra ++ ":" ++ HTML.br
           , "<script type=" ++ show "module" ++ ">"
           , "  import { Graphviz } from \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js\";"
           , "  if (Graphviz) {"
@@ -288,12 +311,18 @@ instance Render Feedback where
           , "</script>"
           , "<div id=" ++ show ("GRAPH" ++ n) ++ "></div>"
           ]
+        where extra = case xs of
+                [] -> ""
+                _ -> concat [" (with ", intercalate ", " (map identifier xs), " unfolded)"]
 
       AFoundHoles f ls -> pure ("Found holes in circuit " ++ identifier f ++ ":" ++ HTML.br ++ asHTML ls)
 
       ALint ls -> pure (asHTML ls)
       ANoExecutable exe -> pure ("Could not find the " ++ identifier exe ++ " executable :(")
-      AnSVGGraph x ls -> pure (unlines (("Displaying " ++ identifier x ++ ":" ++ HTML.br) : ls))
+      AnSVGGraph xs x ls -> pure (unlines (("Displaying " ++ identifier x ++ extra ++ ":" ++ HTML.br) : ls))
+        where extra = case xs of
+                [] -> ""
+                _ -> concat [" (with ", intercalate ", " (map identifier xs), " unfolded)"]
       ARawCode str x ls -> pure $ unlines
         [ str ++ "  " ++ identifier x ++ ":" ++ HTML.br
         , HTML.div ["class=" ++ show "syrup-code"] (unlines $ escapeHTML <$> ls)

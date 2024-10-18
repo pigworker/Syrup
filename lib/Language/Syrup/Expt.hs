@@ -81,15 +81,17 @@ experiment (Typing x) = withCompo x $ \ c -> do
               (getInputType <$> inpTys c)
               (getOutputType <$> oupTys c)
   anExperiment "Typing for" [x] $ lines txt
-experiment (Display x) = withImplem x $ \ i -> do
+experiment (Display xs x) = withImplem x $ \ i -> do
   st <- use hasLens
-  let dot = whiteBoxDef st i
-  asks graphFormat >>= \ opts -> tell $ Seq.singleton $ case opts of
-    SourceDot -> ADotGraph x dot
-    RenderedSVG -> unsafePerformIO $
-      findExecutable "dot" >>= \case
-        Nothing -> pure (ANoExecutable "dot")
-        Just{} -> AnSVGGraph x . lines <$> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
+  case whiteBoxDef st xs i of
+    Left fdk -> tell fdk
+    Right dot -> asks graphFormat >>= \ opts ->
+      tell $ Seq.singleton $ case opts of
+        SourceDot -> ADotGraph xs x dot
+        RenderedSVG -> unsafePerformIO $
+          findExecutable "dot" >>= \case
+            Nothing -> pure (ANoExecutable "dot")
+            Just{} -> AnSVGGraph xs x . lines <$> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
 experiment (Dnf x) = withImplem x $ \ i -> do
   env <- use hasLens
   let txt = prettyShow env (dnf env i)

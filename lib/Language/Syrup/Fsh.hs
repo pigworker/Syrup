@@ -12,6 +12,7 @@
 
 module Language.Syrup.Fsh where
 
+import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.State
 import Control.Monad.Writer
@@ -55,4 +56,7 @@ instance (MonadFresh e m, Monad m) => MonadFresh e (StateT s m) where
   fresh = lift fresh
 
 instance (MonadFresh e m, Monad m, Monoid s) => MonadFresh e (WriterT s m) where
+  fresh = lift fresh
+
+instance (MonadFresh e m, Monad m) => MonadFresh e (ExceptT a m) where
   fresh = lift fresh
