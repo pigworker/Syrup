@@ -152,6 +152,7 @@ data Feedback
   | ASyntaxError [String]
   | ATypeError [String]
   | AnAmbiguousDefinition String [[String]]
+  | AnInvalidTruthTableOutput String
   | AnUndeclaredCircuit String
   | AnUndefinedCircuit String
   | AnUndefinedType String
@@ -182,6 +183,7 @@ instance Categorise Feedback where
     ASyntaxError{} -> Error
     ATypeError{} -> Error
     AnAmbiguousDefinition{} -> Error
+    AnInvalidTruthTableOutput{} -> Error
     AnUndeclaredCircuit{} -> Error
     AnUndefinedCircuit{} -> Error
     AnUndefinedType{} -> Error
@@ -255,6 +257,7 @@ instance Render Feedback where
       AnUndefinedCircuit f -> ["You haven't defined the circuit " ++ f ++ " just now."]
       AnUndefinedType x -> ["You haven't defined the type alias " ++ x ++ " just now."]
       AnUnknownIdentifier x -> ["I don't know what " ++ x ++ " is."]
+      AnInvalidTruthTableOutput f -> ["Invalid truth table output for " ++ f ++ "."]
 
   renderHTML e = do
     cat <- renderHTML (categorise e)
@@ -309,6 +312,7 @@ instance Render Feedback where
       AnUndefinedCircuit f -> pure ("You haven't defined the circuit " ++ identifier f ++ " just now.")
       AnUndeclaredCircuit f -> pure ("You haven't declared the circuit " ++ identifier f ++ " just now.")
       AnUndefinedType x -> pure ("You haven't defined the type " ++ identifier x ++ " just now.")
+      AnInvalidTruthTableOutput f -> pure ("Invalid truth table output for " ++ identifier f ++ ".")
 
 feedback :: Options -> [Feedback] -> [String]
 feedback opts = (. filter (keep opts)) $ case outputFormat opts of

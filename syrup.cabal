@@ -98,6 +98,7 @@ library
                     , Language.Syrup.Ty
                     , Language.Syrup.Utils
                     , Language.Syrup.Va
+                    , Utilities.Bwd
                     , Utilities.HTML
                     , Utilities.Lens
                     , Utilities.Monad

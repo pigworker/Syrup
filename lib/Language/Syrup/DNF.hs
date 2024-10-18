@@ -15,6 +15,7 @@ import Control.Applicative (liftA2)
 import Control.Monad (guard, join)
 import Control.Monad.Reader (MonadReader, runReader)
 
+import Data.Bifunctor (bimap)
 import Data.List (intercalate)
 import Data.Maybe (fromMaybe, isJust, fromJust)
 import Data.Map (Map)
@@ -22,13 +23,13 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 
+import Utilities.Bwd
+
 ------------------------------------------------------------------------
 -- Reducing a circuit to Disjunctive Normal Form
--- Trying to be clever about circuit depth
 ------------------------------------------------------------------------
 
 data Occurrence
@@ -234,3 +235,53 @@ toDNF (App [ty] fn [e,f]) = isRemarkable fn >>= \case
       pure $ (ty,) <$> liftA2 (&&&) ce cf
     _ -> pure Nothing
 toDNF App{} = pure Nothing
+
+------------------------------------------------------------------------
+-- Producing a DNF circuit from a truth table
+------------------------------------------------------------------------
+
+-- The output of a truth table can be understood like
+-- a decision tree
+data Decision
+  = Always Bool
+  | Inspect String Decision Decision
+  deriving Show
+
+evaluate :: (String -> Bool) -- a meaning for variable names
+         -> Decision         -- a decision tree
+         -> Bool             -- the associated output
+evaluate env = \case
+  Always b -> b
+  Inspect x false true
+    | env x -> evaluate env true
+    | otherwise -> evaluate env false
+
+unriffle :: [a] -> Maybe ([a], [a])
+unriffle [] = pure ([], [])
+unriffle (l : r : xs) = bimap (l :) (r :) <$> unriffle xs
+unriffle _ = Nothing
+
+ttToDecision :: [String] -> [Bool] -> Maybe Decision
+ttToDecision xs = go (Lin <>< xs) . map Always where
+
+  go :: Bwd String -> [Decision]
+     -> Maybe Decision
+  go Lin       [d] = pure d
+  go (sx :< x) ds  = do
+    (dsxF, dsxT) <- unriffle ds
+    go sx (zipWith (Inspect x) dsxF dsxT)
+  go _ _ = Nothing
+
+decisionToDNF :: Decision -> DNF
+decisionToDNF (Always b) = if b then tt else ff
+decisionToDNF (Inspect x dxF dxT)
+  =     (neg x &&& decisionToDNF dxF)
+        ||| (pos x &&& decisionToDNF dxT)
+
+ttToDef :: CoEnv -> String -> [String] -> [Bool] -> Maybe TypedDef
+ttToDef env f xs bs = do
+  dnf <- decisionToDNF <$> ttToDecision xs bs
+  let bit = Bit ()
+  rmk <- allRemarkables env bit
+  let exp = fromDNF rmk dnf
+  pure (Def (f, map (PVar bit) xs) [exp] Nothing)

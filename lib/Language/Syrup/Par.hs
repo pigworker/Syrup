@@ -315,6 +315,13 @@ pEXPT =
   <|> pCommand "type" Typing
   <|> pCommand "simplify" Simplify
   <|> Costing <$ pTokIs (Id "cost") <* pSpc <*> pSupp <* pSpc <*> pVar <* pSpc <* pEOI
+  <|> FromOutputs
+      <$ pTokIs (Id "definition")
+      <* pSpc <*> pVar
+      <* pSpc <*> pBrk Square (SEEKING "Truth table variables")
+           (pAllSep (pTokIs (Sym ",")) pVar)
+      <* pSpc <*> pBrk Square (SEEKING "Truth table values")
+           (pAllSep (pTokIs (Sym ",")) (False <$ pTokIs (Sym "0") <|> True <$ pTokIs (Sym "1")))
   <|> pTokIs (Id "experiment") *> pSpc *>
   pClue (SEEKING "an experiment")
   (    Tabulate <$> pVar <* pSpc <* pEOI
