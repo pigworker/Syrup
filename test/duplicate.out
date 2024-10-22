@@ -20,7 +20,7 @@ Displaying duplicate:
 <title>whitebox</title>
 <polygon fill="white" stroke="transparent" points="-4,4 -4,-406 122,-406 122,4 -4,4"/>
 <g id="clust1" class="cluster">
-<title>cluster_circuit__</title>
+<title>cluster_circuit__GATE_duplicate_3</title>
 </g>
 <!-- GATE_duplicate_3__INPUTS -->
 <g id="node1" class="node">

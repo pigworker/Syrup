@@ -3,9 +3,9 @@
 ;; based on: http://ergoemacs.org/emacs/elisp_syntax_coloring.html
 
 ;; define several class of keywords
-(setq syrup-keywords  '("where"))
+(setq syrup-keywords  '("where" "display" "cost"))
 (setq syrup-operators '("!" "&" "|"))
-(setq syrup-symbols   '("=" "," ":" "->" "@"))
+(setq syrup-symbols   '("=" "," ":" "->" "@" "[" "]"))
 
 ;; create the regex string for each class of keywords
 (setq syrup-keywords-regexp  (regexp-opt syrup-keywords 'words))

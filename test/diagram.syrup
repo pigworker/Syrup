@@ -2,3 +2,9 @@ not(<Bit>) -> <Bit>
 not(x) = nand(x, x)
 
 display not
+
+or(<Bit>, <Bit>) -> <Bit>
+or(X,Y) = nand(!X,!Y)
+
+display or
+display [not] or

@@ -1,0 +1,13 @@
+display nand
+
+not(<Bit>) -> <Bit>
+not(X) = nand(X,X)
+
+display [nand] not
+
+f(<Bit>) -> <Bit>
+f(X) = Z
+
+display f
+
+display [g] not
