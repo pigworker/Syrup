@@ -1,0 +1,64 @@
+Circuit not is defined.
+
+Circuit and is defined.
+
+Circuit or is defined.
+
+Circuit one is defined.
+
+Circuit xor is defined.
+
+Error: I was trying to make sense of the following code:
+
+hadd(<Bit>,<Bit>) -> <Bit>,<Bit>
+hadd(x,y) = a2, b1 where
+  a2 = and(x,y)
+  a1 = xor(x,y)
+
+
+Error: You tried to use b1 but it is not in scope.
+
+
+Warning: Circuit hadd has been stubbed out.
+
+Circuit fadd is defined.
+
+Warning: the wire a1 is defined but never used.
+
+Error: You haven't defined the circuit tripleAddTwo just now.
+
+Warning: Circuit tripleAddTwo has been stubbed out.
+
+Truth table for hadd:
+    |    
+----|----
+0 0 | ? ?
+0 1 | ? ?
+1 0 | ? ?
+1 1 | ? ?
+
+Truth table for fadd:
+Cin Xin Yin | Cout Zout
+------------|----------
+0   0   0   | ?    ?   
+0   0   1   | ?    ?   
+0   1   0   | ?    ?   
+0   1   1   | ?    ?   
+1   0   0   | ?    ?   
+1   0   1   | ?    ?   
+1   1   0   | ?    ?   
+1   1   1   | ?    ?   
+
+Warning: I don't have an implementation for hadd.
+
+Warning: I don't have an implementation for hadd.
+
+Error: I was trying to make sense of the following code:
+
+tripleAddTwo
+
+I got stuck here: 
+   {HERE} tripleAddTwo 
+I was looking for Syrup source code.
+At that point, I didn't know where to begin.
+

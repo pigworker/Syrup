@@ -1,0 +1,43 @@
+!<Bit> -> <Bit>
+!X = Z where
+  Z = nand(X, X)
+
+<Bit> & <Bit> -> <Bit>
+X & Y = Z where
+  A = nand(X, Y)
+  Z = !A
+
+<Bit> | <Bit> -> <Bit>
+X | Y = Z where
+  A, B = !X, !Y
+  Z = nand(A, B)
+
+one() -> <Bit>
+one() = !zero()
+
+xor(<Bit>, <Bit>) -> <Bit>
+xor(X, Y) = Z where
+  A, B = X | Y, X & Y
+  C = !B
+  Z = A & C
+
+hadd(<Bit>,<Bit>) -> <Bit>,<Bit>
+fadd(<Bit>,<Bit>,<Bit>) -> <Bit>,<Bit>
+tripleAddTwo(<Bit>,<Bit>) -> <Bit>,<Bit>,<Bit>,<Bit>
+
+
+hadd(x,y) = a2, b1 where
+  a2 = and(x,y)
+  a1 = xor(x,y)
+
+experiment hadd
+
+fadd(Cin,Xin,Yin) = Cout,Zout where
+  a2,a1 = hadd(Xin,Yin)
+  b2,Zout = hadd(Cin,a1)
+  Cout = xor(a2,b2)
+
+experiment fadd
+display fadd
+
+tripleAddTwo
