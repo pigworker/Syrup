@@ -164,13 +164,13 @@ data Feedback
   | AnUnknownIdentifier String
 
   -- warnings
+  | AFoundHoles String [String]
+  | ALint [String]
   | AMissingImplementation String
   | AStubbedOut String
 
   -- comments
   | ACircuitDefined String
-  | AFoundHoles String [String]
-  | ALint [String]
   | ATypeDefined String
 
   -- successes
@@ -201,12 +201,12 @@ instance Categorise Feedback where
 
     -- warnings
     AFoundHoles{} -> Warning
+    ALint{} -> Warning
     AMissingImplementation{} -> Warning
     AStubbedOut{} -> Warning
 
     -- comments
     ACircuitDefined{} -> Comment
-    ALint{} -> Comment
     ATypeDefined{} -> Comment
 
     -- successes

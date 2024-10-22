@@ -83,9 +83,11 @@ experiment (Typing x) = withCompo x $ \ c -> do
   anExperiment "Typing for" [x] $ lines txt
 experiment (Display xs x) = withImplem x $ \ i -> do
   st <- use hasLens
-  case whiteBoxDef st xs i of
-    Left fdk -> tell fdk
-    Right dot -> asks graphFormat >>= \ opts ->
+  let (fdk, circuit) = whiteBoxDef st xs i
+  tell fdk
+  case circuit of
+    Nothing -> pure ()
+    Just dot -> asks graphFormat >>= \ opts ->
       tell $ Seq.singleton $ case opts of
         SourceDot -> ADotGraph xs x dot
         RenderedSVG -> unsafePerformIO $

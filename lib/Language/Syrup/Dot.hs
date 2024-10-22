@@ -10,7 +10,7 @@
 module Language.Syrup.Dot where
 
 import Control.Applicative ((<|>))
-import Control.Monad (guard)
+import Control.Monad (guard, unless)
 import Control.Monad.State (MonadState, StateT, evalStateT, runStateT, execStateT, get, modify, put)
 import Control.Monad.Writer (MonadWriter, WriterT, tell, runWriterT)
 
@@ -39,7 +39,7 @@ data Circuit = Circuit
 
 data DotGate = DotGate
   { blackbox    :: Circuit
-  , whitebox    :: Either (Seq Feedback) Circuit
+  , whitebox    :: (Seq Feedback, Maybe Circuit)
   }
 
 type Port = (Bool, Maybe String, String)
@@ -207,7 +207,8 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
         pure (Just $ circuitGraph dotG)
       Call tys f args -> case findArr f env of
         Nothing   -> do
-          modify (<> Seq.singleton (AnImpossibleError ("could not find" ++ f)))
+          unless (f `elem` ["nand", "dff", "zero"]) $
+            modify (<> Seq.singleton (AnImpossibleError ("could not find " ++ f)))
           pure Nothing
         Just repr -> do
           id <- fresh
@@ -215,9 +216,9 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
             let gt = repr transparent Unfolded (extend id p)
             if f `notElem` transparent then pure (True, blackbox gt) else
               case whitebox gt of
-                Left fdk -> do modify (<> fdk)
-                               pure (True, blackbox gt)
-                Right wbox -> pure (False, wbox)
+                (fdk, Nothing) -> do modify (<> fdk)
+                                     pure (True, blackbox gt)
+                (fdk, Just wbox) -> pure (False, wbox)
           for_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
             tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") b
           for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
@@ -276,12 +277,12 @@ gate nm g@Gate{..} env transparent b p =
     ((Just (Circuit ins ous gts), fdk), gph) ->
       let optimized = shrinkInvisible $ detectSplit gph
           (vertices, edges) = fromGraph optimized
-      in Right $ Circuit ins ous $ concat
+      in (fdk,) $ Just $ Circuit ins ous $ concat
         [ vertices
         , gts
         , edges
         ]
-    ((Nothing, fdk), gph) -> Left fdk
+    ((Nothing, fdk), gph) -> (fdk, Nothing)
 
 toBlackbox :: Path -> [Input] -> String -> [Output] -> Circuit
 toBlackbox p is nm os =
@@ -398,22 +399,19 @@ addDef st d = fromMaybe st $ flip execStateT st $ runDot $ def d
 whiteBoxDef :: DotSt     -- state of the dot representations
             -> [String]  -- gates that should be transparent
             -> TypedDef  -- definition to render
-            -> Either (Seq Feedback) [String]
-whiteBoxDef st transparent d = do
-  nm <- case d of
-    (Stub nm _) -> Left (Seq.singleton $ ACannotDisplayStub nm)
-    (Def (nm, _) _ _) -> pure nm
-  ga <- case findArr nm (gates st) of
-    Nothing -> Left (Seq.singleton $ ACouldntFindCircuitDiagram nm)
-    Just gt -> pure gt
-  circuit <- whitebox $ ga transparent TopLevel empty
-  pure $
-    [ "digraph whitebox {"
-    , "  rankdir = TB;"
-    , "  nodesep = 0.2;"
-    ]
-    ++ circuitGraph circuit
-    ++ ["}"]
+            -> (Seq Feedback, Maybe [String])
+whiteBoxDef st transparetn (Stub nm _) = (Seq.singleton (ACannotDisplayStub nm), Nothing)
+whiteBoxDef st transparent (Def (nm, _) _ _) = case findArr nm (gates st) of
+  Nothing -> (Seq.singleton (ACouldntFindCircuitDiagram nm), Nothing)
+  Just ga -> case whitebox $ ga transparent TopLevel empty of
+    (fdk, Nothing) -> (fdk, Nothing)
+    (fdk, Just circuit) -> (fdk,) $ Just $
+      [ "digraph whitebox {"
+      , "  rankdir = TB;"
+      , "  nodesep = 0.2;"
+      ]
+      ++ circuitGraph circuit
+      ++ ["}"]
 
 myDotSt :: DotSt
 myDotSt

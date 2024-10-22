@@ -33,7 +33,7 @@ instance ty ~ () => Lint (Def' ty) where
 
     emptyWhere = \case
       Def (fun, _) _ (Just []) -> pure $ ALint
-        [ "Warning: empty where clause in the definition of " ++ fun ++ "."
+        [ "empty where clause in the definition of " ++ fun ++ "."
         , "Did you forget to indent the block of local definitions using spaces?"
         ]
       _ -> []
@@ -41,7 +41,7 @@ instance ty ~ () => Lint (Def' ty) where
     needlessSplits d = do
       let ps = abstractableCables d
       if null ps then [] else pure $ ALint
-        [ "Warning: the " ++ plural ps "cable" "s" ++ " "
+        [ "the " ++ plural ps "cable" "s" ++ " "
           ++ intercalate ", " (basicShow . AList <$> ps)
           ++ " " ++ be ps
           ++ " taken apart only to be reconstructed or unused."
@@ -51,7 +51,7 @@ instance ty ~ () => Lint (Def' ty) where
     deadcode d = case foldMapSet pure (unused d) of
       [] -> []
       ns -> pure $ ALint
-        [ "Warning: the " ++ plural ns "wire" "s" ++ " "
+        [ "the " ++ plural ns "wire" "s" ++ " "
           ++ intercalate ", " ns
           ++ " " ++ be ns
           ++ " defined but never used."
