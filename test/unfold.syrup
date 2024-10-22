@@ -9,3 +9,5 @@ f(<Bit>) -> <Bit>
 f(X) = Z
 
 display f
+
+display [g] not
