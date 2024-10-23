@@ -49,9 +49,9 @@ Cin Xin Yin | Cout Zout
 1   1   0   | ?    ?   
 1   1   1   | ?    ?   
 
-Warning: I don't have an implementation for hadd.
-
-Warning: I don't have an implementation for hadd.
+Warning: When displaying fadd:
+  Warning: I don't have an implementation for hadd.
+  Warning: I don't have an implementation for hadd.
 
 Error: I was trying to make sense of the following code:
 

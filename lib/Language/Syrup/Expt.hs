@@ -10,11 +10,13 @@
 
 module Language.Syrup.Expt where
 
+import Control.Monad (unless)
 import Control.Monad.Reader (MonadReader, asks)
 import Control.Monad.State (gets, StateT(StateT), execStateT, get, put, runStateT)
 import Control.Monad.Writer (tell)
 
 import qualified Data.Bifunctor as Bi
+import Data.Foldable (toList)
 import Data.Function (on)
 import Data.List (find, intercalate, sortBy)
 import Data.Maybe (fromJust)
@@ -84,7 +86,7 @@ experiment (Typing x) = withCompo x $ \ c -> do
 experiment (Display xs x) = withImplem x $ \ i -> do
   st <- use hasLens
   let (fdk, circuit) = whiteBoxDef st xs i
-  tell fdk
+  unless (null fdk) $ tell $ Seq.singleton (WhenDisplaying x $ toList fdk)
   case circuit of
     Nothing -> pure ()
     Just dot -> asks graphFormat >>= \ opts ->
