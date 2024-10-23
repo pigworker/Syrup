@@ -11,7 +11,7 @@ module Language.Syrup.Dot where
 
 import Control.Applicative ((<|>))
 import Control.Monad (guard, unless)
-import Control.Monad.State (MonadState, StateT, evalStateT, runStateT, execStateT, get, modify, put)
+import Control.Monad.State (MonadState, State, StateT, evalState, runStateT, execState, get, modify, put)
 import Control.Monad.Writer (MonadWriter, WriterT, tell, runWriterT)
 
 import Data.Char (isAlphaNum)
@@ -79,11 +79,11 @@ initDotSt = DotSt
   , gates  = emptyArr
   }
 
-newtype Dot a = Dot { runDot :: StateT DotSt Maybe a }
+newtype Dot a = Dot { runDot :: State DotSt a }
   deriving (Functor, Applicative, Monad)
 
-evalDot :: Dot a -> Maybe a
-evalDot = flip evalStateT initDotSt . runDot
+evalDot :: Dot a -> a
+evalDot = flip evalState initDotSt . runDot
 
 freshId :: Dot Int
 freshId = Dot $ do
@@ -208,7 +208,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
       Call tys f args -> case findArr f env of
         Nothing   -> do
           unless (f `elem` ["nand", "dff", "zero"]) $
-            modify (<> Seq.singleton (AnImpossibleError ("could not find " ++ f)))
+            modify (<> Seq.singleton (AMissingImplementation f))
           pure Nothing
         Just repr -> do
           id <- fresh
@@ -394,7 +394,7 @@ def d = case toGate d of
       s { gates = insertArr (nm, \ tr b p -> gate nm g (gates s) tr b (extend id p)) (gates s) }
 
 addDef :: DotSt -> TypedDef -> DotSt
-addDef st d = fromMaybe st $ flip execStateT st $ runDot $ def d
+addDef st d = flip execState st $ runDot $ def d
 
 whiteBoxDef :: DotSt     -- state of the dot representations
             -> [String]  -- gates that should be transparent

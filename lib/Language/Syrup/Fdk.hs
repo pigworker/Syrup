@@ -39,6 +39,9 @@ instance Render t => Render [t] where
   render = concatMap ((++ [""]) . render)
   renderHTML = fmap (intercalate HTML.br) . traverse renderHTML
 
+indent :: Int -> String -> String
+indent n str = replicate n ' ' ++ str
+
 plural :: [a] -> String -> String -> String
 plural []  str _ = str
 plural [_] str _ = str
@@ -180,6 +183,9 @@ data Feedback
   | AnExperiment String [String] [String]
   | AnSVGGraph [String] String [String]
 
+  -- contextual
+  | WhenDisplaying String [Feedback]
+
 instance Categorise Feedback where
   categorise = \case
     -- internal errors
@@ -215,6 +221,9 @@ instance Categorise Feedback where
     ATruthTable{} -> Success
     AnExperiment{} -> Success
     AnSVGGraph{} -> Success
+
+    -- contextual
+    WhenDisplaying _ fdks -> foldMap categorise fdks
 
 anExperiment :: MonadWriter (Seq Feedback) m => String -> [String] -> [String] -> m ()
 anExperiment str xs ls = tell $ Seq.singleton $ AnExperiment str xs ls
@@ -277,6 +286,9 @@ instance Render Feedback where
       AnUndefinedType x -> ["You haven't defined the type alias " ++ x ++ " just now."]
       AnUnknownIdentifier x -> ["I don't know what " ++ x ++ " is."]
       AnInvalidTruthTableOutput f -> ["Invalid truth table output for " ++ f ++ "."]
+
+      WhenDisplaying f fdks -> ("When displaying " ++ f ++ ":") : concatMap (map (indent 2) . render) fdks
+
 
   renderHTML e = do
     cat <- renderHTML (categorise e)
@@ -342,6 +354,14 @@ instance Render Feedback where
       AnUndeclaredCircuit f -> pure ("You haven't declared the circuit " ++ identifier f ++ " just now.")
       AnUndefinedType x -> pure ("You haven't defined the type " ++ identifier x ++ " just now.")
       AnInvalidTruthTableOutput f -> pure ("Invalid truth table output for " ++ identifier f ++ ".")
+
+      WhenDisplaying f fdks -> do
+        fdks <- traverse renderHTML fdks
+        pure $ unlines
+          [ "When displaying " ++ identifier f ++ ":" ++ HTML.br
+          , HTML.div ["style=\"padding-left: 1em\""] (intercalate (HTML.br ++ "\n") fdks)
+          ]
+
 
 feedback :: Options -> [Feedback] -> [String]
 feedback opts = (. filter (keep opts)) $ case outputFormat opts of
