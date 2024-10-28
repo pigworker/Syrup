@@ -44,12 +44,14 @@ expTys = \case
 type Pat = Pat' () String
 data Pat' ty a
   = PVar ty a
+  | PAny ty
   | PCab ty [Pat' ty a]
   deriving (Functor, Traversable, Foldable)
 
 patTy :: Pat' ty a -> ty
 patTy = \case
   PVar ty a -> ty
+  PAny ty -> ty
   PCab ty _ -> ty
 
 exPat :: Exp' ty -> Maybe (Pat' ty String)
@@ -61,6 +63,7 @@ exPat _           = Nothing
 patToExp :: Pat' ty String -> Exp' ty
 patToExp = \case
   PVar ty x  -> Var ty x
+  PAny ty -> Var ty "_"
   PCab ty ps -> Cab ty $ map patToExp ps
 
 type Eqn = Eqn' ()
@@ -156,6 +159,7 @@ instance a ~ String => IsCircuit (Pat' ty a) where
   type VarTy (Pat' ty a) = ty
   allVars = \case
     PVar ty s -> single (s, (First (Just ty), Sum 1))
+    PAny ty -> emptyArr
     PCab _ c -> allVars c
   allGates _ = emptyArr
   allHoles _ = emptyArr

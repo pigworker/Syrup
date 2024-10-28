@@ -16,6 +16,7 @@ data Token
   = Spc Int      -- never two adjacent
   | Id String    -- never two adjacent
   | QM String    -- question mark identifier
+  | CA           -- catchall aka '_'
   | Num Int      -- never two adjacent
   | Sym String   -- two adjacent only if at least one is a solo symbol
   | Bracket Bracket [Token]
@@ -32,6 +33,7 @@ instance Show Token where
   show (Spc n) = replicate n ' '
   show (Id x)  = x
   show (QM x)  = '?':x
+  show CA = "_"
   show (Num n) = show n
   show (Sym s) = s
   show (Bracket b ts) = o ++ foldMap show ts ++ c where (o, c) = brackets b
@@ -75,12 +77,16 @@ dentLines = dentify B0 . myLines . unix where
   dump B0 ls = ls
   dump lz ls = concat (fmap (++ "\n") lz) : ls
 
+mkId :: String -> Token
+mkId "_" = CA
+mkId str = Id str
+
 raw :: String -> [Token]
 raw "" = []
 raw (c : s) | elem c " \t\n" = spaces 1 s
 raw (c : s) | elem c solos = Sym [c] : raw s
 raw (c : c' : s) | c == '?', isAlphaNumU c' = alphanum QM (B0 :< c') s
-raw (c : s) | isAlphaNumU c = alphanum Id (B0 :< c) s
+raw (c : s) | isAlphaNumU c = alphanum mkId (B0 :< c) s
 raw (c : s) = symbol (B0 :< c) s
 
 solos :: String

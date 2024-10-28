@@ -12,15 +12,16 @@
 module Language.Syrup.Ty where
 
 import Control.Applicative ((<|>))
-import Control.Monad (ap, guard, (>=>))
+import Control.Monad (ap, guard, (>=>), unless)
 import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.Reader (MonadReader, ask, asks, runReader)
 import Control.Monad.State (MonadState, get, gets, put)
-import Control.Monad.Writer (MonadWriter)
+import Control.Monad.Writer (MonadWriter, tell)
 
 import Data.Foldable (traverse_)
 import Data.Monoid (First(..))
 import Data.Sequence (Seq)
+import qualified Data.Sequence as Seq
 import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
@@ -262,6 +263,7 @@ data TySt = TySt
 data Wire
   = Physical String
   | Holey String
+  | Catchall
   deriving (Show, Eq, Ord)
 
 type Cxt = Arr Wire (Bool, Typ)
@@ -319,7 +321,8 @@ defineWire mt x = do
   case findArr x g of
     Just (False, ty) -> do
       st <- get
-      put (st {wiCxt = insertArr (x, (True, ty)) g})
+      unless (x == Catchall) $
+        put (st {wiCxt = insertArr (x, (True, ty)) g})
       case mt of
         Nothing -> return ty
         Just ty' -> do
@@ -330,12 +333,16 @@ defineWire mt x = do
       Holey{} -> case mt of
         Just ty' -> ty <$ tyEq (ty, ty')
         _ -> pure ty
+      Catchall -> do
+        -- tell $ Seq.singleton $ AnImpossibleError "Catchall in the typechecking state"
+        pure ty
     Nothing -> do
       ty <- case mt of
         Just ty -> return ty
         _       -> tyF
       st <- get
-      put (st {wiCxt = insertArr (x, (True, ty)) g})
+      unless (x == Catchall) $
+        put (st {wiCxt = insertArr (x, (True, ty)) g})
       return ty
 
 useWire :: TyMonad m => Wire -> m Typ
@@ -346,7 +353,8 @@ useWire x = do
     Nothing -> do
       ty <- tyF
       st <- get
-      put (st {wiCxt = insertArr (x, (False, ty)) g})
+      unless (x == Catchall) $
+        put (st {wiCxt = insertArr (x, (True, ty)) g})
       return ty
 
 schedule :: TyMonad m => Task -> m ()

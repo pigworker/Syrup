@@ -199,6 +199,7 @@ decPats (s : ss) (p : ps) = (:) <$> decPat s p <*> decPats ss ps
 
 decPat :: TyMonad m => Typ -> Pat -> m TypedPat
 decPat s (PVar () x) = PVar s x <$ defineWire (Just s) (Physical x)
+decPat s (PAny ()) = PAny s <$ defineWire (Just s) Catchall
 decPat s@(Cable ss) (PCab () ps)
   | length ss == length ps = PCab s <$> decPats ss ps
   | otherwise = tyErr CableWidth
@@ -220,6 +221,9 @@ defPat :: TyMonad m => Pat -> m (Typ, TypedPat)
 defPat (PVar () x)  = do
   ty <- defineWire Nothing (Physical x)
   pure (ty, PVar ty x)
+defPat (PAny ()) = do
+  ty <- defineWire Nothing Catchall
+  pure (ty, PAny ty)
 defPat (PCab () ps) = do
   (tys, pats) <- unzip <$> traverse defPat ps
   let ty = Cable tys
@@ -239,6 +243,8 @@ solders _ _ = tyErr BUGSolderMismatch
 
 solder :: TyMonad m => Pat -> Pat -> m ()
 solder (PCab () qs) (PCab () ps) = solders qs ps
+solder (PAny ()) _ = pure ()
+solder _ (PAny ()) = pure ()
 solder q p = schedule ([q] :<- (id, [p]))
 
 ------------------------------------------------------------------------------
