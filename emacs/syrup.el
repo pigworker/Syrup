@@ -3,7 +3,7 @@
 ;; based on: http://ergoemacs.org/emacs/elisp_syntax_coloring.html
 
 ;; define several class of keywords
-(setq syrup-keywords  '("where" "display" "cost"))
+(setq syrup-keywords  '("where" "type" "display" "cost"))
 (setq syrup-operators '("!" "&" "|"))
 (setq syrup-symbols   '("=" "," ":" "->" "@" "[" "]"))
 
