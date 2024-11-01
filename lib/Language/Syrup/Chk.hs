@@ -326,7 +326,7 @@ stage :: TyMonad m => Ty2 -> m ([Pat], ([Pat], [Pat]))
 stage (TyV x) = absurd x
 stage (Bit t) = do
   w <- wiF
-  defineWire (Just (Bit ())) (Physical w)
+  defineWire (Just (Bit Unit)) (Physical w)
   return ([PVar () w], case t of {T0 -> ([PVar () w], []); T1 -> ([], [PVar () w])})
 stage (Cable ts) = do
   (qs, (qs0, qs1)) <- fold <$> traverse stage ts
@@ -341,7 +341,7 @@ data Dec
 
 cookDec :: DEC -> Dec
 cookDec (DEC (f, is) os) =
-  Dec (f, fmap (cookTY () id) is) (fmap (cookTY T1 (const T0)) os)
+  Dec (f, fmap (cookTY Unit id) is) (fmap (cookTY T1 (const T0)) os)
 
 cookTY :: t -> (t -> t) -> TY -> Ty t Void
 cookTY t old BIT         = Bit t
@@ -469,8 +469,8 @@ nandCompo = Compo
       , rmk = Just IsNandGate
       , defn = Nothing
       , memTys = []
-      , inpTys = [ InputWire (Just (PVar () "X")) (Bit ())
-                 , InputWire (Just (PVar () "Y")) (Bit ())
+      , inpTys = [ InputWire (Just (PVar () "X")) (Bit Unit)
+                 , InputWire (Just (PVar () "Y")) (Bit Unit)
                  ]
       , oupTys = [ OutputWire Nothing (Bit T1) ]
       , stage0 = \ [] -> []
@@ -486,8 +486,8 @@ dffCompo = Compo
       { monick = "dff"
       , rmk = Nothing
       , defn = Nothing
-      , memTys = [MemoryCell (Just $ CellName "Q") (Bit ())]
-      , inpTys = [InputWire  (Just (PVar () "D")) (Bit ())]
+      , memTys = [MemoryCell (Just $ CellName "Q") (Bit Unit)]
+      , inpTys = [InputWire  (Just (PVar () "D")) (Bit Unit)]
       , oupTys = [OutputWire (Just (PVar () ("Q", True))) (Bit T0)]
       , stage0 = \ [q] -> [q]
       , stage1 = \ [_, d] -> [d]

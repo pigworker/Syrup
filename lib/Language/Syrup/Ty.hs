@@ -41,9 +41,14 @@ data Ty t x
   | Cable [Ty t x]
   deriving (Eq, Foldable, Traversable)
 
-type Ty1 = Ty () Void
+-- using this rather than () because we want a
+-- pretty Unit = ""   instance rather than the
+-- pretty ()   = "()" one
+data Unit = Unit deriving (Eq)
+
+type Ty1 = Ty Unit Void
 type Ty2 = Ty Ti Void
-type Typ = Ty () TyNom
+type Typ = Ty Unit TyNom
 
 type TypedPat = Pat' Typ String
 type TypedExp = Exp' Typ
@@ -145,17 +150,17 @@ instance Show Compo where
 
 fogTy :: Ty t Void -> Ty1
 fogTy (TyV x)     = absurd x
-fogTy (Bit _)     = Bit ()
+fogTy (Bit _)     = Bit Unit
 fogTy (Cable ts)  = Cable (fmap fogTy ts)
 
 stanTy :: Ty t Void -> Typ
 stanTy (TyV x)    = absurd x
-stanTy (Bit _)    = Bit ()
+stanTy (Bit _)    = Bit Unit
 stanTy (Cable ts) = Cable (fmap stanTy ts)
 
 splitTy2 :: Ty2 -> ([Ty1], [Ty1])
-splitTy2 (Bit T0)   = ([Bit ()], [])
-splitTy2 (Bit T1)   = ([], [Bit ()])
+splitTy2 (Bit T0)   = ([Bit Unit], [])
+splitTy2 (Bit T1)   = ([], [Bit Unit])
 splitTy2 (Cable ts) = ([Cable ts0], [Cable ts1]) where
   (ts0, ts1) = foldMap splitTy2 ts
 
@@ -310,7 +315,7 @@ tyO bad t = do
   case t of
     TyV y | bad y     -> tyErr CableLoop
           | otherwise -> return t
-    Bit _ -> pure (Bit ())
+    Bit _ -> pure (Bit Unit)
     Cable ts -> Cable <$> traverse (tyO bad) ts
 
 defineWire :: TyMonad m => Maybe Typ -> Wire -> m Typ

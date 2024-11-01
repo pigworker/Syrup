@@ -6,6 +6,9 @@ D { Q -> Q } Q
 1 { 0 -> 1 } 0
   { 1 -> 1 } 1
 
+Typing for dff:
+dff(<Bit>) -> @<Bit>
+
 Circuit not is defined.
 
 Circuit and is defined.
