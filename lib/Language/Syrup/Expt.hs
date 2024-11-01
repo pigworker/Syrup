@@ -172,8 +172,8 @@ tyVaChks :: [Ty1] -> [Va] -> Bool
 tyVaChks ts vs = length ts == length vs && and (zipWith tyVaChk ts vs)
 
 tyVaChk :: Ty1 -> Va -> Bool
-tyVaChk (Bit ()) V0 = True
-tyVaChk (Bit ()) V1 = True
+tyVaChk (Bit Unit) V0 = True
+tyVaChk (Bit Unit) V1 = True
 tyVaChk (Cable ts) (VC vs) = tyVaChks ts vs
 tyVaChk _ _ = False
 

@@ -281,7 +281,7 @@ decisionToDNF (Inspect x dxF dxT)
 ttToDef :: CoEnv -> String -> [String] -> [Bool] -> Maybe TypedDef
 ttToDef env f xs bs = do
   dnf <- decisionToDNF <$> ttToDecision xs bs
-  let bit = Bit ()
+  let bit = Bit Unit
   rmk <- allRemarkables env bit
   let exp = fromDNF rmk dnf
   pure (Def (f, map (PVar bit) xs) [exp] Nothing)

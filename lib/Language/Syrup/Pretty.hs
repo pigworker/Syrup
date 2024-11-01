@@ -114,6 +114,9 @@ instance Pretty Void where
 instance Pretty () where
   prettyPrec _ _ = pretty "()"
 
+instance Pretty Unit where
+  prettyPrec _ _ = pretty ""
+
 instance Pretty a => Pretty (AList a) where
   prettyPrec _ (AList xs) = list <$> traverse pretty xs
 
@@ -167,10 +170,15 @@ instance Pretty a => Pretty (Pat' ty a) where
     PCab _ ps -> pretty (AList ps)
 
 
-instance Pretty x => Pretty (Ty t x) where
+instance Pretty Ti where
+  prettyPrec lvl = prettyPrec lvl . \case
+    T0 -> "@"
+    T1 -> ""
+
+instance (Pretty t, Pretty x) => Pretty (Ty t x) where
   prettyPrec lvl = \case
     TyV x -> between (Doc "<") (Doc ">") <$> pretty x
-    Bit _ -> pure $ Doc "<Bit>"
+    Bit t -> (<>) <$> pretty t <*> pretty "<Bit>"
     Cable ps -> pretty (AList ps)
 
 instance Pretty (Eqn' ty) where
@@ -201,7 +209,7 @@ instance Pretty TypedDef where
       -- Combining everything
       pure $ unlines [decl, defn]
 
-instance (Pretty x, Pretty x') => Pretty (TypeDecl t x t' x') where
+instance (Pretty t, Pretty x, Pretty t', Pretty x') => Pretty (TypeDecl t x t' x') where
   prettyPrec _ (TypeDecl fn is os) = do
     lhsTy <- pretty (FunctionCall fn is)
     rhsTy <- csep <$> traverse pretty os

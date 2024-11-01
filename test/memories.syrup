@@ -1,4 +1,5 @@
 experiment dff
+type dff
 
 not(<Bit>) -> <Bit>
 not(X) = nand(X,X)

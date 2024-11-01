@@ -24,7 +24,7 @@ getTyp = \case
   Var ty _ -> ty
   Cab ty _ -> ty
   App [ty] _ _ -> ty
-  e -> Bit () -- default value :(
+  e -> Bit Unit -- default value :(
 
 ------------------------------------------------------------------------------
 -- Syntax of A normal forms
