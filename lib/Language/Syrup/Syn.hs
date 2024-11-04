@@ -99,6 +99,7 @@ data InputName = InputName { getInputName :: String }
 data EXPT
   = Anf String
   | Bisimilarity String String
+  | UnitTest String ([Va], [Va]) ([Va], [Va])
   | Costing [String] String
   | Display [String] String
   | Dnf String

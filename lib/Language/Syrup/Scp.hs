@@ -183,6 +183,9 @@ instance Scoped EXPT where
       isGlobalVar ga nm
       isGlobalVar ga nm'
       pure emptyExtension
+    UnitTest nm ins outs -> do
+      isGlobalVar ga nm
+      pure emptyExtension
     Display nms nm -> do
       traverse_ (isGlobalVar ga) nms
       isGlobalVar ga nm

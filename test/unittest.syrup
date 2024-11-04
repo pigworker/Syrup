@@ -1,0 +1,4 @@
+experiment nand(00) = 1
+experiment nand(11) = 0
+
+experiment dff{0}(1) = {1}0

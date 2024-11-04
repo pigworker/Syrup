@@ -5,6 +5,7 @@
 ------------------------------------------------------------------------------
 
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
@@ -16,6 +17,7 @@ import Control.Monad.State (gets, StateT(StateT), execStateT, get, put, runState
 import Control.Monad.Writer (tell)
 
 import qualified Data.Bifunctor as Bi
+import Data.Either (either)
 import Data.Foldable (toList)
 import Data.Function (on)
 import Data.List (find, intercalate, sortBy)
@@ -39,6 +41,8 @@ import Language.Syrup.Ty
 import Language.Syrup.Utils
 
 import Utilities.Lens
+import Utilities.Nat
+import Utilities.Vector
 
 import System.Directory (findExecutable)
 import System.IO.Unsafe (unsafePerformIO)
@@ -71,6 +75,8 @@ experiment (Tabulate x) = withCompo x $ \ c ->
   tell $ Seq.singleton $ ATruthTable x $ displayTabulation (tabulate c)
 experiment (Simulate x m0 iss) = withCompo x $ \ c ->
   anExperiment "Simulation for" [x] $ runCompo c m0 iss
+experiment (UnitTest x is os) = withCompo x $ \ c ->
+  anExperiment "Unit test for" [x] $ unitTest c is os
 experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc ->
   anExperiment "Bisimulation between" [l, r] $ report (l, r) (bisimReport lc rc)
 experiment (Print x) = withImplem x $ \ i -> do
@@ -136,47 +142,112 @@ experiment (FromOutputs f xs bs) = do
 -- running tine sequences
 ------------------------------------------------------------------------------
 
-runCompo :: Compo -> [Va] -> [[Va]] -> [String]
-runCompo c m0 iss
-  | not (tyVaChks mTys m0)
-  = [ concat ["Memory for ", monick c, " has type ", basicShow (ASet mTys)]
-    , concat ["That can't store {", foldMap show m0, "}."]
-    ]
-  | Just is <- find (not . tyVaChks iTys) iss
-  = [ concat ["Inputs for ", monick c, " are typed ", basicShow (ATuple iTys)]
-    , concat ["That can't accept ", foldMap show is, "."]
-    ]
-  | otherwise = render (go 0 m0 iss)
-  where
-    mTys = getCellType <$> memTys c
-    iTys = getInputType <$> inpTys c
-    oTys = getOutputType <$> oupTys c
-    go t mt [] = ([], (t, mt))
-    go t mt (is : iss) = ((t, mt, is, os) : xs , (z, mo)) where
-      (xs, (z, mo)) = go (t + 1) mt' iss
-      (mt', os) = unstage c (mt, is)
-    render (xs, (z, mo)) = map row xs ++ [lastrow]
+data Simulation (n :: Nat) mem step = Simulation
+  { simMemory :: mem
+  , simSteps  :: Vector n step
+  }
+
+data TimeStep = TimeStep
+  { currentTime    :: Int
+  , currentMemory  :: [Va]
+  , currentInputs  :: [Va]
+  , currentOutputs :: [Va]
+  }
+
+instance Render (Simulation n (Int, [Va]) TimeStep) where
+  renderHTML = pure . concat . render
+  render (Simulation (z, mo) steps) = foldMap (pure . row) steps ++ [lastrow]
       where
         w = length (show z)
         showtime t = reverse . take w  $ reverse (show t) ++ repeat ' '
-        row (t, m, is, os) = concat
-          [ showtime t, " {", foldMap show m, "} "
+        row (TimeStep t mt is os) = concat
+          [ showtime t, " {", foldMap show  mt, "} "
           , foldMap show is, " -> ", foldMap show os
           ]
         lastrow = concat
           [ showtime z, " {", foldMap show mo, "}" ]
 
+simulate :: Compo -> Simulation n [Va] [Va]
+         -> Simulation n (Int, [Va]) TimeStep
+simulate c (Simulation m0 iss) = go 0 m0 iss
+  where
+
+    go :: forall m. Int -> [Va] -> Vector m [Va] -> Simulation m (Int, [Va]) TimeStep
+    go t mt VNil = Simulation (t, mt) VNil
+    go t mt (is :* iss) =
+      let (mt', os) = unstage c (mt, is) in
+      let step = TimeStep
+            { currentTime    = t
+            , currentMemory  = mt
+            , currentInputs  = is
+            , currentOutputs = os
+            } in
+      let Simulation mEnd steps = go (t + 1) mt' iss in
+      Simulation mEnd (step :* steps)
+
+checkMemory :: Compo -> [Va] -> Either [String] ()
+checkMemory c m0
+  | not (tyVaChks mTys m0)
+  = Left
+    [ concat ["Memory for ", monick c, " has type ", basicShow (ASet mTys), "."]
+    , concat ["That can't store ", basicShow (ASet m0), "."]
+    ]
+  | otherwise = pure ()
+
+  where
+
+    mTys = getCellType <$> memTys c
+
+checkInputs :: Compo -> [[Va]] -> Either [String] ()
+checkInputs c iss
+  | Just is <- find (not . tyVaChks iTys) iss
+  = Left
+    [ concat ["Inputs for ", monick c, " are typed ", basicShow (ATuple iTys), "."]
+    , concat ["That can't accept ", foldMap show is, "."]
+    ]
+  | otherwise = pure ()
+  where
+    iTys = getInputType <$> inpTys c
+
+checkOutputs :: Compo -> [Va] -> Either [String] ()
+checkOutputs c os
+  | not (tyVaChks oTys os)
+  = Left
+    [ concat ["Outputs for ", monick c, " are typed ", basicShow (ATuple oTys), "."]
+    , concat ["That can't accept ", foldMap show os, "."]
+    ]
+  | otherwise = pure ()
+  where
+    oTys = getOutputType <$> oupTys c
+
+unitTest :: Compo -> ([Va], [Va]) -> ([Va], [Va]) -> [String]
+unitTest c (mi, is) (mo, os) = either id id $ do
+  checkMemory c mi
+  checkInputs c [is]
+  checkMemory c mo
+  checkOutputs c os
+  case simulate c (Simulation mi (is :* VNil)) of
+    Simulation (_, mo') (step :* VNil)
+      | mo /= mo' -> Left [ "Wrong final memory" ]
+      | os /= currentOutputs step -> Left [ "Wrong output signals" ]
+      | otherwise -> Right [ "Success!" ]
+
+runCompo :: Compo -> [Va] -> [[Va]] -> [String]
+runCompo c m0 iss = case fromList iss of
+  AList xs -> either id render $ do
+    checkMemory c m0
+    checkInputs c iss
+    pure $ simulate c (Simulation m0 xs)
 
 
-tyVaChks :: [Ty1] -> [Va] -> Bool
+tyVaChks :: [Ty t Void] -> [Va] -> Bool
 tyVaChks ts vs = length ts == length vs && and (zipWith tyVaChk ts vs)
 
-tyVaChk :: Ty1 -> Va -> Bool
-tyVaChk (Bit Unit) V0 = True
-tyVaChk (Bit Unit) V1 = True
+tyVaChk :: Ty t Void -> Va -> Bool
+tyVaChk (Bit _) V0 = True
+tyVaChk (Bit _) V1 = True
 tyVaChk (Cable ts) (VC vs) = tyVaChks ts vs
 tyVaChk _ _ = False
-
 
 ------------------------------------------------------------------------------
 -- tabulating behaviours of components

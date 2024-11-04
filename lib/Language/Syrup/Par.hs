@@ -325,6 +325,10 @@ pEXPT
   <|> pTokIs (Id "experiment") *> pSpc *>
   pClue (SEEKING "an experiment")
   (    Tabulate <$> pVar <* pSpc <* pEOI
+  <|>  UnitTest <$> pVar <* pSpc
+        <*> ((,) <$> pMem <* pSpc <*> pBrk Round (SEEKING "test inputs") pVas)
+        <* pSpc <* pTokIs (Sym "=") <* pSpc
+        <*> ((,) <$> pMem <* pSpc <*> pVas) <* pSpc <* pEOI
   <|>  Simulate <$> pVar <* pSpc <*> pMem <* pSpc <*>
          pBrk Round (SEEKING "a sequence of test inputs")
            (pAllSep (pTokIs (Sym ";")) pVas)
