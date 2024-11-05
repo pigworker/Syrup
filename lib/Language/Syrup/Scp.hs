@@ -135,6 +135,7 @@ instance Scoped a => Scoped (Maybe a)
 instance Scoped Pat where
   scopecheck ga = \case
     PVar _ x  -> declareVar ga x
+    PAny _ -> pure emptyExtension
     PCab _ ps -> scopecheck ga ps
 
 instance Scoped Exp where

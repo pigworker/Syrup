@@ -124,6 +124,14 @@ pTok y p = do
 pTokIs :: Token -> Par ()
 pTokIs t = pTok (WantedGot t) (guard . (t ==))
 
+pAny :: Par ()
+pAny = do
+  let happy CA = Just ()
+      happy _ = Nothing
+  let moan t = WantedGot CA t
+  pClue (SEEKING "catchall") (pTok moan happy)
+
+
 pVar :: Par String
 pVar = do
   kws <- asks keywords
@@ -252,6 +260,7 @@ pTYA = pTokIs (Id "type") *> pSpc *>
 pPat :: Par Pat
 pPat = pClue (SEEKING "a pattern") $
   PVar () <$> pVar
+  <|> PAny () <$ pAny
   <|> PCab () <$> pBrk Square (SEEKING "cable contents")
          (pAllSep (pTokIs (Sym ",")) pPat)
   <|> pYelp AARGH

@@ -93,6 +93,7 @@ abstractThisCable ps e = isEmptyArr (foldMap support ps `intersectSet` go e) whe
 abstractAnyCable :: Pat -> [Exp] -> [[Pat]]
 abstractAnyCable p es = case p of
   PVar{}    -> []
+  PAny{}    -> []
   PCab _ ps ->
     if all (abstractThisCable ps) es
     then [ps]

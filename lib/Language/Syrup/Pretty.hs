@@ -171,6 +171,7 @@ instance Pretty (Exp' ty) where
 instance Pretty a => Pretty (Pat' ty a) where
   prettyPrec lvl = \case
     PVar _ a -> pretty a
+    PAny _ -> pretty "_"
     PCab _ ps -> pretty (AList ps)
 
 
