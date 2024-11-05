@@ -11,7 +11,7 @@
 
 module Language.Syrup.Expt where
 
-import Control.Monad (unless, guard)
+import Control.Monad (unless)
 import Control.Monad.Reader (MonadReader, asks)
 import Control.Monad.State (gets, StateT(StateT), execStateT, get, put, runStateT)
 import Control.Monad.Writer (tell)
