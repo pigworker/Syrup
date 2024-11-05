@@ -1,0 +1,63 @@
+<style>
+  .syrup-code {
+    display: block;
+    font-family: monospace;
+    font-size: 17px;
+    white-space: pre;
+    margin: 1em 0;
+  }
+  .syrup-happy:before {
+    content: "\2705";
+    padding: 0 6px 0 0;
+  }
+  .syrup-comment:before {
+    content: "\2705";
+    padding: 0 6px 0 0;
+  }
+  .syrup-warning:before {
+    content: "\26A0\FE0F";
+    padding: 0 6px 0 0;
+  }
+  .syrup-error:before {
+    content: "\274C";
+    padding: 0 6px 0 0;
+  }
+  .syrup-internal:before {
+    content: "\1F480";
+    padding: 0 6px 0 0;
+  }
+</style>
+
+<div class="syrup-happy">When unit testing <code>nand</code>(00) = 1:<br />
+<div style="padding-left: 1em"><div class="syrup-happy">Success!</div></div>
+</div><br />
+<div class="syrup-happy">When unit testing <code>nand</code>(11) = 0:<br />
+<div style="padding-left: 1em"><div class="syrup-happy">Success!</div></div>
+</div><br />
+<div class="syrup-happy">When unit testing <code>dff</code>{0}(1) = {1}0:<br />
+<div style="padding-left: 1em"><div class="syrup-happy">Success!</div></div>
+</div><br />
+<div class="syrup-error">When unit testing <code>nand</code>{0}(00) = 1:<br />
+<div style="padding-left: 1em"><div class="syrup-error">Memory for <code>nand</code> has type <code>{}</code>.
+That can't store {0}.
+</div></div>
+</div><br />
+<div class="syrup-error">When unit testing <code>nand</code>() = 1:<br />
+<div style="padding-left: 1em"><div class="syrup-error">Inputs for <code>nand</code> are typed <code>(<Bit>, <Bit>)</code>.
+That can't accept <code>()</code>.
+</div></div>
+</div><br />
+<div class="syrup-error">When unit testing <code>nand</code>(00) = {1}0:<br />
+<div style="padding-left: 1em"><div class="syrup-error">Memory for <code>nand</code> has type <code>{}</code>.
+That can't store {1}.
+</div></div>
+</div><br />
+<div class="syrup-error">When unit testing <code>nand</code>(00) = 00:<br />
+<div style="padding-left: 1em"><div class="syrup-error">Outputs for <code>nand</code> are typed <code><Bit></code>.
+That can't accept <code>00</code>.
+</div></div>
+</div><br />
+<div class="syrup-comment">Circuit <code>alternator</code> is defined.</div><br />
+<div class="syrup-happy">When unit testing <code>alternator</code>{0}() = {1}0:<br />
+<div style="padding-left: 1em"><div class="syrup-happy">Success!</div></div>
+</div><br />

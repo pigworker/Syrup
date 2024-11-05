@@ -126,6 +126,10 @@ instance Pretty a => Pretty (ATuple a) where
 instance Pretty a => Pretty (ASet a) where
   prettyPrec _ (ASet xs) = set <$> traverse pretty xs
 
+instance Pretty Va where
+  prettyPrec _ V0 = pretty "0"
+  prettyPrec _ V1 = pretty "1"
+
 ------------------------------------------------------------------------
 -- Pretty instances
 

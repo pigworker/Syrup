@@ -1,0 +1,16 @@
+experiment nand(00) = 1
+experiment nand(11) = 0
+
+experiment dff{0}(1) = {1}0
+
+experiment nand{0}(00) = 1
+experiment nand() = 1
+experiment nand(00) = {1}0
+experiment nand(00) = 00
+
+alternator() -> @<Bit>
+alternator() = Q where
+
+  Q = dff(nand(Q,Q))
+
+experiment alternator{0}() = {1}0

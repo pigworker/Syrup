@@ -9,7 +9,7 @@ import Data.Monoid (All(All, getAll), Endo(Endo, appEndo), Sum(Sum, getSum))
 import Data.Traversable (foldMapDefault, fmapDefault)
 import Data.Kind (Type)
 
-data Nat = Ze | Su Nat
+import Utilities.Nat
 
 data Bnd k = Bot | Key k | Top deriving (Ord, Eq, Show)
 

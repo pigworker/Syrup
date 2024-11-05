@@ -5,6 +5,7 @@
 ------------------------------------------------------------------------------
 
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Language.Syrup.Fdk where
 
@@ -14,12 +15,14 @@ import Control.Monad.Writer (MonadWriter, tell)
 import Data.List (intercalate, intersperse)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
+import Data.Void (Void, absurd)
 
 import Utilities.HTML (asHTML, escapeHTML)
 import qualified Utilities.HTML as HTML
 
 import Language.Syrup.BigArray (Set, isEmptyArr, foldMapSet)
 import Language.Syrup.Opt (Options(..), quiet, OutputFormat(..))
+import Language.Syrup.Syn.Base
 
 ------------------------------------------------------------------------------
 -- Feedback classes
@@ -148,6 +151,14 @@ instance Render ScopeError where
   render = pure . metaRender id
   renderHTML = pure . metaRender identifier
 
+instance Render (Ty t Void) where
+  render = \case
+    TyV v -> absurd v
+    Bit{} -> pure "<Bit>"
+    Cable ts -> [concat ("[" : foldMap render ts ++ ["]"])]
+
+  renderHTML = pure . concat . render
+
 data Feedback
   -- internal errors
   = ACouldntFindCircuitDiagram String
@@ -165,6 +176,11 @@ data Feedback
   | AnUndefinedCircuit String
   | AnUndefinedType String
   | AnUnknownIdentifier String
+  | AnIllTypedInputs String [Ty Unit Void] [Va]
+  | AnIllTypedMemory String [Ty Unit Void] [Va]
+  | AnIllTypedOutputs String [Ty Ti Void] [Va]
+  | AWrongFinalMemory [Va] [Va]
+  | AWrongOutputSignals [Va] [Va]
 
   -- warnings
   | AFoundHoles String [String]
@@ -182,9 +198,11 @@ data Feedback
   | ATruthTable String [String]
   | AnExperiment String [String] [String]
   | AnSVGGraph [String] String [String]
+  | ASuccessfulUnitTest
 
   -- contextual
   | WhenDisplaying String [Feedback]
+  | WhenUnitTesting String CircuitConfig CircuitConfig [Feedback]
 
 instance Categorise Feedback where
   categorise = \case
@@ -204,6 +222,11 @@ instance Categorise Feedback where
     AnUndefinedCircuit{} -> Error
     AnUndefinedType{} -> Error
     AnUnknownIdentifier{} -> Error
+    AnIllTypedInputs{} -> Error
+    AnIllTypedMemory{} -> Error
+    AnIllTypedOutputs{} -> Error
+    AWrongFinalMemory{} -> Error
+    AWrongOutputSignals{} -> Error
 
     -- warnings
     AFoundHoles{} -> Warning
@@ -221,9 +244,11 @@ instance Categorise Feedback where
     ATruthTable{} -> Success
     AnExperiment{} -> Success
     AnSVGGraph{} -> Success
+    ASuccessfulUnitTest{} -> Success
 
     -- contextual
     WhenDisplaying _ fdks -> foldMap categorise fdks
+    WhenUnitTesting _ _ _ fdks -> foldMap categorise fdks
 
 anExperiment :: MonadWriter (Seq Feedback) m => String -> [String] -> [String] -> m ()
 anExperiment str xs ls = tell $ Seq.singleton $ AnExperiment str xs ls
@@ -281,12 +306,33 @@ instance Render Feedback where
         where extra = case xs of
                 [] -> ""
                 _ -> concat [" (with ", intercalate ", " xs, " unfolded)"]
+      ASuccessfulUnitTest -> [ "Success!" ]
       AnUndeclaredCircuit f -> ["You haven't declared the circuit " ++ f ++ " just now."]
       AnUndefinedCircuit f -> ["You haven't defined the circuit " ++ f ++ " just now."]
       AnUndefinedType x -> ["You haven't defined the type alias " ++ x ++ " just now."]
       AnUnknownIdentifier x -> ["I don't know what " ++ x ++ " is."]
       AnInvalidTruthTableOutput f -> ["Invalid truth table output for " ++ f ++ "."]
+      AnIllTypedInputs x iTys is ->
+        [ concat ["Inputs for ", x, " are typed (", intercalate ", " (foldMap render iTys), ")."]
+        , concat ["That can't accept (", foldMap show is, ")."]
+        ]
+      AnIllTypedMemory x mTys m0 ->
+        [ concat ["Memory for ", x, " has type {", intercalate ", " (foldMap render mTys), "}."]
+        , concat ["That can't store {", foldMap show m0, "}."]
+        ]
+      AnIllTypedOutputs x oTys os ->
+        [ concat ["Outputs for ", x, " are typed ", intercalate ", " (foldMap render oTys), "."]
+        , concat ["That can't accept ", foldMap show os, "."]
+        ]
+      AWrongFinalMemory mo mo' -> pure $ concat
+        [ "Wrong final memory: expected {", foldMap show mo, "} but got {", foldMap show mo', "}." ]
+      AWrongOutputSignals os os' -> pure $ concat
+        [ "Wrong output signals: expected ", foldMap show os, " but got ", foldMap show os', "." ]
 
+
+      WhenUnitTesting x is os fdks ->
+        concat [ "When unit testing ", x, circuitConfig True is, " = ", circuitConfig False os, ":" ]
+        : concatMap (map (indent 2) . render) fdks
       WhenDisplaying f fdks -> ("When displaying " ++ f ++ ":") : concatMap (map (indent 2) . render) fdks
 
 
@@ -335,6 +381,7 @@ instance Render Feedback where
         where extra = case xs of
                 [] -> ""
                 _ -> concat [" (with ", intercalate ", " (map identifier xs), " unfolded)"]
+      ASuccessfulUnitTest -> pure "Success!"
       ARawCode str x ls -> pure $ unlines
         [ str ++ "  " ++ identifier x ++ ":" ++ HTML.br
         , HTML.div ["class=" ++ show "syrup-code"] (unlines $ escapeHTML <$> ls)
@@ -354,7 +401,43 @@ instance Render Feedback where
       AnUndeclaredCircuit f -> pure ("You haven't declared the circuit " ++ identifier f ++ " just now.")
       AnUndefinedType x -> pure ("You haven't defined the type " ++ identifier x ++ " just now.")
       AnInvalidTruthTableOutput f -> pure ("Invalid truth table output for " ++ identifier f ++ ".")
+      AnIllTypedInputs x iTys is -> pure $ unlines
+        [ concat ["Inputs for ", identifier x, " are typed "
+                 , HTML.code (concat ["(", intercalate ", " (foldMap render iTys), ")"]), "."
+                 ]
+        , concat ["That can't accept ", HTML.code (concat ["(", foldMap show is, ")"]), "."]
+        ]
+      AnIllTypedMemory x mTys m0 -> pure $ unlines
+        [ concat ["Memory for ", identifier x, " has type "
+                 , HTML.code (concat ["{", intercalate ", " (foldMap render mTys), "}"]), "."]
+        , concat ["That can't store {", foldMap show m0, "}."]
+        ]
+      AnIllTypedOutputs x oTys os -> pure $ unlines
+        [ concat ["Outputs for ", identifier x, " are typed "
+                 , HTML.code (intercalate ", " (foldMap render oTys)), "."]
+        , concat ["That can't accept ", HTML.code (foldMap show os), "."]
+        ]
+      AWrongFinalMemory mo mo' -> pure $ unlines
+        [ "Wrong final memory: expected "
+        , HTML.code (concat ["{", foldMap show mo, "}"])
+        , " but got "
+        , HTML.code (concat ["{", foldMap show mo', "}"])
+        , "." ]
+      AWrongOutputSignals os os' -> pure $ unlines
+        [ "Wrong output signals: expected "
+        , HTML.code (foldMap show os)
+        , " but got "
+        , HTML.code (foldMap show os')
+        , "." ]
 
+
+      WhenUnitTesting x is os fdks -> do
+        fdks <- traverse renderHTML fdks
+        pure $ unlines
+          [ concat [ "When unit testing ", identifier x, circuitConfig True is
+                                         , " = ", circuitConfig False os, ":", HTML.br ]
+          , HTML.div ["style=\"padding-left: 1em\""] (intercalate (HTML.br ++ "\n") fdks)
+          ]
       WhenDisplaying f fdks -> do
         fdks <- traverse renderHTML fdks
         pure $ unlines

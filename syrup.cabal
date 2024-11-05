@@ -95,6 +95,7 @@ library
                     , Language.Syrup.Smp
                     , Language.Syrup.Sub
                     , Language.Syrup.Syn
+                    , Language.Syrup.Syn.Base
                     , Language.Syrup.Ty
                     , Language.Syrup.Utils
                     , Language.Syrup.Va
@@ -102,6 +103,8 @@ library
                     , Utilities.HTML
                     , Utilities.Lens
                     , Utilities.Monad
+                    , Utilities.Nat
+                    , Utilities.Vector
 
     -- Modules included in this library but not exported.
     -- other-modules:

@@ -17,7 +17,6 @@ import Control.Monad.Writer (MonadWriter, WriterT, tell, runWriterT)
 import Data.Char (isAlphaNum)
 import Data.Foldable (for_)
 import Data.List (intercalate)
-import Data.Maybe (fromMaybe)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import Data.Traversable (for)
@@ -28,7 +27,7 @@ import Language.Syrup.Fdk (Feedback(..))
 import Language.Syrup.Fsh
 import Language.Syrup.Gph
 import Language.Syrup.Smp (nand, dff, zero)
-import Language.Syrup.Syn (Def'(..))
+import Language.Syrup.Syn (Def'(..), Ty(..))
 import Language.Syrup.Ty
 
 data Circuit = Circuit
