@@ -11,7 +11,7 @@
 
 module Language.Syrup.Expt where
 
-import Control.Monad (unless)
+import Control.Monad (unless, guard)
 import Control.Monad.Reader (MonadReader, asks)
 import Control.Monad.State (gets, StateT(StateT), execStateT, get, put, runStateT)
 import Control.Monad.Writer (tell)
@@ -73,10 +73,13 @@ withImplem x k = withCompo x $ \ c -> case defn c of
 experiment :: MonadExperiment s m => EXPT -> m ()
 experiment (Tabulate x) = withCompo x $ \ c ->
   tell $ Seq.singleton $ ATruthTable x $ displayTabulation (tabulate c)
-experiment (Simulate x m0 iss) = withCompo x $ \ c ->
-  anExperiment "Simulation for" [x] $ runCompo c m0 iss
+experiment (Simulate x m0 iss) = withCompo x $ \ c -> case runCompo c m0 iss of
+  Left fdk -> tell $ Seq.singleton fdk
+  Right msg -> anExperiment "Simulation for" [x] msg
 experiment (UnitTest x is os) = withCompo x $ \ c ->
-  anExperiment "Unit test for" [x] $ unitTest c is os
+  tell $ Seq.singleton $ WhenUnitTesting x is os $ case unitTest c is os of
+  Left fdk -> [fdk]
+  Right () -> [ASuccessfulUnitTest]
 experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc ->
   anExperiment "Bisimulation between" [l, r] $ report (l, r) (bisimReport lc rc)
 experiment (Print x) = withImplem x $ \ i -> do
@@ -185,59 +188,50 @@ simulate c (Simulation m0 iss) = go 0 m0 iss
       let Simulation mEnd steps = go (t + 1) mt' iss in
       Simulation mEnd (step :* steps)
 
-checkMemory :: Compo -> [Va] -> Either [String] ()
+checkMemory :: Compo -> [Va] -> Either Feedback ()
 checkMemory c m0
   | not (tyVaChks mTys m0)
-  = Left
-    [ concat ["Memory for ", monick c, " has type ", basicShow (ASet mTys), "."]
-    , concat ["That can't store ", basicShow (ASet m0), "."]
-    ]
+  = Left (AnIllTypedMemory (monick c) mTys m0)
   | otherwise = pure ()
 
   where
 
     mTys = getCellType <$> memTys c
 
-checkInputs :: Compo -> [[Va]] -> Either [String] ()
+checkInputs :: Compo -> [[Va]] -> Either Feedback ()
 checkInputs c iss
   | Just is <- find (not . tyVaChks iTys) iss
-  = Left
-    [ concat ["Inputs for ", monick c, " are typed ", basicShow (ATuple iTys), "."]
-    , concat ["That can't accept ", foldMap show is, "."]
-    ]
+  = Left (AnIllTypedInputs (monick c) iTys is)
   | otherwise = pure ()
   where
     iTys = getInputType <$> inpTys c
 
-checkOutputs :: Compo -> [Va] -> Either [String] ()
+checkOutputs :: Compo -> [Va] -> Either Feedback ()
 checkOutputs c os
   | not (tyVaChks oTys os)
-  = Left
-    [ concat ["Outputs for ", monick c, " are typed ", basicShow (ATuple oTys), "."]
-    , concat ["That can't accept ", foldMap show os, "."]
-    ]
+  = Left (AnIllTypedOutputs (monick c) oTys os)
   | otherwise = pure ()
   where
     oTys = getOutputType <$> oupTys c
 
-unitTest :: Compo -> ([Va], [Va]) -> ([Va], [Va]) -> [String]
-unitTest c (mi, is) (mo, os) = either id id $ do
+unitTest :: Compo -> CircuitConfig -> CircuitConfig -> Either Feedback ()
+unitTest c (CircuitConfig mi is) (CircuitConfig mo os) = do
   checkMemory c mi
   checkInputs c [is]
   checkMemory c mo
   checkOutputs c os
   case simulate c (Simulation mi (is :* VNil)) of
     Simulation (_, mo') (step :* VNil)
-      | mo /= mo' -> Left [ "Wrong final memory" ]
-      | os /= currentOutputs step -> Left [ "Wrong output signals" ]
-      | otherwise -> Right [ "Success!" ]
+      | mo /= mo' -> Left (AWrongFinalMemory mo mo')
+      | os /= currentOutputs step -> Left (AWrongOutputSignals os (currentOutputs step))
+      | otherwise -> pure ()
 
-runCompo :: Compo -> [Va] -> [[Va]] -> [String]
+runCompo :: Compo -> [Va] -> [[Va]] -> Either Feedback [String]
 runCompo c m0 iss = case fromList iss of
-  AList xs -> either id render $ do
+  AList xs -> do
     checkMemory c m0
     checkInputs c iss
-    pure $ simulate c (Simulation m0 xs)
+    pure $ render $ simulate c (Simulation m0 xs)
 
 
 tyVaChks :: [Ty t Void] -> [Va] -> Bool

@@ -95,6 +95,7 @@ library
                     , Language.Syrup.Smp
                     , Language.Syrup.Sub
                     , Language.Syrup.Syn
+                    , Language.Syrup.Syn.Base
                     , Language.Syrup.Ty
                     , Language.Syrup.Utils
                     , Language.Syrup.Va

@@ -35,17 +35,6 @@ import Utilities.Lens
 -- representing Syrup types
 ------------------------------------------------------------------------------
 
-data Ty t x
-  = TyV x
-  | Bit t
-  | Cable [Ty t x]
-  deriving (Eq, Foldable, Traversable)
-
--- using this rather than () because we want a
--- pretty Unit = ""   instance rather than the
--- pretty ()   = "()" one
-data Unit = Unit deriving (Eq)
-
 type Ty1 = Ty Unit Void
 type Ty2 = Ty Ti Void
 type Typ = Ty Unit TyNom
@@ -54,8 +43,6 @@ type TypedPat = Pat' Typ String
 type TypedExp = Exp' Typ
 type TypedEqn = Eqn' Typ
 type TypedDef = Def' Typ
-
-data Ti = T0 | T1 deriving (Show, Eq)
 
 sizeTy :: Ty a Void -> Int
 sizeTy = \case
@@ -451,6 +438,3 @@ instance Monad (Ty t) where
 instance Applicative (Ty t) where
   pure = return
   (<*>) = ap
-
-instance Functor (Ty t) where
-  fmap = ap . return

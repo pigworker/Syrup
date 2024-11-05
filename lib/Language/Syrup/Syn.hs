@@ -7,13 +7,17 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module Language.Syrup.Syn where
+module Language.Syrup.Syn
+  ( module Language.Syrup.Syn.Base
+  , module Language.Syrup.Syn
+  ) where
 
 import Data.Kind (Type)
 import Data.Monoid (Sum(..), First(..))
 import Data.Void (Void)
 
 import Language.Syrup.BigArray
+import Language.Syrup.Syn.Base
 import Language.Syrup.Fdk
 
 data Source' a
@@ -99,7 +103,7 @@ data InputName = InputName { getInputName :: String }
 data EXPT
   = Anf String
   | Bisimilarity String String
-  | UnitTest String ([Va], [Va]) ([Va], [Va])
+  | UnitTest String CircuitConfig CircuitConfig
   | Costing [String] String
   | Display [String] String
   | Dnf String
@@ -110,16 +114,6 @@ data EXPT
   | Tabulate String
   | FromOutputs String [InputName] [Bool]
   deriving Show
-
-data Va
-  = V0 | V1 | VQ | VC [Va]
-  deriving (Eq, Ord)
-
-instance Show Va where
-  show V0 = "0"
-  show V1 = "1"
-  show VQ = "?"
-  show (VC vs) = "[" ++ foldMap show vs ++ "]"
 
 
 
