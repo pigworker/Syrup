@@ -162,9 +162,6 @@ type MonadCompo s m =
   , MonadWriter (Seq Feedback) m
   )
 
-instance Has (Arr a b) (Arr a b) where
-  hasLens = id
-
 data TyFailure = TyFailure
   { failureCtx :: Bwd TyClue
   , failureErr :: TyErr
