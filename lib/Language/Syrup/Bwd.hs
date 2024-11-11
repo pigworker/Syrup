@@ -30,8 +30,11 @@ instance Monoid (Bwd x) where
   mempty = B0
   mappend = (+<)
 
-(<!) :: Bwd x -> Int -> x
-(xz :< x) <! i = if i == 0 then x else xz <! (i - 1)
+(<!) :: Bwd x -> Int -> Maybe x
+(xz :< x) <! i
+  | i == 0    = pure x
+  | otherwise = xz <! (i - 1)
+B0 <! _ = Nothing
 
 bwdBr :: String -> Bwd String -> String -> String
 bwdBr l B0 r = ""

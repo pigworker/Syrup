@@ -17,7 +17,6 @@ import Control.Monad.State (gets, StateT(StateT), execStateT, get, put, runState
 import Control.Monad.Writer (tell)
 
 import qualified Data.Bifunctor as Bi
-import Data.Either (either)
 import Data.Foldable (toList)
 import Data.Function (on)
 import Data.List (find, intercalate, sortBy)
