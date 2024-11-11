@@ -344,6 +344,7 @@ cookDec (DEC (f, is) os) =
   Dec (f, fmap (cookTY Unit id) is) (fmap (cookTY T1 (const T0)) os)
 
 cookTY :: t -> (t -> t) -> TY -> Ty t Void
+cookTY t old (TYVAR x)   = absurd x
 cookTY t old BIT         = Bit t
 cookTY t old (OLD ty)    = cookTY (old t) old ty
 cookTY t old (CABLE tys) = Cable (fmap (cookTY t old) tys)
