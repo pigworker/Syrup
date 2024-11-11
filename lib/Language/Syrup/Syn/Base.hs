@@ -9,7 +9,7 @@
 
 module Language.Syrup.Syn.Base where
 
-import Control.Monad (guard)
+import Control.Monad (ap, guard)
 
 ------------------------------------------------------------------------------
 -- Values
@@ -47,6 +47,18 @@ data Ty t x
   | Bit t
   | Cable [Ty t x]
   deriving (Eq, Functor, Foldable, Traversable)
+
+-- boring instances
+
+instance Monad (Ty t) where
+  return = TyV
+  TyV x    >>= k = k x
+  Bit t    >>= _ = Bit t
+  Cable ts >>= k = Cable (fmap (>>= k) ts)
+
+instance Applicative (Ty t) where
+  pure = return
+  (<*>) = ap
 
 
 -- using this rather than () because we want a

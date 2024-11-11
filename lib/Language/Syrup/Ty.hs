@@ -12,7 +12,7 @@
 module Language.Syrup.Ty where
 
 import Control.Applicative ((<|>))
-import Control.Monad (ap, guard, (>=>))
+import Control.Monad (guard, (>=>))
 import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.Reader (MonadReader, ask, asks, runReader)
 import Control.Monad.State (MonadState, get, gets, put)
@@ -422,18 +422,3 @@ stub :: Ty1 -> Va
 stub (TyV x) = absurd x
 stub (Bit _) = VQ
 stub (Cable ts) = VC (fmap stub ts)
-
-
-------------------------------------------------------------------------------
--- boring instances
-------------------------------------------------------------------------------
-
-instance Monad (Ty t) where
-  return = TyV
-  TyV x    >>= k = k x
-  Bit t    >>= _ = Bit t
-  Cable ts >>= k = Cable (fmap (>>= k) ts)
-
-instance Applicative (Ty t) where
-  pure = return
-  (<*>) = ap
