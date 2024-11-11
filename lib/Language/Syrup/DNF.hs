@@ -11,7 +11,6 @@
 
 module Language.Syrup.DNF where
 
-import Control.Applicative (liftA2)
 import Control.Monad (guard, join)
 import Control.Monad.Reader (MonadReader, runReader)
 
@@ -194,6 +193,7 @@ eval rho
                 Just dnf -> applyOcc occ dnf)
   . getDNF
 
+test :: DNF
 test = flip eval (nae (pos "X" &&& neg "Y" ||| pos "Z")) $ \case
   "X" -> pure (pos "S" ||| pos "T")
   "Z" -> pure (nae (pos "A" &&& neg "B"))
