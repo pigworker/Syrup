@@ -146,6 +146,7 @@ stanTy (Bit _)    = Bit Unit
 stanTy (Cable ts) = Cable (fmap stanTy ts)
 
 splitTy2 :: Ty2 -> ([Ty1], [Ty1])
+splitTy2 (TyV x)    = absurd x
 splitTy2 (Bit T0)   = ([Bit Unit], [])
 splitTy2 (Bit T1)   = ([], [Bit Unit])
 splitTy2 (Cable ts) = ([Cable ts0], [Cable ts1]) where
