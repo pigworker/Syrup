@@ -34,7 +34,7 @@ import Language.Syrup.DNF (dnf, ttToDef)
 import Language.Syrup.Dot
 import Language.Syrup.Fdk
 import Language.Syrup.Opt
-import Language.Syrup.Pretty (basicShow, prettyShow, ASet(..), ATuple(..))
+import Language.Syrup.Pretty (basicShow, prettyShow)
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Utils
