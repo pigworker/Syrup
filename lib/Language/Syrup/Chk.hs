@@ -394,6 +394,8 @@ typeErrorReport (cz, e) = concat
       ["There's some extra junk in this circuit" ++
        "that I can't see how to compute!"]
     problem BUGSolderMismatch = ["I messed up my internal wiring: report me!"]
+    problem (ConflictingHoles x) = ["Conflicting uses for the hole name ?" ++ x ++ "."]
+
     context (Stubbed _) = const []
     context _ = ("" :) . context'
     context' (_ :< TyEQN eq) =
