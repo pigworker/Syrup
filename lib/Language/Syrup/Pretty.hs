@@ -127,8 +127,11 @@ instance Pretty a => Pretty (ASet a) where
   prettyPrec _ (ASet xs) = set <$> traverse pretty xs
 
 instance Pretty Va where
-  prettyPrec _ V0 = pretty "0"
-  prettyPrec _ V1 = pretty "1"
+  prettyPrec _ = \case
+    VQ    -> pretty "?"
+    V0    -> pretty "0"
+    V1    -> pretty "1"
+    VC vs -> pretty (AList vs)
 
 ------------------------------------------------------------------------
 -- Pretty instances

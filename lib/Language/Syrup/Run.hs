@@ -19,6 +19,7 @@ import Data.Either (partitionEithers)
 import Data.Foldable (toList)
 import Data.Functor (void)
 import qualified Data.Sequence as Seq
+import Data.Void (absurd)
 
 import Language.Syrup.Chk
 import Language.Syrup.Dot
@@ -71,6 +72,7 @@ grokSy (Right (Experiment expt, _) : src) = do
 grokSy (Right (Definition d, _) : src) = do
   tell $ Seq.singleton $ AnUndeclaredCircuit (defName d)
   grokSy src
+grokSy (Right (TypeAlias (x, _), _) : src) = absurd x
 
 data SyrupEnv = SyrupEnv
   { syrupTyEnv :: TyEnv

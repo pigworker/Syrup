@@ -17,7 +17,6 @@ import Control.Monad.State (gets, StateT(StateT), execStateT, get, put, runState
 import Control.Monad.Writer (tell)
 
 import qualified Data.Bifunctor as Bi
-import Data.Either (either)
 import Data.Foldable (toList)
 import Data.Function (on)
 import Data.List (find, intercalate, sortBy)
@@ -25,7 +24,7 @@ import Data.Maybe (fromJust)
 import Data.Monoid (Endo(Endo), appEndo, Sum(Sum))
 import qualified Data.Sequence as Seq
 import Data.Traversable (for)
-import Data.Void (Void)
+import Data.Void (Void, absurd)
 
 import Language.Syrup.Anf
 import Language.Syrup.BigArray
@@ -35,7 +34,7 @@ import Language.Syrup.DNF (dnf, ttToDef)
 import Language.Syrup.Dot
 import Language.Syrup.Fdk
 import Language.Syrup.Opt
-import Language.Syrup.Pretty (basicShow, prettyShow, ASet(..), ATuple(..))
+import Language.Syrup.Pretty (basicShow, prettyShow)
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Utils
@@ -274,6 +273,7 @@ data RowTemplate = RowTemplate
 
 -- Generate a template from a pattern and its type
 template :: Pat -> Ty a Void -> Template
+template _           (TyV x)    = absurd x
 template (PVar _ v)  t          = TyV (max (length v) (sizeTy t))
 template (PCab _ ps) (Cable ts) = Cable (zipWith template ps ts)
 
@@ -378,6 +378,7 @@ tabulate c = Tabulation (inpTys c) (memTys c) (oupTys c)
 ------------------------------------------------------------------------------
 
 tyVas :: Ty1 -> [Va]
+tyVas (TyV x)    = absurd x
 tyVas (Bit _)    = [V0, V1]
 tyVas (Cable ts) = VC <$> traverse tyVas ts
 
@@ -388,6 +389,7 @@ tyVas (Cable ts) = VC <$> traverse tyVas ts
 
 spliceVas :: [Ty2] -> [Va] -> [Va] -> [Va]
 spliceVas [] _ _ = []
+spliceVas (TyV x  : _) _ _ = absurd x
 spliceVas (Bit T0 : ts) (v : vs) ws = v : spliceVas ts vs ws
 spliceVas (Bit T1 : ts) vs (w : ws) = w : spliceVas ts vs ws
 spliceVas (Cable ts' : ts) (VC vs' : vs) (VC ws' : ws) =

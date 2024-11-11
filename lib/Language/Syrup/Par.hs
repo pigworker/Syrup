@@ -426,7 +426,7 @@ syntaxError (Explanation cz tzs y) = concat
     yelp (WantedIdSymbolic t) = concat
       ["I was hoping for a variable, but I found ", show t
       ," which doesn't look like a variable."]
-    yelp (WantedIdSymbolic t) = concat
+    yelp (WantedQMSymbolic t) = concat
       ["I was hoping for a hole, but I found ", show t
       ," which doesn't look like a hole."]
 

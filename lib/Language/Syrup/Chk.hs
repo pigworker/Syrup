@@ -344,6 +344,7 @@ cookDec (DEC (f, is) os) =
   Dec (f, fmap (cookTY Unit id) is) (fmap (cookTY T1 (const T0)) os)
 
 cookTY :: t -> (t -> t) -> TY -> Ty t Void
+cookTY t old (TYVAR x)   = absurd x
 cookTY t old BIT         = Bit t
 cookTY t old (OLD ty)    = cookTY (old t) old ty
 cookTY t old (CABLE tys) = Cable (fmap (cookTY t old) tys)
@@ -394,6 +395,8 @@ typeErrorReport (cz, e) = concat
       ["There's some extra junk in this circuit" ++
        "that I can't see how to compute!"]
     problem BUGSolderMismatch = ["I messed up my internal wiring: report me!"]
+    problem (ConflictingHoles x) = ["Conflicting uses for the hole name ?" ++ x ++ "."]
+
     context (Stubbed _) = const []
     context _ = ("" :) . context'
     context' (_ :< TyEQN eq) =

@@ -12,7 +12,7 @@
 module Language.Syrup.Ty where
 
 import Control.Applicative ((<|>))
-import Control.Monad (ap, guard, (>=>))
+import Control.Monad (guard, (>=>))
 import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.Reader (MonadReader, ask, asks, runReader)
 import Control.Monad.State (MonadState, get, gets, put)
@@ -146,6 +146,7 @@ stanTy (Bit _)    = Bit Unit
 stanTy (Cable ts) = Cable (fmap stanTy ts)
 
 splitTy2 :: Ty2 -> ([Ty1], [Ty1])
+splitTy2 (TyV x)    = absurd x
 splitTy2 (Bit T0)   = ([Bit Unit], [])
 splitTy2 (Bit T1)   = ([], [Bit Unit])
 splitTy2 (Cable ts) = ([Cable ts0], [Cable ts1]) where
@@ -161,9 +162,6 @@ type MonadCompo s m =
   , MonadState s m
   , MonadWriter (Seq Feedback) m
   )
-
-instance Has (Arr a b) (Arr a b) where
-  hasLens = id
 
 data TyFailure = TyFailure
   { failureCtx :: Bwd TyClue
@@ -421,20 +419,6 @@ tyEq st = hnf st >>= \ st -> case st of
 ------------------------------------------------------------------------------
 
 stub :: Ty1 -> Va
+stub (TyV x) = absurd x
 stub (Bit _) = VQ
 stub (Cable ts) = VC (fmap stub ts)
-
-
-------------------------------------------------------------------------------
--- boring instances
-------------------------------------------------------------------------------
-
-instance Monad (Ty t) where
-  return = TyV
-  TyV x    >>= k = k x
-  Bit t    >>= _ = Bit t
-  Cable ts >>= k = Cable (fmap (>>= k) ts)
-
-instance Applicative (Ty t) where
-  pure = return
-  (<*>) = ap

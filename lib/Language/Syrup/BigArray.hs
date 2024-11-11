@@ -1,4 +1,7 @@
-{-# LANGUAGE StandaloneDeriving, RankNTypes, TypeSynonymInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Language.Syrup.BigArray where
 
@@ -10,6 +13,8 @@ import Data.Traversable (foldMapDefault, fmapDefault)
 import Data.Kind (Type)
 
 import Utilities.Nat
+import Utilities.Lens (Has(..))
+
 
 data Bnd k = Bot | Key k | Top deriving (Ord, Eq, Show)
 
@@ -241,8 +246,7 @@ setElt (Arr Leaf) = Nothing
 setElt (Arr (Node2 _ (k, _) _)) = Just k
 setElt (Arr (Node3 _ (k, _) _ _ _)) = Just k
 
-instance Traversable (Arr k) where
-  traverse f = travArr (f . snd)
-
+instance Traversable (Arr k) where traverse f = travArr (f . snd)
 instance Foldable (Arr k) where foldMap = foldMapDefault
 instance Functor (Arr k) where fmap = fmapDefault
+instance Has (Arr a b) (Arr a b) where hasLens = id
