@@ -419,6 +419,7 @@ tyEq st = hnf st >>= \ st -> case st of
 ------------------------------------------------------------------------------
 
 stub :: Ty1 -> Va
+stub (TyV x) = absurd x
 stub (Bit _) = VQ
 stub (Cable ts) = VC (fmap stub ts)
 
