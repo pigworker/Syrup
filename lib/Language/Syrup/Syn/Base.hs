@@ -11,11 +11,16 @@ module Language.Syrup.Syn.Base where
 
 import Control.Monad (ap, guard)
 
+import Data.List.NonEmpty(NonEmpty)
+
 ------------------------------------------------------------------------------
 -- Values
 
 data Va
-  = V0 | V1 | VQ | VC [Va]
+  = V0
+  | V1
+  | VQ
+  | VC [Va]
   deriving (Eq, Ord)
 
 instance Show Va where

@@ -6,7 +6,8 @@
 
 module Language.Syrup.Va where
 
-import Data.List
+import Data.Foldable (toList)
+import Data.List (partition)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Syn
@@ -70,7 +71,7 @@ match :: [Pat] -> [Va] -> Env -> Env
 match (PVar () x : ps) (v : vs) =
   match ps vs . insertArr (x, v)
 match (PCab () ps : qs) (VC vs : us) =
-  match qs us . match ps vs
+  match qs us . match (toList ps) (toList vs)
 match _ _ = id
 
 
@@ -82,7 +83,7 @@ pval :: Env -> Pat -> Va
 pval g (PVar () x) = case findArr x g of
   Nothing -> error "this isn't supposed to happen, you know"
   Just v  -> v
-pval g (PCab () ps) = VC (fmap (pval g) ps)
+pval g (PCab () ps) = VC (toList $ fmap (pval g) ps)
 
 
 ------------------------------------------------------------------------------

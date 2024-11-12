@@ -16,7 +16,10 @@ import Control.Monad (guard, join)
 import Control.Monad.Reader (MonadReader, runReader)
 
 import Data.Bifunctor (bimap)
+import Data.Foldable (toList)
 import Data.List (intercalate)
+import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromMaybe, isJust, fromJust)
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -158,7 +161,7 @@ noIndependent x@(DNF e) = fixpoint False (Map.toList <$> Set.toList e)
       | Just a <- p x = pure (a, xs)
       | otherwise = fmap (x:) <$> findJust p xs
 
-fromDNF :: forall ty. AllRemarkables ty -> DNF -> Exp' ty
+fromDNF :: forall ty. AllRemarkables ty -> DNF -> Exp' (NonEmpty ty) ty
 fromDNF d
   = orClauses
   . map andClauses
@@ -170,20 +173,20 @@ fromDNF d
     ty :: ty
     ty = bitTypeName d
 
-    orClauses :: [Exp' ty] -> Exp' ty
-    orClauses [] = App [ty] (zeroGateName d) []
+    orClauses :: [Exp' (NonEmpty ty) ty] -> Exp' (NonEmpty ty) ty
+    orClauses [] = App (ty :| []) (zeroGateName d) []
     orClauses [e] = e
-    orClauses (e:es) = App [ty] (orGateName d) [e, orClauses es]
+    orClauses (e:es) = App (ty :| []) (orGateName d) [e, orClauses es]
 
-    notGate :: Occurrence -> Exp' ty -> Exp' ty
+    notGate :: Occurrence -> Exp' (NonEmpty ty) ty -> Exp' (NonEmpty ty) ty
     notGate Asserted e = e
-    notGate Negated e = App [ty] (notGateName d) [e]
+    notGate Negated e = App (ty :| []) (notGateName d) [e]
 
-    andClauses :: [(String, Occurrence)] -> Exp' ty
-    andClauses [] = App [ty] (notGateName d) [App [ty] (zeroGateName d) []]
+    andClauses :: [(String, Occurrence)] -> Exp' (NonEmpty ty) ty
+    andClauses [] = App (ty :| []) (notGateName d) [App (ty :| []) (zeroGateName d) []]
     andClauses [(k, occ)] = notGate occ (Var ty k)
     andClauses ((k, occ) : es)
-      = App [ty] (andGateName d)
+      = App (ty :| []) (andGateName d)
         [notGate occ (Var ty k), andClauses es]
 
 eval :: (String -> Maybe DNF) -> DNF -> DNF
@@ -200,32 +203,32 @@ test = flip eval (nae (pos "X" &&& neg "Y" ||| pos "Z")) $ \case
   "Z" -> pure (nae (pos "A" &&& neg "B"))
   _ -> Nothing
 
-dnf :: CoEnv -> Def' ty -> Def' ty
+dnf :: CoEnv -> Def' (NonEmpty ty) ty -> Def' (NonEmpty ty) ty
 dnf env d@(Def lhs rhs meqns) = fromMaybe d $ do
-  (ty : _, rhs') <- fmap unzip $ sequence $ runReader (traverse toDNF rhs) env
-  let sub' = maybe id eval $ toAssignment env =<< meqns
+  (ty :| _, rhs') <- fmap NonEmpty.unzip $ sequence $ runReader (traverse toDNF rhs) env
+  let sub' = maybe id eval $ toAssignment env . toList =<< foldMap pure meqns
   d <- allRemarkables env ty
   let rhs'' = fromDNF d <$> (sub' <$> rhs')
-  pure (Def lhs rhs'' Nothing)
+  pure (Def lhs rhs'' (Left False))
 dnf env d = d
 
-toAssignment :: CoEnv -> [Eqn' ty] -> Maybe (String -> Maybe DNF)
+toAssignment :: CoEnv -> [Eqn' (NonEmpty ty) ty] -> Maybe (String -> Maybe DNF)
 toAssignment env eqns = do
   kvs <- flip traverse eqns $ \case
-    ([PVar _ x] :=: [b]) -> pure (x, fmap snd $ runReader (toDNF b) env)
+    ((PVar _ x :| []) :=: (b :| [])) -> pure (x, fmap snd $ runReader (toDNF b) env)
     _ -> Nothing
   pure (join . flip lookup kvs)
 
-toDNF :: MonadReader CoEnv m => Exp' ty -> m (Maybe (ty, DNF))
+toDNF :: MonadReader CoEnv m => Exp' (NonEmpty ty) ty -> m (Maybe (ty, DNF))
 toDNF (Var ty x) = pure (Just (ty, pos x))
 toDNF Cab{} = pure Nothing
 toDNF Hol{} = pure Nothing
-toDNF (App [ty] fn [e]) = isRemarkable fn >>= \case
+toDNF (App (ty :| []) fn [e]) = isRemarkable fn >>= \case
     Just IsNotGate -> do
       ce <- fmap snd <$> toDNF e
       pure $ (ty,) . nae <$> ce
     _ -> pure Nothing
-toDNF (App [ty] fn [e,f]) = isRemarkable fn >>= \case
+toDNF (App (ty :| []) fn [e,f]) = isRemarkable fn >>= \case
     Just IsOrGate  -> do
       ce <- fmap snd <$> toDNF e
       cf <- fmap snd <$> toDNF f
@@ -285,4 +288,4 @@ ttToDef env f xs bs = do
   let bit = Bit Unit
   rmk <- allRemarkables env bit
   let exp = fromDNF rmk dnf
-  pure (Def (f, map (PVar bit) xs) [exp] Nothing)
+  pure (Def (f, map (PVar bit) xs) (exp :| []) (Left False))

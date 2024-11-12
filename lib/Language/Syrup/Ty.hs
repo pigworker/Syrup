@@ -19,6 +19,7 @@ import Control.Monad.State (MonadState, get, gets, put)
 import Control.Monad.Writer (MonadWriter)
 
 import Data.Foldable (traverse_)
+import Data.List.NonEmpty (NonEmpty)
 import Data.Monoid (First(..))
 import Data.Sequence (Seq)
 import Data.Void (Void, absurd)
@@ -40,9 +41,9 @@ type Ty2 = Ty Ti Void
 type Typ = Ty Unit TyNom
 
 type TypedPat = Pat' Typ String
-type TypedExp = Exp' Typ
-type TypedEqn = Eqn' Typ
-type TypedDef = Def' Typ
+type TypedExp = Exp' (NonEmpty Typ) Typ
+type TypedEqn = Eqn' (NonEmpty Typ) Typ
+type TypedDef = Def' (NonEmpty Typ) Typ
 
 sizeTy :: Ty a Void -> Int
 sizeTy = \case
@@ -125,7 +126,7 @@ data Compo = Compo
   , defn   :: Maybe TypedDef
   , memTys :: [MemoryCell]
   , inpTys :: [InputWire]
-  , oupTys :: [OutputWire]
+  , oupTys :: NonEmpty (OutputWire)
   , stage0 :: [Va] -- memory
            -> [Va] -- stage 0 outputs
   , stage1 :: [Va] -- memory, stage1 inputs
@@ -376,22 +377,35 @@ norm t = hnf t >>= \ t -> case t of
   Cable ts -> Cable <$> traverse norm ts
   _ -> return t
 
+actOnTypedExp :: Applicative f => (ty -> f ty')
+              -> Exp' (NonEmpty ty) ty
+              -> f (Exp' (NonEmpty ty') ty')
+actOnTypedExp f = \case
+ Var ty x -> Var <$> f ty <*> pure x
+ Hol ty x -> Hol <$> f ty <*> pure x
+ App tys g es -> App <$> traverse f tys <*> pure g <*> traverse (actOnTypedExp f) es
+ Cab ty es -> Cab <$> f ty <*> traverse (actOnTypedExp f) es
+
 actOnTypedPat :: Applicative f => (ty -> f ty') -> Pat' ty a -> f (Pat' ty' a)
 actOnTypedPat f = \case
  PVar ty a  -> PVar <$> f ty <*> pure a
  PCab ty ps -> PCab <$> f ty <*> traverse (actOnTypedPat f) ps
 
-actOnTypedEqn :: Applicative f => (ty -> f ty') -> Eqn' ty -> f (Eqn' ty')
+actOnTypedEqn :: Applicative f => (ty -> f ty')
+              -> Eqn' (NonEmpty ty) ty
+              -> f (Eqn' (NonEmpty ty') ty')
 actOnTypedEqn f (ps :=: es)
   = (:=:)
   <$> traverse (actOnTypedPat f) ps
-  <*> traverse (traverse f) es
+  <*> traverse (actOnTypedExp f) es
 
-actOnTypedDef :: Applicative f => (ty -> f ty') -> Def' ty -> f (Def' ty')
+actOnTypedDef :: Applicative f => (ty -> f ty')
+              -> Def' (NonEmpty ty) ty
+              -> f (Def' (NonEmpty ty') ty')
 actOnTypedDef f (Def (fn, ps) es meqns)
   = Def . (fn,)
   <$> traverse (actOnTypedPat f) ps
-  <*> traverse (traverse f) es
+  <*> traverse (actOnTypedExp f) es
   <*> traverse (traverse (actOnTypedEqn f)) meqns
 actOnTypedDef f (Stub n args) = pure (Stub n args)
 

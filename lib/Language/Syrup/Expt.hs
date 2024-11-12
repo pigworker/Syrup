@@ -89,7 +89,7 @@ experiment (Typing x) = withCompo x $ \ c -> do
   g <- use hasLens
   let txt = prettyShow g $ TypeDecl x
               (getInputType <$> inpTys c)
-              (getOutputType <$> oupTys c)
+              (toList $ getOutputType <$> oupTys c)
   anExperiment "Typing for" [x] $ lines txt
 experiment (Display xs x) = withImplem x $ \ i -> do
   st <- use hasLens
@@ -211,7 +211,7 @@ checkOutputs c os
   = Left (AnIllTypedOutputs (monick c) oTys os)
   | otherwise = pure ()
   where
-    oTys = getOutputType <$> oupTys c
+    oTys = toList $ getOutputType <$> oupTys c
 
 unitTest :: Compo -> CircuitConfig -> CircuitConfig -> Either Feedback ()
 unitTest c (CircuitConfig mi is) (CircuitConfig mo os) = do
@@ -275,7 +275,7 @@ data RowTemplate = RowTemplate
 template :: Pat -> Ty a Void -> Template
 template _           (TyV x)    = absurd x
 template (PVar _ v)  t          = TyV (max (length v) (sizeTy t))
-template (PCab _ ps) (Cable ts) = Cable (zipWith template ps ts)
+template (PCab _ ps) (Cable ts) = Cable (zipWith template (toList ps) ts)
 
 mTemplate :: Maybe Pat -> Ty a Void -> Template
 mTemplate Nothing  t = TyV (sizeTy t)
@@ -296,7 +296,7 @@ outputTemplate (OutputWire p t) = mTemplate (fmap (fst <$>) p) t
 -- `displayPat ts ps` PRECONDITION: ts was generated using ps
 displayPat :: Template -> Pat -> String
 displayPat (TyV s)    (PVar _ n)  = padRight (s - length n) n
-displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
+displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts (toList ps)) ++ "]"
 
 displayMPat :: Template -> Maybe Pat -> String
 displayMPat t = maybe (displayEmpty t) (displayPat t)
@@ -363,7 +363,7 @@ displayTabulation (Tabulation ins mes ous rs) =
   outputs   = unwords $ zipWith (\ t -> displayMPat t . fmap (fst <$>) . getOutputPat) tOUT ous
 
 tabulate :: Compo -> Tabulation
-tabulate c = Tabulation (inpTys c) (memTys c) (oupTys c)
+tabulate c = Tabulation (inpTys c) (memTys c) (toList $ oupTys c)
   [ (ii, [ uncurry (TabRow mi) (unstage c (mi, ii))
          | mi <- meTab
          ]
@@ -405,7 +405,7 @@ unstage c (mi, ii) = (mo, oo) where
   o0 = stage0 c mi
   moo1 = stage1 c (mi ++ ii)
   (mo, o1) = splitAt (length (memTys c)) moo1
-  oo = spliceVas (getOutputType <$> oupTys c) o0 o1
+  oo = spliceVas (toList $ getOutputType <$> oupTys c) o0 o1
 
 
 ------------------------------------------------------------------------------
@@ -669,9 +669,9 @@ bisimReport cl cr = case (abstractStates cl, abstractStates cr) of
 
       -- phase 0 check types
       lit = getInputType <$> inpTys cl               -- left  input  types
-      lot = map (fogTy . getOutputType) (oupTys cl)  -- left  output types
+      lot = map (fogTy . getOutputType) (toList $ oupTys cl)  -- left  output types
       rit = getInputType <$> inpTys cr               -- right input  types
-      rot = map (fogTy . getOutputType) (oupTys cr)  -- right output types
+      rot = map (fogTy . getOutputType) (toList $ oupTys cr)  -- right output types
       ins = traverse tyVas lit                       -- tabulated input values
 
       -- phase 1 compute abstract machines

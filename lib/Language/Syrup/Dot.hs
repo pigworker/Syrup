@@ -15,8 +15,9 @@ import Control.Monad.State (MonadState, State, StateT, evalState, runStateT, exe
 import Control.Monad.Writer (MonadWriter, WriterT, tell, runWriterT)
 
 import Data.Char (isAlphaNum)
-import Data.Foldable (for_)
+import Data.Foldable (for_, toList)
 import Data.List (intercalate)
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import Data.Traversable (for)
@@ -165,7 +166,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
       Unfolded -> pure vnode
 
   let iports = map (declarePort 20 True . inputToPort) is
-  let oports = map (declarePort 20 True . outputToPort) os
+  let oports = map (declarePort 20 True . outputToPort) (toList os)
   let iPorts = if null iports then "" else unlines
          [ indent 2 $ concat [ gateNode, "__INPUTS" ]
          , "    [ shape = none"
@@ -192,7 +193,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
     for_ os $ tellVirtual . mkNode p . outputName -- TODO: use names of non-virtual vertices?
     case e of
       Alias ty x -> case os of
-        [y] -> Just [] <$ tellEdge ty (mkNode p x) (mkNode p $ outputName y) True
+        (y :| []) -> Just [] <$ tellEdge ty (mkNode p x) (mkNode p $ outputName y) True
         _   -> do
           modify (<> Seq.singleton (AnImpossibleError "invalid alias structure"))
           pure Nothing
@@ -201,7 +202,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
         let dotG = fanOut aCopy (extend id p) [arg] os
         for_ (zip [arg] (inputPorts dotG)) $ \ (arg, iport) ->
           tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") False
-        for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
+        for_ (zip (outputPorts dotG) (toList os)) $ \ (oport, out) -> do
           tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
         pure (Just $ circuitGraph dotG)
       Call tys f args -> case findArr f env of
@@ -220,15 +221,15 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
                 (fdk, Just wbox) -> pure (False, wbox)
           for_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
             tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") b
-          for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
+          for_ (zip (outputPorts dotG) (toList os)) $ \ (oport, out) -> do
             tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
           pure (Just $ circuitGraph dotG)
       FanIn args -> do
         id <- fresh
         let dotG = fanIn (extend id p) args os
-        for_ (zip args (inputPorts dotG)) $ \ (arg, iport) ->
+        for_ (zip (toList args) (inputPorts dotG)) $ \ (arg, iport) ->
           tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") False
-        for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
+        for_ (zip (outputPorts dotG) (toList os)) $ \ (oport, out) -> do
           tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
         pure (Just $ circuitGraph dotG)
       FanOut arg -> do
@@ -236,7 +237,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
         let dotG = fanOut aFanOut (extend id p) [arg] os
         for_ (zip [arg] (inputPorts dotG)) $ \ (arg, iport) ->
           tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") False
-        for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
+        for_ (zip (outputPorts dotG) (toList os)) $ \ (oport, out) -> do
           tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
         pure (Just $ circuitGraph dotG)
 
@@ -244,7 +245,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
     gph <- sequence gph
     pure $ Circuit
       { inputPorts   = ins
-      , outputPorts  = ous
+      , outputPorts  = toList ous
       , circuitGraph =
           (case loc of { TopLevel -> [iPorts]; Unfolded -> [] }) ++
           -- needed to get the outputs at the bottom in e.g. tff
@@ -268,7 +269,7 @@ gate :: String
      -> [String] -> GateLoc -> Path -> DotGate
 gate nm g@Gate{..} env transparent b p =
   DotGate
-    { blackbox    = toBlackbox p inputs nm outputs
+    { blackbox    = toBlackbox p inputs nm (toList outputs)
     , whitebox    = theWhitebox
     } where
 
@@ -309,9 +310,10 @@ toBlackbox p is nm os =
     , "}"
     ]
 
-fanIn :: Path -> [Input] -> [Output] -> Circuit
-fanIn p is os =
-  let width = length is
+fanIn :: Path -> [Input] -> NonEmpty Output -> Circuit
+fanIn p is os0 =
+  let os = toList os0
+      width = length is
       gateNode   = "FANIN_" ++ show p
       iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
@@ -347,10 +349,11 @@ aCopy :: FanOutType
 aCopy = FanOutType "COPY" "skyblue"
 
 
-fanOut :: FanOutType -> Path -> [Input] -> [Output] -> Circuit
-fanOut fot p is os =
-  let width = length os
-      gateNode   = (fanOutName fot) ++ "_" ++ show p
+fanOut :: FanOutType -> Path -> [Input] -> NonEmpty Output -> Circuit
+fanOut fot p is os0 =
+  let os = toList os0
+      width = length os
+      gateNode   = fanOutName fot ++ "_" ++ show p
       iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
       iports     = map (declarePort' (Just width) 7 False . inputToPort . \ r -> r { isVirtualInput = True}) is
