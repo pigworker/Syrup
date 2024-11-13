@@ -251,6 +251,7 @@ memRenaming p (OutputWire mop _) = maybe [] (uncurry go) ((,) <$> p <*> mop) whe
   go :: Pat' ty String -> OPat -> [(CellName, String)]
   go (PVar _ p)  (PVar _ (cn , b)) = if b then [(CellName cn, p)] else []
   go (PCab _ ps) (PCab _ qs)       = concat $ zipWith go ps qs
+  go _ _ = []
 
 memRenamings :: [Maybe (Pat' ty String)] -> [OutputWire] -> [(CellName, String)]
 memRenamings ps os = concat $ zipWith memRenaming ps os
