@@ -12,8 +12,9 @@ module Language.Syrup.Pretty where
 
 import Control.Monad.Reader (MonadReader, runReader)
 
-import Data.Foldable (fold)
+import Data.Foldable (fold, toList)
 import Data.List (intercalate, intersperse)
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Void (Void, absurd)
 
 import Prelude hiding (unwords, unlines)
@@ -164,17 +165,17 @@ instance Pretty a => Pretty (FunctionCall a) where
       _ -> defaultApp f [s, t]
     FunctionCall f es -> defaultApp f es
 
-instance Pretty (Exp' ty) where
+instance Pretty (Exp' tys ty) where
   prettyPrec lvl = \case
     Var _ x -> pretty x
     Hol _ x -> (questionMark <>) <$> pretty x
-    Cab _ es -> pretty (AList es)
+    Cab _ es -> pretty (AList $ toList es)
     App _ f es -> prettyPrec lvl (FunctionCall f es)
 
 instance Pretty a => Pretty (Pat' ty a) where
   prettyPrec lvl = \case
     PVar _ a -> pretty a
-    PCab _ ps -> pretty (AList ps)
+    PCab _ ps -> pretty (AList $ toList ps)
 
 
 instance Pretty Ti where
@@ -188,10 +189,10 @@ instance (Pretty t, Pretty x) => Pretty (Ty t x) where
     Bit t -> (<>) <$> pretty t <*> pretty "<Bit>"
     Cable ps -> pretty (AList ps)
 
-instance Pretty (Eqn' ty) where
+instance Pretty (Eqn' tys ty) where
   prettyPrec _ (ps :=: es) = do
-    ps <- csep <$> traverse pretty ps
-    es <- csep <$> traverse pretty es
+    ps <- csep . toList <$> traverse pretty ps
+    es <- csep . toList <$> traverse pretty es
     pure $ unwords [ps, Doc "=", es]
 
 instance Pretty TypedDef where
@@ -201,17 +202,17 @@ instance Pretty TypedDef where
       -- Type declaration
       let pstys = map patTy ps
       lhsTy <- pretty (FunctionCall fn pstys)
-      let rhstys = map (head . expTys) rhs
-      rhsTy <- csep <$> traverse pretty rhstys
+      let rhstys = fmap (NonEmpty.head . expTys) rhs
+      rhsTy <- csep . toList <$> traverse pretty rhstys
       let decl = unwords [lhsTy, Doc "->", rhsTy]
       -- Circuit definition
       lhsDef <- pretty (FunctionCall fn ps)
-      rhsDef <- csep <$> traverse pretty rhs
+      rhsDef <- csep . toList <$> traverse pretty rhs
       eqnDef <- case meqns of
-        Nothing -> pure []
-        Just eqns -> do
+        Left{} -> pure []
+        Right eqns -> do
           eqns <- traverse pretty eqns
-          pure [unlines (Doc "where" : map (indent 2) eqns)]
+          pure [unlines (Doc "where" : map (indent 2) (toList eqns))]
       let defn = unwords (lhsDef : Doc "=" : rhsDef : eqnDef)
       -- Combining everything
       pure $ unlines [decl, defn]

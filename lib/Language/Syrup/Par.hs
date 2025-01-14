@@ -12,6 +12,8 @@ import Control.Applicative
 import Control.Monad (ap, guard)
 import Control.Monad.Reader (MonadReader(..), asks)
 import Control.Monad.State (MonadState(..), gets)
+
+import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import Data.Monoid (Last(..))
 
 import Language.Syrup.BigArray
@@ -172,6 +174,9 @@ pBrk b c p = do
 pAll :: Par x -> Par [x]
 pAll p = pSpc *> ((:) <$> p <*> pAll p <|> [] <$ pEOI)
 
+pAllSep1 :: Par () -> Par x -> Par (NonEmpty x)
+pAllSep1 s p = (:|) <$> p <* pSpc <* s <*> pAllSep s p
+
 pAllSep :: Par () -> Par x -> Par [x]
 pAllSep s p = (:) <$> p <* pSpc <*> pRest <|> [] <$ pSpc <* pEOI where
   pRest = (:) <$ s <* pSpc <*> p <* pSpc <*> pRest <|> [] <$ pEOI
@@ -179,8 +184,8 @@ pAllSep s p = (:) <$> p <* pSpc <*> pRest <|> [] <$ pSpc <* pEOI where
 pSep :: Par () -> Par x -> Par [x]
 pSep s p = (:) <$> p <*> many (id <$ pSpc <* s <* pSpc <*> p) <|> pure []
 
-pSep1 :: Par () -> Par x -> Par [x]
-pSep1 s p = (:) <$> p <*> many (id <$ pSpc <* s <* pSpc <*> p)
+pSep1 :: Par () -> Par x -> Par (NonEmpty x)
+pSep1 s p = (:|) <$> p <*> many (id <$ pSpc <* s <* pSpc <*> p)
 
 pPeek :: ([Token] -> Bool) -> Par ()
 pPeek ah = do
@@ -210,7 +215,7 @@ pDef :: Par Def
 pDef = pClue (SEEKING "a definition") $ Def
   <$ pPeek (elem (Sym "="))
   <*> pLhs "pattern" pPat <* pSpc <* pTokIs (Sym "=") <* pSpc
-  <*> pClue (SEEKING "list of outputs") (pSep (pTokIs (Sym ",")) pExp)
+  <*> pClue (SEEKING "list of outputs") (pSep1 (pTokIs (Sym ",")) pExp)
   <* pSpc <*> pEqns
 
 pLhs :: String -> Par x -> Par (String, [x])
@@ -264,13 +269,13 @@ pExpPrec prec = pWee >>= pMore prec
 
 pWee :: Par Exp
 pWee = pClue (SEEKING "an expression") $
-      (pVar >>= \ f -> App [] f <$ pSpc <*> pBrk Round
+      (pVar >>= \ f -> App () f <$ pSpc <*> pBrk Round
         (SEEKING $ "input for " ++ f) (pAllSep (pTokIs (Sym ",")) pExp))
   <|> Var () <$> pVar <* pPeek notApp
   <|> Hol () <$> pHol
   <|> Cab () <$> pBrk Square (SEEKING "cable contents")
                  (pSep (pTokIs (Sym ",")) pExp)
-  <|> (App [] "not" . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
+  <|> (App () "not" . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
   <|> pBrk Round (SEEKING "an expression in parentheses") pExp
   <|> pYelp AARGH
 
@@ -281,17 +286,17 @@ notApp _ = True
 
 pMore :: Int -> Exp -> Par Exp
 pMore prec e = ( pSpc *> (
-  (App [] "or" <$ guard (prec <= 1) <* pTokIs (Sym "|") <* pSpc
+  (App () "or" <$ guard (prec <= 1) <* pTokIs (Sym "|") <* pSpc
      <*> (((e:) . (:[])) <$> pExpPrec 1) >>= pMore prec)
   <|>
-  (App [] "and" <$ guard (prec <= 2) <* pTokIs (Sym "&") <* pSpc
+  (App () "and" <$ guard (prec <= 2) <* pTokIs (Sym "&") <* pSpc
      <*> (((e:) . (:[])) <$> pExpPrec 2) >>= pMore prec)
   ) ) <|> pure e
 
-pEqns :: Par (Maybe [Eqn])
+pEqns :: Par (Either Bool (NonEmpty Eqn))
 pEqns =
-  Just <$ pTokIs (Id "where") <* pSpc <*> pAll pEqn
-  <|> Nothing <$ pEOI
+  maybe (Left True) Right . nonEmpty <$ pTokIs (Id "where") <* pSpc <*> pAll pEqn
+  <|> Left False <$ pEOI
 
 pEqn :: Par Eqn
 pEqn = pClue (SEEKING "an equation") $

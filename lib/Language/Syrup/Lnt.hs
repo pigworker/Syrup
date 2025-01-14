@@ -4,8 +4,11 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE FlexibleInstances #-}
+
 module Language.Syrup.Lnt where
 
+import Data.Foldable (toList)
 import Data.List (intercalate)
 
 import Language.Syrup.BigArray
@@ -25,14 +28,14 @@ be :: [a] -> String
 be [_] = "is"
 be _ = "are"
 
-instance ty ~ () => Lint (Def' ty) where
+instance Lint (Def' () ()) where
   linters = [ emptyWhere
             , deadcode
             , needlessSplits
             ] where
 
     emptyWhere = \case
-      Def (fun, _) _ (Just []) -> pure $ ALint
+      Def (fun, _) _ (Left True) -> pure $ ALint
         [ "empty where clause in the definition of " ++ fun ++ "."
         , "Did you forget to indent the block of local definitions using spaces?"
         ]
@@ -101,5 +104,5 @@ abstractAnyCable p es = case p of
 abstractableCables :: Def -> [[Pat]]
 abstractableCables Stub{} = []
 abstractableCables (Def (_, lhs) rhs meqs) =
-  let (ps, es) = (lhs, rhs) <> foldMap (foldMap (\ (ps :=: es) -> (ps, es))) meqs in
+  let (ps, es) = (lhs, toList rhs) <> foldMap (foldMap (\ (ps :=: es) -> (toList ps, toList es))) meqs in
   foldMap (`abstractAnyCable` es) ps

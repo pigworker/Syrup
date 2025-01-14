@@ -20,6 +20,8 @@ import Control.Monad (foldM, unless, when, void)
 import Data.Bifunctor ()
 import Data.Char (toLower)
 import Data.Foldable (traverse_)
+import Data.Foldable1 (foldMap1)
+import Data.List.NonEmpty (NonEmpty)
 import Data.Monoid ()
 
 import Language.Syrup.BigArray
@@ -103,13 +105,15 @@ isGlobalVar ga nm = do
     scopeError $ OutOfScope Global nm (hints gc nm)
 
 type family Level t :: ScopeLevel where
-  Level [a]         = Level a
-  Level (Maybe a)   = Level a
-  Level InputName   = 'Local
-  Level Pat         = 'Local
-  Level Eqn         = 'Local
-  Level (DEC' a)    = 'Global
-  Level (Source' a) = 'Global
+  Level [a]          = Level a
+  Level (NonEmpty a) = Level a
+  Level (Maybe a)    = Level a
+  Level (Either e a) = Level a
+  Level InputName    = 'Local
+  Level Pat          = 'Local
+  Level Eqn          = 'Local
+  Level (DEC' a)     = 'Global
+  Level (Source' a)  = 'Global
 
 class Scoped t where
   scopecheck :: Scope                         -- input scope
@@ -131,6 +135,7 @@ class Scoped t where
     foldM mergeExtension emptyExtension es
 
 instance Scoped a => Scoped (Maybe a)
+instance Scoped a => Scoped (Either e a)
 
 instance Scoped Pat where
   scopecheck ga = \case
@@ -148,14 +153,17 @@ instance Scoped Exp where
 
 instance Scoped [InputName]
 instance Scoped [Pat]
+instance Scoped (NonEmpty Pat)
 instance Scoped [Exp]
 
-instance Scoped [Eqn] where
+instance Scoped (NonEmpty Exp)
+
+instance Scoped (NonEmpty Eqn) where
   scopecheck ga whr = do
     -- all of these are mutually defined so we must check the
     -- body of the equations after having bound the declared
     -- variables
-    let (ps, ts) = foldMap (\ (ps :=: ts) -> (ps, ts)) whr
+    let (ps, ts) = foldMap1 (\ (ps :=: ts) -> (ps, ts)) whr
     e <- scopecheck ga ps
     e <$ scopecheck (ga `extend` e) ts
 

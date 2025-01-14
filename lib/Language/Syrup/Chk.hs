@@ -18,8 +18,9 @@ import Control.Monad.Writer (runWriterT, runWriter, tell)
 
 import Data.Bifunctor (bimap)
 import Data.Char (isAlpha)
-import Data.Foldable (traverse_, fold)
+import Data.Foldable (traverse_, fold, toList)
 import Data.List (intercalate)
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe (isJust, fromJust)
 import Data.Monoid (Last(Last), First(..))
 import qualified Data.Sequence as Seq
@@ -214,7 +215,7 @@ chkEqn eqn@(qs :=: es) = do
   tqs <- traverse defPat qs
   (ps, es) <- chkExps (map (fmap Just) tqs) es
   solders qs ps
-  pure (map snd tqs :=: es)
+  pure (fmap snd tqs :=: es)
 
 defPat :: TyMonad m => Pat -> m (Typ, TypedPat)
 defPat (PVar () x)  = do
@@ -224,6 +225,11 @@ defPat (PCab () ps) = do
   (tys, pats) <- unzip <$> traverse defPat ps
   let ty = Cable tys
   pure (ty, PCab ty pats)
+
+chkExps1 :: TyMonad m
+         => NonEmpty (Typ, Maybe TypedPat)
+         -> NonEmpty Exp
+         -> m ([Pat], NonEmpty TypedExp)
 
 chkExps :: TyMonad m => [(Typ, Maybe TypedPat)] -> [Exp] -> m ([Pat], [TypedExp])
 chkExps []  []       = return ([], [])
@@ -278,7 +284,7 @@ chkExp tqs e@(App _ fn es) = do
     Just f  -> return f
   -- rename the memory cells brought into scope by f
   let (ts, qs) = unzip tqs
-  let rho = memRenamings qs (oupTys f)
+  let rho = memRenamings qs (toList $ oupTys f)
   memTys <- pure $ map (renameMem rho) (memTys f)
 
   let mTy = getCellType <$> memTys
@@ -301,8 +307,8 @@ chkExp tqs e@(App _ fn es) = do
   (qs, (qs0, qs1)) <- fold <$> traverse stage oTy
   schedule (qs0 :<- (stage0 f, mIn))
   schedule ((mOu ++ qs1) :<- (stage1 f, mIn ++ ps))
-  let oTy' = map stanTy oTy
-  (qs,,App oTy' fn es) <$> yield oTy' tqs
+  let oTy' = fmap stanTy oTy
+  (qs,,App oTy' fn es) <$> yield (toList oTy') tqs
 chkExp (tq : tqs) (Cab () es) = do
   sqs <- case tq of
     (Cable ss, Just (PCab _ qs))
@@ -476,7 +482,7 @@ nandCompo = Compo
       , inpTys = [ InputWire (Just (PVar () "X")) (Bit Unit)
                  , InputWire (Just (PVar () "Y")) (Bit Unit)
                  ]
-      , oupTys = [ OutputWire Nothing (Bit T1) ]
+      , oupTys = OutputWire Nothing (Bit T1) :| []
       , stage0 = \ [] -> []
       , stage1 = \ i -> case i of
           [V0, _ ] -> [V1]
@@ -492,7 +498,7 @@ dffCompo = Compo
       , defn = Nothing
       , memTys = [MemoryCell (Just $ CellName "Q") (Bit Unit)]
       , inpTys = [InputWire  (Just (PVar () "D")) (Bit Unit)]
-      , oupTys = [OutputWire (Just (PVar () ("Q", True))) (Bit T0)]
+      , oupTys = OutputWire (Just (PVar () ("Q", True))) (Bit T0) :| []
       , stage0 = \ [q] -> [q]
       , stage1 = \ [_, d] -> [d]
       }
@@ -504,7 +510,7 @@ zeroCompo = Compo
       , defn = Nothing
       , memTys = []
       , inpTys = []
-      , oupTys = [OutputWire Nothing (Bit T0)]
+      , oupTys = OutputWire Nothing (Bit T0) :| []
       , stage0 = \ _ -> [V0]
       , stage1 = \ _ -> []
       }
@@ -522,11 +528,11 @@ emptyTyEnv = emptyArr
 myTyEnv :: TyEnv
 myTyEnv = emptyTyEnv
 
-env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
+env1, env2, env3 :: CoEnv -- , env4, env5, env6, env7, env8, env9 :: CoEnv
 env1 = execOnCoEnv myCoEnv $ mkComponent
   (DEC ("not", [BIT]) [BIT], "!<Bit> -> <Bit>") $ Just
-  (Def ("not", [PVar () "x"]) [Var () "y"] $ Just
-   [[PVar () "y"] :=: [App [] "nand" [Var () "x", Var () "x"]]]
+  (Def ("not", [PVar () "x"]) (Var () "y" :| []) $ Right
+   ((PVar () "y" :| []) :=: (App () "nand" [Var () "x", Var () "x"] :| []) :| [])
   ,"!x = y where  y = nand(x,x)")
 
 notCompo :: Compo
@@ -534,10 +540,10 @@ notCompo = fromJust (findArr "not" env1)
 
 env2 = execOnCoEnv env1 $ mkComponent
   (DEC ("and", [BIT, BIT]) [BIT], "<Bit> & <Bit> -> <Bit>") $ Just
-  (Def ("and", [PVar () "x", PVar () "y"]) [Var () "b"] $ Just
-    [[PVar () "a"] :=: [App [] "nand" [Var () "x", Var () "y"]]
-    ,[PVar () "b"] :=: [App [] "not" [Var () "a"]]
-    ]
+  (Def ("and", [PVar () "x", PVar () "y"]) (Var () "b" :| []) $ Right
+    (((PVar () "a" :| []) :=: (App () "nand" [Var () "x", Var () "y"] :| [])) :|
+     [(PVar () "b" :| []) :=: (App () "not" [Var () "a"] :| [])
+     ])
   ,"x & y = b where  a = nand(x,y)  b = not(a)")
 
 andCompo :: Compo
@@ -545,38 +551,42 @@ andCompo = fromJust (findArr "and" env2)
 
 env3 = execOnCoEnv env2 $ mkComponent
   (DEC ("or", [BIT, BIT]) [BIT], "<Bit> | <Bit> -> <Bit>") $ Just
-  (Def ("or", [PVar () "x", PVar () "y"]) [Var () "c"] $ Just
-    [[PVar () "c"] :=: [App [] "nand" [Var () "a", Var () "b"]]
-    ,[PVar () "a",PVar () "b"] :=: [App [] "not" [Var () "x"],App [] "not" [Var () "y"]]
-    ]
+  (Def ("or", [PVar () "x", PVar () "y"]) (Var () "c" :| []) $ Right
+    (((PVar () "c" :| [])
+       :=: (App () "nand" [Var () "a", Var () "b"] :| []))
+    :|
+    [ (PVar () "a" :| [PVar () "b"])
+       :=: (App () "not" [Var () "x"] :| [App () "not" [Var () "y"]])
+    ])
   ,"x | y = c where  c = nand(a,b)  a,b = !x,!y")
 
 orCompo :: Compo
 orCompo = fromJust (findArr "or" env3)
 
+{-
 env4 = execOnCoEnv env3 $ mkComponent
   (DEC ("jkff", [BIT, BIT]) [OLD BIT], "jkff(<Bit>,<Bit>) -> @<Bit>") $ Just
   (Def ("jkff", [PVar () "j", PVar () "k"]) [Var () "q"] $ Just
-    [[PVar () "q"] :=: [App [] "dff" [Var () "d"]]
-    ,[PVar () "d"] :=: [App [] "or"
-       [  App [] "and" [Var () "j", App [] "not" [Var () "q"]]
-       ,  App [] "and" [Var () "q", App [] "not" [Var () "k"]]
+    [[PVar () "q"] :=: [App () "dff" [Var () "d"]]
+    ,[PVar () "d"] :=: [App () "or"
+       [  App () "and" [Var () "j", App () "not" [Var () "q"]]
+       ,  App () "and" [Var () "q", App () "not" [Var () "k"]]
        ]]
     ]
   ,"jkff(j,k) = q where  q = dff(d)  d = j & !q | q & !k")
 
 env5 = execOnCoEnv env4 $ mkComponent
   (DEC ("ndnff", [BIT]) [OLD BIT], "ndnff(<Bit>) -> @<Bit>") $ Just
-  (Def ("ndnff", [PVar () "d"]) [App [] "not" [Var () "q"]] $ Just
-    [[PVar () "q"] :=: [App [] "dff" [App [] "not" [Var () "d"]]]
+  (Def ("ndnff", [PVar () "d"]) [App () "not" [Var () "q"]] $ Just
+    [[PVar () "q"] :=: [App () "dff" [App () "not" [Var () "d"]]]
     ]
   ,"ndnff(d) = !q where  q = dff(!d)")
 
 env6 = execOnCoEnv env5 $ mkComponent
   (DEC ("xor", [BIT,BIT]) [BIT], "xor(<Bit>,<Bit>) -> <Bit>") $ Just
   (Def ("xor", [PVar () "x", PVar () "y"])
-       [App [] "or" [ App [] "and" [App [] "not" [Var () "x"], Var () "y"]
-                 , App [] "and" [Var () "x", App [] "not" [Var () "y"]]
+       [App () "or" [ App () "and" [App () "not" [Var () "x"], Var () "y"]
+                 , App () "and" [Var () "x", App () "not" [Var () "y"]]
                  ]]
        Nothing
   ,"xor(x,y) = !x & y | x & !y")
@@ -584,20 +594,21 @@ env6 = execOnCoEnv env5 $ mkComponent
 env7 = execOnCoEnv env6 $ mkComponent
   (DEC ("tff", [BIT]) [OLD BIT], "tff(<Bit>) -> @<Bit>") $ Just
   (Def ("tff", [PVar () "t"]) [Var () "q"] $ Just
-    [[PVar () "q"] :=: [App [] "dff" [Var () "d"]]
-    ,[PVar () "d"] :=: [App [] "xor" [Var () "t", Var () "q"]]
+    [[PVar () "q"] :=: [App () "dff" [Var () "d"]]
+    ,[PVar () "d"] :=: [App () "xor" [Var () "t", Var () "q"]]
     ]
   ,"tff(t) = q where q = dff(d) d = xor(t,q)")
 
 env8 = execOnCoEnv env7 $ mkComponent
   (DEC ("one", []) [OLD BIT], "one() -> @<Bit>") $ Just
-  (Def ("one", []) [App [] "not" [App [] "zero" []]] Nothing
+  (Def ("one", []) [App () "not" [App () "zero" []]] Nothing
   ,"one() = !zero()")
 
 env9 = execOnCoEnv env8 $ mkComponent
   (DEC ("tff2", [BIT]) [OLD BIT], "tff2(<Bit>) -> @<Bit>") $ Just
-  (Def ("tff2", [PVar () "t"]) [App [] "xor" [Var () "q2",Var () "q1"]] $ Just
-    [[PVar () "q2"] :=: [App [] "tff" [App [] "or" [App [] "not" [Var () "t"],Var () "q1"]]]
-    ,[PVar () "q1"] :=: [App [] "tff" [App [] "one" []]]
+  (Def ("tff2", [PVar () "t"]) [App () "xor" [Var () "q2",Var () "q1"]] $ Just
+    [[PVar () "q2"] :=: [App () "tff" [App () "or" [App () "not" [Var () "t"],Var () "q1"]]]
+    ,[PVar () "q1"] :=: [App () "tff" [App () "one" []]]
     ]
   ,"tff2(T) = xor(Q2,Q1) where Q2 = tff(!T | Q1) Q1 = tff(one())")
+-}
