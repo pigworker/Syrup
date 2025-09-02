@@ -17,17 +17,17 @@ import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import Data.Void (Void, absurd)
 
-import Utilities.HTML (asHTML, escapeHTML)
-import qualified Utilities.HTML as HTML
-
 import Language.Syrup.BigArray (Set, isEmptyArr, foldMapSet)
 import Language.Syrup.Opt (Options(..), quiet, OutputFormat(..))
 import Language.Syrup.Syn.Base
 
+import Text.Blaze.Html5 (Html, toHtml)
+import qualified Text.Blaze.Html5 as Html
+
 ------------------------------------------------------------------------------
 -- Feedback classes
 
-type MonadRenderHTML m =
+type MonadRenderHtml m =
   ( MonadState Int m
   )
 
@@ -36,11 +36,11 @@ class Categorise t where
 
 class Render t where
   render :: t -> [String]
-  renderHTML :: MonadRenderHTML m => t -> m String
+  renderHtml :: MonadRenderHtml m => t -> m Html
 
 instance Render t => Render [t] where
   render = concatMap ((++ [""]) . render)
-  renderHTML = fmap (intercalate HTML.br) . traverse renderHTML
+  renderHtml = fmap (intercalate Html.br) . traverse renderHtml
 
 indent :: Int -> String -> String
 indent n str = replicate n ' ' ++ str
@@ -92,7 +92,7 @@ instance Render FeedbackStatus where
     Error -> "Error"
     Internal -> "Internal error"
 
-  renderHTML = pure . \case
+  renderHtml = pure . \case
       Success -> "happy"
       Comment -> "comment"
       Warning -> "warning"
@@ -149,7 +149,7 @@ metaRender f e = concat $ case e of
 
 instance Render ScopeError where
   render = pure . metaRender id
-  renderHTML = pure . metaRender identifier
+  renderHtml = pure . metaRender identifier
 
 instance Render (Ty t Void) where
   render = \case
@@ -157,7 +157,7 @@ instance Render (Ty t Void) where
     Bit{} -> pure "<Bit>"
     Cable ts -> [concat ("[" : foldMap render ts ++ ["]"])]
 
-  renderHTML = pure . concat . render
+  renderHtml = pure . concat . render
 
 data Feedback
   -- internal errors
@@ -267,7 +267,7 @@ fresh = do
   pure sn
 
 identifier :: String -> String
-identifier = HTML.code . escapeHTML
+identifier = Html.code . escapeHtml
 
 instance Render Feedback where
   render e =
@@ -336,35 +336,35 @@ instance Render Feedback where
       WhenDisplaying f fdks -> ("When displaying " ++ f ++ ":") : concatMap (map (indent 2) . render) fdks
 
 
-  renderHTML e = do
-    cat <- renderHTML (categorise e)
-    let div = HTML.div ["class=" ++ show ("syrup-" ++ cat)]
-    msg <- goHTML e
+  renderHtml e = do
+    cat <- renderHtml (categorise e)
+    let div = Html.div ["class=" ++ show ("syrup-" ++ cat)]
+    msg <- goHtml e
     pure (div msg)
 
 
     where
 
-    goHTML = \case
+    goHtml = \case
       AnImpossibleError str -> pure ("The IMPOSSIBLE has happened: " ++ str ++ ".")
       ACouldntFindCircuitDiagram nm -> pure ("Could not find the diagram for the circuit " ++ identifier nm ++ ".")
       ACannotDisplayStub nm -> pure ("Cannot display a diagram for the stubbed out circuit " ++ identifier nm ++ ".")
 
       AnExperiment str x ls -> pure $ unlines
-        [ str ++ " " ++ intercalate ", " (identifier <$> x) ++ ":" ++ HTML.br
-        , asHTML ls
+        [ str ++ " " ++ intercalate ", " (identifier <$> x) ++ ":" ++ Html.br
+        , toHtml ls
         ]
       ADotGraph xs x ls -> do
         n <- show <$> fresh
         pure $ unlines
-          [ "Displaying " ++ identifier x ++ extra ++ ":" ++ HTML.br
+          [ "Displaying " ++ identifier x ++ extra ++ ":" ++ Html.br
           , "<script type=" ++ show "module" ++ ">"
           , "  import { Graphviz } from \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js\";"
           , "  if (Graphviz) {"
           , "    const graphviz = await Graphviz.load();"
           , "    const dot" ++ n ++ " = " ++ show (unlines ls) ++ ";"
           , "    const svg" ++ n ++ " = graphviz.dot(dot" ++ n ++ ");"
-          , "    document.getElementById(\"GRAPH" ++ n ++ "\").innerHTML = svg" ++ n ++ ";"
+          , "    document.getElementById(\"GRAPH" ++ n ++ "\").innerHtml = svg" ++ n ++ ";"
           , "  }"
           , "</script>"
           , "<div id=" ++ show ("GRAPH" ++ n) ++ "></div>"
@@ -373,86 +373,86 @@ instance Render Feedback where
                 [] -> ""
                 _ -> concat [" (with ", intercalate ", " (map identifier xs), " unfolded)"]
 
-      AFoundHoles f ls -> pure ("Found holes in circuit " ++ identifier f ++ ":" ++ HTML.br ++ asHTML ls)
+      AFoundHoles f ls -> pure ("Found holes in circuit " ++ identifier f ++ ":" ++ Html.br ++ toHtml ls)
 
-      ALint ls -> pure (asHTML ls)
+      ALint ls -> pure (toHtml ls)
       ANoExecutable exe -> pure ("Could not find the " ++ identifier exe ++ " executable :(")
-      AnSVGGraph xs x ls -> pure (unlines (("Displaying " ++ identifier x ++ extra ++ ":" ++ HTML.br) : ls))
+      AnSVGGraph xs x ls -> pure (unlines (("Displaying " ++ identifier x ++ extra ++ ":" ++ Html.br) : ls))
         where extra = case xs of
                 [] -> ""
                 _ -> concat [" (with ", intercalate ", " (map identifier xs), " unfolded)"]
       ASuccessfulUnitTest -> pure "Success!"
       ARawCode str x ls -> pure $ unlines
-        [ str ++ "  " ++ identifier x ++ ":" ++ HTML.br
-        , HTML.div ["class=" ++ show "syrup-code"] (unlines $ escapeHTML <$> ls)
+        [ str ++ "  " ++ identifier x ++ ":" ++ Html.br
+        , Html.div ["class=" ++ show "syrup-code"] (unlines $ escapeHtml <$> ls)
         ]
-      ATruthTable x ls -> pure (unlines ["Truth table for " ++ identifier x ++ ":" ++ HTML.br, HTML.pre (unlines ls)])
-      ASyntaxError ls -> pure (asHTML ls)
-      AScopeError ls -> renderHTML ls
+      ATruthTable x ls -> pure (unlines ["Truth table for " ++ identifier x ++ ":" ++ Html.br, Html.pre (unlines ls)])
+      ASyntaxError ls -> pure (toHtml ls)
+      AScopeError ls -> renderHtml ls
       ACircuitDefined str -> pure ("Circuit " ++ identifier str ++ " is defined.")
       ATypeDefined str -> pure ("Type " ++ identifier ("<" ++ str ++ ">") ++ " is defined.")
       AStubbedOut nm -> pure ("Circuit " ++ identifier nm ++ " has been stubbed out.")
-      ATypeError ls -> pure (asHTML ls)
+      ATypeError ls -> pure (toHtml ls)
       AnUnknownIdentifier x -> pure ("I don't know what " ++ identifier x ++ " is.")
       AMissingImplementation x -> pure ("I don't have an implementation for " ++ identifier x ++ ".")
       AnAmbiguousDefinition f zs ->
-        pure (asHTML (("I don't know which of the following is your preferred " ++ f ++ ":") : intercalate [""] zs))
+        pure (toHtml (("I don't know which of the following is your preferred " ++ f ++ ":") : intercalate [""] zs))
       AnUndefinedCircuit f -> pure ("You haven't defined the circuit " ++ identifier f ++ " just now.")
       AnUndeclaredCircuit f -> pure ("You haven't declared the circuit " ++ identifier f ++ " just now.")
       AnUndefinedType x -> pure ("You haven't defined the type " ++ identifier x ++ " just now.")
       AnInvalidTruthTableOutput f -> pure ("Invalid truth table output for " ++ identifier f ++ ".")
       AnIllTypedInputs x iTys is -> pure $ unlines
         [ concat ["Inputs for ", identifier x, " are typed "
-                 , HTML.code (concat ["(", intercalate ", " (foldMap render iTys), ")"]), "."
+                 , Html.code (concat ["(", intercalate ", " (foldMap render iTys), ")"]), "."
                  ]
-        , concat ["That can't accept ", HTML.code (concat ["(", foldMap show is, ")"]), "."]
+        , concat ["That can't accept ", Html.code (concat ["(", foldMap show is, ")"]), "."]
         ]
       AnIllTypedMemory x mTys m0 -> pure $ unlines
         [ concat ["Memory for ", identifier x, " has type "
-                 , HTML.code (concat ["{", intercalate ", " (foldMap render mTys), "}"]), "."]
+                 , Html.code (concat ["{", intercalate ", " (foldMap render mTys), "}"]), "."]
         , concat ["That can't store {", foldMap show m0, "}."]
         ]
       AnIllTypedOutputs x oTys os -> pure $ unlines
         [ concat ["Outputs for ", identifier x, " are typed "
-                 , HTML.code (intercalate ", " (foldMap render oTys)), "."]
-        , concat ["That can't accept ", HTML.code (foldMap show os), "."]
+                 , Html.code (intercalate ", " (foldMap render oTys)), "."]
+        , concat ["That can't accept ", Html.code (foldMap show os), "."]
         ]
       AWrongFinalMemory mo mo' -> pure $ unlines
         [ "Wrong final memory: expected "
-        , HTML.code (concat ["{", foldMap show mo, "}"])
+        , Html.code (concat ["{", foldMap show mo, "}"])
         , " but got "
-        , HTML.code (concat ["{", foldMap show mo', "}"])
+        , Html.code (concat ["{", foldMap show mo', "}"])
         , "." ]
       AWrongOutputSignals os os' -> pure $ unlines
         [ "Wrong output signals: expected "
-        , HTML.code (foldMap show os)
+        , Html.code (foldMap show os)
         , " but got "
-        , HTML.code (foldMap show os')
+        , Html.code (foldMap show os')
         , "." ]
 
 
       WhenUnitTesting x is os fdks -> do
-        fdks <- traverse renderHTML fdks
+        fdks <- traverse renderHtml fdks
         pure $ unlines
           [ concat [ "When unit testing ", identifier x, circuitConfig True is
-                                         , " = ", circuitConfig False os, ":", HTML.br ]
-          , HTML.div ["style=\"padding-left: 1em\""] (intercalate (HTML.br ++ "\n") fdks)
+                                         , " = ", circuitConfig False os, ":", Html.br ]
+          , Html.div ["style=\"padding-left: 1em\""] (intercalate (Html.br ++ "\n") fdks)
           ]
       WhenDisplaying f fdks -> do
-        fdks <- traverse renderHTML fdks
+        fdks <- traverse renderHtml fdks
         pure $ unlines
-          [ "When displaying " ++ identifier f ++ ":" ++ HTML.br
-          , HTML.div ["style=\"padding-left: 1em\""] (intercalate (HTML.br ++ "\n") fdks)
+          [ "When displaying " ++ identifier f ++ ":" ++ Html.br
+          , Html.div ["style=\"padding-left: 1em\""] (intercalate (Html.br ++ "\n") fdks)
           ]
 
 
 feedback :: Options -> [Feedback] -> [String]
 feedback opts = (. filter (keep opts)) $ case outputFormat opts of
   TextOutput -> render
-  HTMLOutput -> (headerHTML:) . map (++ HTML.br) . flip evalState 0 . traverse renderHTML
+  HtmlOutput -> (headerHtml:) . map (++ Html.br) . flip evalState 0 . traverse renderHtml
 
   where
-  headerHTML = unlines
+  headerHtml = unlines
     [ "<style>"
     , "  .syrup-code {"
     , "    display: block;"

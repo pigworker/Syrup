@@ -12,7 +12,7 @@ data GraphFormat
 
 data OutputFormat
   = TextOutput
-  | HTMLOutput
+  | HtmlOutput
 
 data Options = Options
   { quiet :: Bool
@@ -34,7 +34,7 @@ defaultMarxOptions = Options
   { quiet = False
   , filepath = Nothing
   , graphFormat = SourceDot
-  , outputFormat = HTMLOutput
+  , outputFormat = HtmlOutput
   }
 
 parseOptions :: Options -> [String] -> Either String Options
@@ -43,6 +43,6 @@ parseOptions acc ("-q" : opts) = parseOptions (acc { quiet = True }) opts
 parseOptions acc ("-f" : fp : opts) = parseOptions (acc { filepath = Just fp }) opts
 parseOptions acc ("--source-dot" : opts) = parseOptions (acc { graphFormat = SourceDot }) opts
 parseOptions acc ("--rendered-svg" : opts) = parseOptions (acc { graphFormat = RenderedSVG }) opts
-parseOptions acc ("--html" : opts) = parseOptions (acc { outputFormat = HTMLOutput }) opts
+parseOptions acc ("--html" : opts) = parseOptions (acc { outputFormat = HtmlOutput }) opts
 parseOptions acc ("--text" : opts) = parseOptions (acc { outputFormat = TextOutput }) opts
 parseOptions acc (opt : opts) = Left ("Unrecognised option \"" ++ opt ++ "\".")
