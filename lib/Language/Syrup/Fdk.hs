@@ -187,6 +187,7 @@ data Feedback
   | ALint [String]
   | AMissingImplementation String
   | AStubbedOut String
+  | AnUnreasonablyLargeExperiment Int Int String
 
   -- comments
   | ACircuitDefined String
@@ -233,6 +234,7 @@ instance Categorise Feedback where
     ALint{} -> Warning
     AMissingImplementation{} -> Warning
     AStubbedOut{} -> Warning
+    AnUnreasonablyLargeExperiment{} -> Warning
 
     -- comments
     ACircuitDefined{} -> Comment
@@ -294,6 +296,9 @@ instance Render Feedback where
       ARawCode str x ls -> (str ++ " " ++ x ++ ":") : ls
       AScopeError ls -> render ls
       AStubbedOut nm -> ["Circuit " ++ nm ++ " has been stubbed out."]
+      AnUnreasonablyLargeExperiment lim size x ->
+        ["Gave up on experimenting on " ++ x ++ " due to its size (" ++ show size
+           ++ " but the limit is " ++ show lim ++ ")."]
       ASyntaxError ls -> ls
       ATruthTable x ls -> ("Truth table for " ++ x ++ ":") : ls
       ATypeDefined str -> ["Type <" ++ str ++ "> is defined."]
@@ -392,6 +397,10 @@ instance Render Feedback where
       ACircuitDefined str -> pure ("Circuit " ++ identifier str ++ " is defined.")
       ATypeDefined str -> pure ("Type " ++ identifier ("<" ++ str ++ ">") ++ " is defined.")
       AStubbedOut nm -> pure ("Circuit " ++ identifier nm ++ " has been stubbed out.")
+      AnUnreasonablyLargeExperiment lim size x ->
+        pure ("Gave up on experimenting on " ++ identifier x ++ " due to its size (" ++ show size
+           ++ " but the limit is " ++ show lim ++ ").")
+
       ATypeError ls -> pure (asHTML ls)
       AnUnknownIdentifier x -> pure ("I don't know what " ++ identifier x ++ " is.")
       AMissingImplementation x -> pure ("I don't have an implementation for " ++ identifier x ++ ".")

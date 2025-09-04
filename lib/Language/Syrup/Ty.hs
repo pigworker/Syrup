@@ -44,6 +44,12 @@ type TypedExp = Exp' Typ
 type TypedEqn = Eqn' Typ
 type TypedDef = Def' Typ
 
+sizeBits :: Ty a Void -> Int
+sizeBits = \case
+  TyV v -> absurd v
+  Bit{} -> 1
+  Cable ts -> sum (sizeBits <$> ts)
+
 sizeTy :: Ty a Void -> Int
 sizeTy = \case
   TyV v    -> absurd v

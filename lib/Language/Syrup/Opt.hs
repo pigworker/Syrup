@@ -6,6 +6,8 @@
 
 module Language.Syrup.Opt where
 
+import Text.Read (readMaybe)
+
 data GraphFormat
   = RenderedSVG
   | SourceDot
@@ -19,6 +21,7 @@ data Options = Options
   , filepath :: Maybe FilePath
   , graphFormat :: GraphFormat
   , outputFormat :: OutputFormat
+  , experimentLimit :: Maybe Int
   }
 
 defaultOptions :: Options
@@ -27,6 +30,7 @@ defaultOptions = Options
   , filepath = Nothing
   , graphFormat = RenderedSVG
   , outputFormat = TextOutput
+  , experimentLimit = Nothing
   }
 
 defaultMarxOptions :: Options
@@ -35,6 +39,7 @@ defaultMarxOptions = Options
   , filepath = Nothing
   , graphFormat = SourceDot
   , outputFormat = HTMLOutput
+  , experimentLimit = Just 10
   }
 
 parseOptions :: Options -> [String] -> Either String Options
@@ -45,4 +50,7 @@ parseOptions acc ("--source-dot" : opts) = parseOptions (acc { graphFormat = Sou
 parseOptions acc ("--rendered-svg" : opts) = parseOptions (acc { graphFormat = RenderedSVG }) opts
 parseOptions acc ("--html" : opts) = parseOptions (acc { outputFormat = HTMLOutput }) opts
 parseOptions acc ("--text" : opts) = parseOptions (acc { outputFormat = TextOutput }) opts
-parseOptions acc (opt : opts) = Left ("Unrecognised option \"" ++ opt ++ "\".")
+parseOptions acc ("--experiment-limit" : arg : opts) = case readMaybe arg of
+  Just k | k >= 0 -> parseOptions (acc { experimentLimit = Just k }) opts
+  _ -> Left ("Invalid experiment limit: " ++ show arg ++ ".")
+parseOptions acc (opt : opts) = Left ("Unrecognised option " ++ show opt ++ ".")

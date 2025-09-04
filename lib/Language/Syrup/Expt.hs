@@ -20,7 +20,7 @@ import qualified Data.Bifunctor as Bi
 import Data.Foldable (toList)
 import Data.Function (on)
 import Data.List (find, intercalate, sortBy)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromMaybe, fromJust)
 import Data.Monoid (Endo(Endo), appEndo, Sum(Sum))
 import qualified Data.Sequence as Seq
 import Data.Traversable (for)
@@ -69,8 +69,18 @@ withImplem x k = withCompo x $ \ c -> case defn c of
   Nothing -> tell $ Seq.singleton (AMissingImplementation x)
   Just i -> k i
 
+ifSmallEnough :: MonadExperiment s m => Compo -> m () -> m ()
+ifSmallEnough c act = do
+  let cSize = sum (sizeBits . getInputType <$> inpTys c)
+            + sum (sizeBits . getCellType  <$> memTys c)
+  -- sneakily using the size we want if none was set by the user
+  -- so as not to have to case on the (Maybe Int) :)
+  lim <- asks (fromMaybe cSize . experimentLimit)
+  if cSize <= lim then act else
+    tell $ Seq.singleton (AnUnreasonablyLargeExperiment lim cSize (monick c))
+
 experiment :: MonadExperiment s m => EXPT -> m ()
-experiment (Tabulate x) = withCompo x $ \ c ->
+experiment (Tabulate x) = withCompo x $ \ c -> ifSmallEnough c $
   tell $ Seq.singleton $ ATruthTable x $ displayTabulation (tabulate c)
 experiment (Simulate x m0 iss) = withCompo x $ \ c -> case runCompo c m0 iss of
   Left fdk -> tell $ Seq.singleton fdk
