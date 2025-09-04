@@ -6,16 +6,22 @@ D { Q -> Q } Q
 1 { 0 -> 1 } 0
   { 1 -> 1 } 1
 
+
 Typing for dff:
 dff(<Bit>) -> @<Bit>
 
+
 Circuit not is defined.
+
 
 Circuit and is defined.
 
+
 Circuit or is defined.
 
+
 Circuit alternator is defined.
+
 
 Truth table for alternator:
  { ALT -> ALT } ALT
@@ -23,9 +29,12 @@ Truth table for alternator:
  { 0   -> 1   } 0  
  { 1   -> 0   } 1  
 
+
 Circuit xor is defined.
 
+
 Circuit tff is defined.
+
 
 Truth table for tff:
 T { Q -> Q } Q
@@ -35,7 +44,9 @@ T { Q -> Q } Q
 1 { 0 -> 1 } 0
   { 1 -> 0 } 1
 
+
 Circuit count2 is defined.
+
 
 Truth table for count2:
  { Q1 Q2 -> Q1 Q2 } Q2 Q1
@@ -45,7 +56,9 @@ Truth table for count2:
  { 1  0  -> 0  1  } 0  1 
  { 1  1  -> 0  0  } 1  1 
 
+
 Circuit count2tff is defined.
+
 
 Truth table for count2tff:
  { Q1 Q2 -> Q1 Q2 } [Q2 Q1]
@@ -55,9 +68,12 @@ Truth table for count2tff:
  { 1  0  -> 0  1  } [0  1 ]
  { 1  1  -> 0  0  } [1  1 ]
 
+
 Error: You are redefining the top-level variable dff.
 
+
 Circuit dff is defined.
+
 
 Truth table for dff:
 D { QD -> QD } QD
@@ -67,13 +83,15 @@ D { QD -> QD } QD
 1 { 0  -> 1  } 0 
   { 1  -> 1  } 1 
 
+
 Error: You are redefining the top-level variable zero.
 
+
 Circuit zero is defined.
+
 
 Truth table for zero:
  { W -> W } Z
 -{--------}--
  { 0 -> 0 } 0
  { 1 -> 1 } 0
-

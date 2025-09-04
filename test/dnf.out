@@ -1,12 +1,15 @@
 Circuit not is defined.
 
+
 Circuit and is defined.
+
 
 Circuit or is defined.
 
+
 Circuit complex is defined.
+
 
 Disjunctive Normal Form of complex:
 complex(<Bit>, <Bit>, <Bit>) -> <Bit>
 complex(X, Y, Z) = !X & !Y | !X & !Z
-

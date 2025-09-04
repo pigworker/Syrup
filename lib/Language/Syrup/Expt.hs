@@ -47,6 +47,8 @@ import System.Directory (findExecutable)
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (readProcess)
 
+import Text.Blaze.Html5 (toHtml)
+
 ------------------------------------------------------------------------------
 -- experiments
 ------------------------------------------------------------------------------
@@ -157,7 +159,7 @@ data TimeStep = TimeStep
   }
 
 instance Render (Simulation n (Int, [Va]) TimeStep) where
-  renderHTML = pure . concat . render
+  renderHtml = pure . toHtml . concat . render
   render (Simulation (z, mo) steps) = foldMap (pure . row) steps ++ [lastrow]
       where
         w = length (show z)

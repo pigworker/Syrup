@@ -1,8 +1,11 @@
 Circuit not is defined.
 
+
 Circuit and is defined.
 
+
 Circuit or is defined.
+
 
 Warning: Found holes in circuit f:
   ?A : <Bit>
@@ -10,7 +13,9 @@ Warning: Found holes in circuit f:
   ?C : <Bit>
   ?D : [<Bit>, <Bit>]
 
+
 Warning: Circuit f has been stubbed out.
+
 
 Error: I was trying to make sense of the following code:
 
@@ -21,7 +26,8 @@ I got stuck here:
 I was looking for a definition.
 At that point, it made sense, but then I found stuff I didn't expect.
 
+
 Error: You haven't defined the circuit problematic just now.
 
-Warning: Circuit problematic has been stubbed out.
 
+Warning: Circuit problematic has been stubbed out.
