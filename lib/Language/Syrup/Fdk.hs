@@ -402,7 +402,7 @@ instance Render Feedback where
               , "    const graphviz = await Graphviz.load();"
               , "    const " <> dotName <> " = " <> preEscapedString (show (unlines ls)) <> ";"
               , "    const " <> svgName <> " = graphviz.dot(" <> dotName <> ");"
-              , "    document.getElementById(\"" <> toHtml graphName <> "\").innerHtml = " <> svgName <> ";"
+              , "    document.getElementById(\"" <> toHtml graphName <> "\").innerHTML = " <> svgName <> ";"
               , "  }"
               , ""
               ]
