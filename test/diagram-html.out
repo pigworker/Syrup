@@ -26,7 +26,8 @@
     content: "\1F480";
     padding: 0 6px 0 0;
   }
-</style><br>
+
+</style>
 <div class="syrup-comment">Circuit <code>not</code> is defined.</div><br>
 <div class="syrup-happy"><p>Displaying <code>not</code>:</p>
 <script type="module">

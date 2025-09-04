@@ -26,7 +26,8 @@
     content: "\1F480";
     padding: 0 6px 0 0;
   }
-</style><br>
+
+</style>
 <div class="syrup-error">You haven&#39;t defined the circuit <code>undefined</code> just now.</div><br>
 <div class="syrup-warning">Circuit <code>undefined</code> has been stubbed out.</div><br>
 <div class="syrup-comment">Circuit <code>not</code> is defined.</div><br>

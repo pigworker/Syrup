@@ -26,7 +26,8 @@
     content: "\1F480";
     padding: 0 6px 0 0;
   }
-</style><br>
+
+</style>
 <div class="syrup-happy"><p>When unit testing <code>nand</code>(00) = 1:</p>
 <div style="padding-left: 1em"><div class="syrup-happy">Success!</div></div></div><br>
 <div class="syrup-happy"><p>When unit testing <code>nand</code>(11) = 0:</p>

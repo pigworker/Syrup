@@ -531,11 +531,11 @@ feedbackText :: [Feedback] -> [String]
 feedbackText = intercalate [""] . map render
 
 feedbackHtml :: [Feedback] -> Html
-feedbackHtml = punctuate (br <> "\n") . (headerHtml :) . flip evalState 0 . traverse renderHtml
+feedbackHtml = (headerHtml <>) . punctuate (br <> "\n") . flip evalState 0 . traverse renderHtml
 
   where
     headerHtml :: Html
-    headerHtml = Html.style $ toHtml $ unlines
+    headerHtml = (<> "\n") $ Html.style $ toHtml $ unlines
       [ ""
       , "  .syrup-code {"
       , "    display: block;"
@@ -564,4 +564,5 @@ feedbackHtml = punctuate (br <> "\n") . (headerHtml :) . flip evalState 0 . trav
       , "    content: \"\\1F480\";"
       , "    padding: 0 6px 0 0;"
       , "  }"
+      , ""
       ]
