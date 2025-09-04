@@ -1,25 +1,18 @@
 Circuit not is defined.
 
-
 Circuit and is defined.
 
-
 Circuit or is defined.
-
 
 DNF circuit for f:
 f(<Bit>, <Bit>, <Bit>) -> <Bit>
 f(X, Y, Z) = X & Y & Z | X & !Y & !Z
 
-
 Error: You are redefining the local variable X.
-
 
 Error: Invalid truth table output for h.
 
-
 Error: Invalid truth table output for i.
-
 
 DNF circuit for j:
 j() -> <Bit>

@@ -1,83 +1,63 @@
 Circuit not is defined.
 
-
 Circuit and is defined.
-
 
 Circuit or is defined.
 
-
 Circuit xor is defined.
-
 
 Circuit eq is defined.
 
-
 Circuit one is defined.
-
 
 Circuit mux is defined.
 
-
 Circuit xor2 is defined.
-
 
 Cost for not:
   1 copy of nand
 
-
 Cost for and:
   2 copies of nand
-
 
 Cost for or:
   3 copies of nand
 
-
 Cost for or:
   1 copy of or
-
 
 Cost for or:
   1 copy of nand
   2 copies of not
 
-
 Cost for xor:
   9 copies of nand
-
 
 Cost for xor:
   2 copies of and
   2 copies of not
   1 copy of or
-
 
 Cost for eq:
   2 copies of and
   3 copies of not
   1 copy of or
 
-
 Cost for zero:
   1 copy of zero
-
 
 Cost for one:
   1 copy of nand
   1 copy of zero
 
-
 Cost for one:
   1 copy of not
   1 copy of zero
-
 
 Cost for mux:
   2 copies of and
   1 copy of not
   1 copy of or
-
 
 Cost for xor2:
   1 copy of mux

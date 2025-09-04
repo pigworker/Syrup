@@ -429,25 +429,11 @@ instance Render Feedback where
       ATruthTable x ls -> pure $$
         [ p $$ ["Truth table for ", identifier x, ":"]
         , pre (toHtml $ unlines ls)
+        ]
       AnUnreasonablyLargeExperiment lim size x -> pure $$
         [ "Gave up on experimenting on ", identifier x
         , " due to its size (", toHtml (show size)
         , " but the limit is ", toHtml (show lim),")."
-        ]
-      ATypeError ls -> pure (asHTML ls)
-      AnUnknownIdentifier x -> pure ("I don't know what " ++ identifier x ++ " is.")
-      AMissingImplementation x -> pure ("I don't have an implementation for " ++ identifier x ++ ".")
-      AnAmbiguousDefinition f zs ->
-        pure (asHTML (("I don't know which of the following is your preferred " ++ f ++ ":") : intercalate [""] zs))
-      AnUndefinedCircuit f -> pure ("You haven't defined the circuit " ++ identifier f ++ " just now.")
-      AnUndeclaredCircuit f -> pure ("You haven't declared the circuit " ++ identifier f ++ " just now.")
-      AnUndefinedType x -> pure ("You haven't defined the type " ++ identifier x ++ " just now.")
-      AnInvalidTruthTableOutput f -> pure ("Invalid truth table output for " ++ identifier f ++ ".")
-      AnIllTypedInputs x iTys is -> pure $ unlines
-        [ concat ["Inputs for ", identifier x, " are typed "
-                 , HTML.code (concat ["(", intercalate ", " (foldMap render iTys), ")"]), "."
-                 ]
-        , concat ["That can't accept ", HTML.code (concat ["(", foldMap show is, ")"]), "."]
         ]
       ASyntaxError ls -> pure $$ fmap toHtml ls
       AScopeError ls -> renderHtml ls
@@ -538,7 +524,7 @@ instance Render Feedback where
           ]
 
 feedbackText :: [Feedback] -> [String]
-feedbackText = intercalate ["\n"] . map render
+feedbackText = intercalate [""] . map render
 
 feedbackHtml :: [Feedback] -> Html
 feedbackHtml = punctuate (br <> "\n") . (headerHtml :) . flip evalState 0 . traverse renderHtml

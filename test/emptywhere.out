@@ -1,7 +1,6 @@
 Warning: empty where clause in the definition of and.
 Did you forget to indent the block of local definitions using spaces?
 
-
 Error: I was trying to make sense of the following code:
 
 and(<Bit>,<Bit>) -> <Bit>
@@ -10,9 +9,7 @@ and(X,Y) = notnand where
 
 Error: You tried to use notnand but it is not in scope.
 
-
 Warning: Circuit and has been stubbed out.
-
 
 Error: I was trying to make sense of the following code:
 

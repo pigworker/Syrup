@@ -1,6 +1,5 @@
 Circuit not is defined.
 
-
 Displaying not:
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
@@ -69,9 +68,7 @@ Displaying not:
 </g>
 </svg>
 
-
 Circuit or is defined.
-
 
 Displaying or:
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -158,7 +155,6 @@ Displaying or:
 </g>
 </g>
 </svg>
-
 
 Displaying or (with not unfolded):
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>

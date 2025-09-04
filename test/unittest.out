@@ -1,37 +1,29 @@
 When unit testing nand(00) = 1:
   Success!
 
-
 When unit testing nand(11) = 0:
   Success!
 
-
 When unit testing dff{0}(1) = {1}0:
   Success!
-
 
 Error: When unit testing nand{0}(00) = 1:
   Error: Memory for nand has type {}.
   That can't store {0}.
 
-
 Error: When unit testing nand() = 1:
   Error: Inputs for nand are typed (<Bit>, <Bit>).
   That can't accept ().
-
 
 Error: When unit testing nand(00) = {1}0:
   Error: Memory for nand has type {}.
   That can't store {1}.
 
-
 Error: When unit testing nand(00) = 00:
   Error: Outputs for nand are typed <Bit>.
   That can't accept 00.
 
-
 Circuit alternator is defined.
-
 
 When unit testing alternator{0}() = {1}0:
   Success!
