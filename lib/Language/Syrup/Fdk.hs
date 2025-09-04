@@ -28,7 +28,7 @@ import Language.Syrup.Opt (Options(..), quiet)
 import Language.Syrup.Syn.Base
 
 import Text.Blaze.Html5
-  (AttributeValue, Html, (!), br, code, div, p, pre, toHtml, toValue)
+  (AttributeValue, Html, (!), br, code, div, p, pre, preEscapedString, toHtml, toValue)
 import qualified Text.Blaze.Html5 as Html
 import Text.Blaze.Html5.Attributes
   (class_, id, style, type_)
@@ -396,7 +396,7 @@ instance Render Feedback where
               "  import { Graphviz } from \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js\";"
               "  if (Graphviz) {"
               "    const graphviz = await Graphviz.load();"
-              "    const " <> dotName <> " = " <> toHtml (show (unlines ls)) <> ";"
+              "    const " <> dotName <> " = " <> preEscapedString (show (unlines ls)) <> ";"
               "    const " <> svgName <> " = graphviz.dot(" <> dotName <> ");"
               "    document.getElementById(\"" <> toHtml graphName <> "\").innerHtml = " <> svgName <> ";"
               "  }"
