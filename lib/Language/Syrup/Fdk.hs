@@ -212,6 +212,7 @@ data Feedback
   | ALint [String]
   | AMissingImplementation String
   | AStubbedOut String
+  | AnUnreasonablyLargeExperiment Int Int String
 
   -- comments
   | ACircuitDefined String
@@ -258,6 +259,7 @@ instance Categorise Feedback where
     ALint{} -> Warning
     AMissingImplementation{} -> Warning
     AStubbedOut{} -> Warning
+    AnUnreasonablyLargeExperiment{} -> Warning
 
     -- comments
     ACircuitDefined{} -> Comment
@@ -319,6 +321,9 @@ instance Render Feedback where
       ARawCode str x ls -> (str ++ " " ++ x ++ ":") : ls
       AScopeError ls -> render ls
       AStubbedOut nm -> ["Circuit " ++ nm ++ " has been stubbed out."]
+      AnUnreasonablyLargeExperiment lim size x ->
+        ["Gave up on experimenting on " ++ x ++ " due to its size (" ++ show size
+           ++ " but the limit is " ++ show lim ++ ")."]
       ASyntaxError ls -> ls
       ATruthTable x ls -> ("Truth table for " ++ x ++ ":") : ls
       ATypeDefined str -> ["Type <" ++ str ++ "> is defined."]
@@ -424,6 +429,25 @@ instance Render Feedback where
       ATruthTable x ls -> pure $$
         [ p $$ ["Truth table for ", identifier x, ":"]
         , pre (toHtml $ unlines ls)
+      AnUnreasonablyLargeExperiment lim size x -> pure $$
+        [ "Gave up on experimenting on ", identifier x
+        , " due to its size (", toHtml (show size)
+        , " but the limit is ", toHtml (show lim),")."
+        ]
+      ATypeError ls -> pure (asHTML ls)
+      AnUnknownIdentifier x -> pure ("I don't know what " ++ identifier x ++ " is.")
+      AMissingImplementation x -> pure ("I don't have an implementation for " ++ identifier x ++ ".")
+      AnAmbiguousDefinition f zs ->
+        pure (asHTML (("I don't know which of the following is your preferred " ++ f ++ ":") : intercalate [""] zs))
+      AnUndefinedCircuit f -> pure ("You haven't defined the circuit " ++ identifier f ++ " just now.")
+      AnUndeclaredCircuit f -> pure ("You haven't declared the circuit " ++ identifier f ++ " just now.")
+      AnUndefinedType x -> pure ("You haven't defined the type " ++ identifier x ++ " just now.")
+      AnInvalidTruthTableOutput f -> pure ("Invalid truth table output for " ++ identifier f ++ ".")
+      AnIllTypedInputs x iTys is -> pure $ unlines
+        [ concat ["Inputs for ", identifier x, " are typed "
+                 , HTML.code (concat ["(", intercalate ", " (foldMap render iTys), ")"]), "."
+                 ]
+        , concat ["That can't accept ", HTML.code (concat ["(", foldMap show is, ")"]), "."]
         ]
       ASyntaxError ls -> pure $$ fmap toHtml ls
       AScopeError ls -> renderHtml ls
