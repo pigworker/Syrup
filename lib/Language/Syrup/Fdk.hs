@@ -404,6 +404,7 @@ instance Render Feedback where
               , "    const " <> svgName <> " = graphviz.dot(" <> dotName <> ");"
               , "    document.getElementById(\"" <> toHtml graphName <> "\").innerHtml = " <> svgName <> ";"
               , "  }"
+              , ""
               ]
           , div ! id (toValue graphName) $ ""
           ]
