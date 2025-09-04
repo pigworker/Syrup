@@ -36,6 +36,9 @@ import Text.Blaze.Html5.Attributes
 ($$) :: (Html -> a) -> [Html] -> a
 f $$ x = f (fold x)
 
+($$$) :: (Html -> a) -> [Html] -> a
+f $$$ x = f $$ intersperse "\n" x
+
 ------------------------------------------------------------------------------
 -- Feedback classes
 
@@ -382,32 +385,33 @@ instance Render Feedback where
       ACannotDisplayStub nm -> pure $$
         ["Cannot display a diagram for the stubbed out circuit ", identifier nm, "."]
 
-      AnExperiment str x ls -> pure $$
+      AnExperiment str x ls -> pure $$$
         [ p $$ [toHtml str, " ", punctuate ", " (identifier <$> x), ":"]
         , foldMap toHtml ls
         ]
       ADotGraph xs x ls -> do
         n <- show <$> fresh
-        pure $$ let graphName = "GRAPH" ++ n in
+        pure $$$ let graphName = "GRAPH" ++ n in
           [ p $$ ["Displaying ", identifier x, extra, ":"]
-          , Html.script ! type_ "module" $ do
-              let dotName = "dot" <> toHtml n
-              let svgName = "svg" <> toHtml n
-              "  import { Graphviz } from \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js\";"
-              "  if (Graphviz) {"
-              "    const graphviz = await Graphviz.load();"
-              "    const " <> dotName <> " = " <> preEscapedString (show (unlines ls)) <> ";"
-              "    const " <> svgName <> " = graphviz.dot(" <> dotName <> ");"
-              "    document.getElementById(\"" <> toHtml graphName <> "\").innerHtml = " <> svgName <> ";"
-              "  }"
-              "</script>"
+          , Html.script ! type_ "module" $$$
+              let dotName = "dot" <> toHtml n in
+              let svgName = "svg" <> toHtml n in
+              [ ""
+              , "  import { Graphviz } from \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js\";"
+              , "  if (Graphviz) {"
+              , "    const graphviz = await Graphviz.load();"
+              , "    const " <> dotName <> " = " <> preEscapedString (show (unlines ls)) <> ";"
+              , "    const " <> svgName <> " = graphviz.dot(" <> dotName <> ");"
+              , "    document.getElementById(\"" <> toHtml graphName <> "\").innerHtml = " <> svgName <> ";"
+              , "  }"
+              ]
           , div ! id (toValue graphName) $ ""
           ]
         where extra = case xs of
                 [] -> ""
                 _ -> fold [" (with ", punctuate ", " (map identifier xs), " unfolded)"]
 
-      AFoundHoles f ls -> pure $$
+      AFoundHoles f ls -> pure $$$
         [ p $$ ["Found holes in circuit ", identifier f, ":"]
         , foldMap toHtml ls
         ]
@@ -422,11 +426,11 @@ instance Render Feedback where
                 [] -> ""
                 _ -> fold [" (with ", punctuate ", " (map identifier xs), " unfolded)"]
       ASuccessfulUnitTest -> pure "Success!"
-      ARawCode str x ls -> pure $$
+      ARawCode str x ls -> pure $$$
         [ p $$ [ toHtml str, " ", identifier x, ":" ]
         , div ! class_ "syrup-code" $ (toHtml $ unlines ls)
         ]
-      ATruthTable x ls -> pure $$
+      ATruthTable x ls -> pure $$$
         [ p $$ ["Truth table for ", identifier x, ":"]
         , pre (toHtml $ unlines ls)
         ]
@@ -448,7 +452,7 @@ instance Render Feedback where
         [ "I don't know what ", identifier x, " is." ]
       AMissingImplementation x -> pure $$
         [ "I don't have an implementation for ", identifier x, "." ]
-      AnAmbiguousDefinition f zs -> pure $$
+      AnAmbiguousDefinition f zs -> pure $$$
         [ p $$ [ "I don't know which of the following is your preferred ", identifier f, ":" ]
         , div ! style "padding-left: 1em" $ punctuate br (map (pre . toHtml . punctuate "\n") zs)
         ]
@@ -510,7 +514,7 @@ instance Render Feedback where
 
       WhenUnitTesting x is os fdks -> do
         fdks <- traverse renderHtml fdks
-        pure $$
+        pure $$$
           [ p $$ [ "When unit testing ", identifier x
                  , toHtml (circuitConfig True is), " = "
                  , toHtml (circuitConfig False os), ":"]
@@ -518,7 +522,7 @@ instance Render Feedback where
           ]
       WhenDisplaying f fdks -> do
         fdks <- traverse renderHtml fdks
-        pure $$
+        pure $$$
           [ p $$ [ "When displaying ", identifier f, ":" ]
           , div ! style "padding-left: 1em" $ punctuate (br <> "\n") fdks
           ]
