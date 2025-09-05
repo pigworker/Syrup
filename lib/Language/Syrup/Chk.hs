@@ -306,9 +306,10 @@ chkExp tqs e@(App _ fn es) = do
 chkExp (tq : tqs) (Cab () es) = do
   sqs <- case tq of
     (Cable ss, Just (PCab _ qs))
-      | length ss == length qs -> return (zipWith (\ s q -> (s, Just q)) ss qs)
-      | otherwise              -> return (map (, Nothing) ss)
-    (Cable ss, Nothing)        -> return (map (, Nothing) ss)
+      | length ss == length qs  -> return (zipWith (\ s q -> (s, Just q)) ss qs)
+      | otherwise               -> return (map (, Nothing) ss)
+    (Cable ss, Just (PVar _ _)) -> return (map (, Nothing) ss) -- TODO:?
+    (Cable ss, Nothing)         -> return (map (, Nothing) ss)
     (Bit _, _) -> tyErr BitCable
     (TyV x, _) -> do
       ss <- traverse (const tyF) es

@@ -162,6 +162,7 @@ elabRHS inputs e =
 -- When we will elaborate a (Var ty x), we will check whether
 -- we need to use one of the virtual names thus introduced.
 declareCopies :: (String, (First Typ, Sum Int)) -> ANF [LetBinding]
+declareCopies (x, (First (Nothing), Sum n)) = error "The IMPOSSIBLE has happened: wire with no ends"
 declareCopies (x, (First (Just ty), Sum n))
   | n <= 2 = pure [] -- there are two ends to each cable
   | otherwise = do
@@ -221,6 +222,7 @@ elabEqn (ps :=: rhs) = do
 elabVar :: String -> ANF String
 elabVar x = gets (findArr x) >>= \case
   Nothing -> pure x
+  Just [] -> error "The IMPOSSIBLE has happened: ran out of virtual names"
   Just (n : ns) -> do
     modify (insertArr (x, ns))
     pure (outputName n)
@@ -242,6 +244,7 @@ elabAss (ous, e) = case e of
     (args, eqs) <- unzip <$> mapM elabExp es
     ih <- mapM elabAss $ concat eqs
     pure $ (ous, FanIn (cowire <$> args)) : concat ih
+  Hol _ _ -> pure [] -- error: elaborating a hole?!
 
 toGate :: TypedDef -> Maybe (String, Gate)
 toGate = evalFresh . (`evalStateT` emptyArr) . elabDef

@@ -67,6 +67,7 @@ library
                   -Wno-unused-do-bind
                   -Wno-unused-local-binds
                   -Wno-unused-matches
+                  -Werror=incomplete-patterns
 
 
     -- Modules exported by the library.
