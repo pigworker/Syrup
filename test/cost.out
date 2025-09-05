@@ -1,18 +1,4 @@
-Circuit not is defined.
-
-Circuit and is defined.
-
-Circuit or is defined.
-
-Circuit xor is defined.
-
-Circuit eq is defined.
-
-Circuit one is defined.
-
-Circuit mux is defined.
-
-Circuit xor2 is defined.
+Circuits not, and, or, xor, eq, one, mux, and xor2 are defined.
 
 Cost for not:
   1 copy of nand

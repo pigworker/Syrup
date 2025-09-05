@@ -1,42 +1,12 @@
-Circuit not is defined.
-
-Circuit and is defined.
-
-Circuit or is defined.
-
-Circuit nor is defined.
-
-Circuit xor is defined.
-
-Circuit xor1 is defined.
-
-Circuit xor2 is defined.
-
-Circuit hadd is defined.
+Circuits not, and, or, nor, xor, xor1, xor2, and hadd are defined.
 
 Warning: the wire _ is defined but never used.
 
-Circuit fadd is defined.
-
-Circuit jkff is defined.
-
-Circuit adc2 is defined.
+Circuits fadd, jkff, and adc2 are defined.
 
 Type <Two> is defined.
 
-Circuit adcTwo is defined.
-
-Circuit ndnff is defined.
-
-Circuit tff is defined.
-
-Circuit jkt is defined.
-
-Circuit one is defined.
-
-Circuit guff is defined.
-
-Circuit tff2 is defined.
+Circuits adcTwo, ndnff, tff, jkt, one, guff, and tff2 are defined.
 
 Truth table for not:
 X | Z

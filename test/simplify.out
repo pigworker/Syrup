@@ -1,6 +1,4 @@
-Circuit not is defined.
-
-Circuit f is defined.
+Circuits not and f are defined.
 
 Simplification of f:
 f(<Bit>) -> <Bit>
@@ -26,9 +24,7 @@ Simplification of h:
 h(<Bit>, <Bit>) -> <Bit>
 h(X, Y) = nand(X, Y)
 
-Circuit or is defined.
-
-Circuit i is defined.
+Circuits or and i are defined.
 
 Simplification of i:
 i(<Bit>, <Bit>) -> <Bit>

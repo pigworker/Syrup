@@ -30,11 +30,7 @@ Did you mean: N?
 
 Warning: Circuit and has been stubbed out.
 
-Circuit or is defined.
-
-Circuit xor is defined.
-
-Circuit h1 is defined.
+Circuits or, xor, and h1 are defined.
 
 Warning: the wires CIN, CiN are defined but never used.
 

@@ -1,24 +1,4 @@
-Circuit not is defined.
-
-Circuit and is defined.
-
-Circuit or is defined.
-
-Circuit nor is defined.
-
-Circuit xor is defined.
-
-Circuit hadd is defined.
-
-Circuit fadd is defined.
-
-Circuit adc2 is defined.
-
-Circuit one is defined.
-
-Circuit mux is defined.
-
-Circuit adc2par is defined.
+Circuits not, and, or, nor, xor, hadd, fadd, adc2, one, mux, and adc2par are defined.
 
 Displaying adc2par:
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>

@@ -39,6 +39,18 @@ f $$ x = f (fold x)
 ($$$) :: (Html -> a) -> [Html] -> a
 f $$$ x = f $$ intersperse "\n" x
 
+oxfordList :: (Monoid a, IsString a) => [a] -> a
+oxfordList [] = ""
+oxfordList [x] = x
+oxfordList [x,y] = fold [x, " and ", y]
+oxfordList xs = fold (go xs) where
+
+  go = \case
+    [] -> []
+    [x] -> [x]
+    [x,y] -> [x, ", and ", y]
+    (x:xs) -> x : ", " : go xs
+
 ------------------------------------------------------------------------------
 -- Feedback classes
 
@@ -65,11 +77,20 @@ plural :: Monoid s => [a] -> s -> s -> s
 plural (_ : _ : _) str s = str <> s
 plural _ str _ = str
 
+between :: Monoid a => (a, a) -> a -> a
+between (l,r) m = fold [l, m, r]
+
+squares :: (Monoid a, IsString a) => a -> a
+squares = between ("[", "]")
+
+angles :: (Monoid a, IsString a) => a -> a
+angles = between ("<", ">")
+
 braces :: (Monoid a, IsString a) => a -> a
-braces s = fold ["{", s, "}"]
+braces = between ("{", "}")
 
 parens :: (Monoid a, IsString a) => a -> a
-parens s = fold ["(", s, ")"]
+parens = between ("(", ")")
 
 punctuate :: Monoid a => a -> [a] -> a
 punctuate pun s = fold $ intersperse pun s
@@ -182,9 +203,9 @@ instance Render ScopeError where
 instance Render (Ty t Void) where
   render = \case
     Meta v -> absurd v
-    TVar s _ -> [concat ["<", s, ">"]]
+    TVar s _ -> [angles s]
     Bit{} -> pure "<Bit>"
-    Cable ts -> [concat ("[" : foldMap render ts ++ ["]"])]
+    Cable ts -> [squares $ punctuate ", " $ foldMap render ts]
 
   renderHtml = pure . toHtml . concat . render
 
@@ -219,8 +240,8 @@ data Feedback
   | AnUnreasonablyLargeExperiment Int Int String
 
   -- comments
-  | ACircuitDefined String
-  | ATypeDefined String
+  | ACircuitDefined [String] -- non empty list
+  | ATypeDefined [String] -- non empty list
 
   -- successes
   | ADotGraph [String] String [String]
@@ -300,6 +321,18 @@ fresh = do
 identifier :: String -> Html
 identifier = code . toHtml
 
+groupFeedback :: [Feedback] -> [Feedback]
+groupFeedback (ACircuitDefined cs : ACircuitDefined es : rest) =
+  groupFeedback (ACircuitDefined (cs ++ es) : rest)
+groupFeedback (ATypeDefined cs : ATypeDefined es : rest) =
+  groupFeedback (ATypeDefined (cs ++ es) : rest)
+groupFeedback (fdk : rest) = fdk : groupFeedback rest
+groupFeedback [] = []
+
+instance Render [Feedback] where
+  render = intercalate [""] . map render . groupFeedback
+  renderHtml = fmap (punctuate (br <> "\n")) . traverse renderHtml . groupFeedback
+
 instance Render Feedback where
   render e =
     let preamb = feedbackStatus $ categorise e in
@@ -313,7 +346,18 @@ instance Render Feedback where
       AnImpossibleError str -> ["The IMPOSSIBLE has happened: " ++ str ++ "."]
       ACouldntFindCircuitDiagram nm -> ["Could not find the diagram for the circuit " ++ nm ++ "."]
       ACannotDisplayStub nm ->  ["Cannot display a diagram for the stubbed out circuit " ++ nm ++ "."]
-      ACircuitDefined str -> ["Circuit " ++ str ++ " is defined."]
+      ACircuitDefined cs -> pure $ unwords
+        [ plural cs "Circuit" "s"
+        , oxfordList cs
+        , case cs of { (_:_:_) -> "are"; _ -> "is" }
+        , "defined."
+        ]
+      ATypeDefined ts -> pure $ unwords
+        [ plural ts "Type" "s"
+        , oxfordList (map angles ts)
+        , case ts of { (_:_:_) -> "are"; _ -> "is" }
+        , "defined."
+        ]
       ADotGraph xs x ls -> ("Displaying " ++ x ++ extra ++ ":") : ls
         where extra = case xs of
                 [] -> ""
@@ -330,7 +374,6 @@ instance Render Feedback where
            ++ " but the limit is " ++ show lim ++ ")."]
       ASyntaxError ls -> ls
       ATruthTable x ls -> ("Truth table for " ++ x ++ ":") : ls
-      ATypeDefined str -> ["Type <" ++ str ++ "> is defined."]
       ATypeError ls -> ls
       AnAmbiguousDefinition f zs ->
         ["I don't know which of the following is your preferred " ++ f ++ ":"]
@@ -449,10 +492,18 @@ instance Render Feedback where
         ]
       ASyntaxError ls -> pure $$ fmap toHtml ls
       AScopeError ls -> renderHtml ls
-      ACircuitDefined str -> pure $$
-        [ "Circuit ", identifier str, " is defined." ]
-      ATypeDefined str -> pure $$
-        [ "Type ", identifier ("<" ++ str ++ ">"), " is defined." ]
+      ACircuitDefined cs -> pure $ punctuate " "
+        [ plural cs "Circuit" "s"
+        , oxfordList (map (code . toHtml) cs)
+        , case cs of { (_:_:_) -> "are"; _ -> "is" }
+        , "defined."
+        ]
+      ATypeDefined ts -> pure $ punctuate " "
+        [ plural ts "Type" "s"
+        , oxfordList (map (code . angles . toHtml) ts)
+        , case ts of { (_:_:_) -> "are"; _ -> "is" }
+        , "defined."
+        ]
       AStubbedOut nm -> pure $$
         [ "Circuit ", identifier nm, " has been stubbed out." ]
       ATypeError ls -> pure $$ fmap toHtml ls
@@ -539,10 +590,10 @@ instance Render Feedback where
           ]
 
 feedbackText :: [Feedback] -> [String]
-feedbackText = intercalate [""] . map render
+feedbackText = render
 
 feedbackHtml :: [Feedback] -> Html
-feedbackHtml = (headerHtml <>) . punctuate (br <> "\n") . flip evalState 0 . traverse renderHtml
+feedbackHtml = (headerHtml <>) . flip evalState 0 . renderHtml
 
   where
     headerHtml :: Html

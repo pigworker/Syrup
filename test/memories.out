@@ -9,13 +9,7 @@ D { Q -> Q } Q
 Typing for dff:
 dff(<Bit>) -> @<Bit>
 
-Circuit not is defined.
-
-Circuit and is defined.
-
-Circuit or is defined.
-
-Circuit alternator is defined.
+Circuits not, and, or, and alternator are defined.
 
 Truth table for alternator:
  { ALT -> ALT } ALT
@@ -23,9 +17,7 @@ Truth table for alternator:
  { 0   -> 1   } 0  
  { 1   -> 0   } 1  
 
-Circuit xor is defined.
-
-Circuit tff is defined.
+Circuits xor and tff are defined.
 
 Truth table for tff:
 T { Q -> Q } Q

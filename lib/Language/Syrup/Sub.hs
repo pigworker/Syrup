@@ -48,6 +48,6 @@ inlineAliases rho []                     = (rho, [])
 inlineAliases rho (Left s : tl)          = (Left s :) <$> inlineAliases rho tl
 inlineAliases rho (Right (srcc, s) : tl) =
   case subAlias rho srcc of
-    Right (rho, Left ty)   -> (Left (ATypeDefined ty) :)   <$> inlineAliases rho tl
+    Right (rho, Left ty)   -> (Left (ATypeDefined [ty]) :) <$> inlineAliases rho tl
     Right (rho, Right src) -> (Right (src, s) :)           <$> inlineAliases rho tl
     Left x                 -> (Left (AnUndefinedType x) :) <$> inlineAliases rho tl

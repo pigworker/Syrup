@@ -29,7 +29,8 @@
 
 </style>
 <div class="syrup-comment">Circuit <code>not</code> is defined.</div><br>
-<div class="syrup-happy"><p>Displaying <code>not</code>:</p>
+<div class="syrup-happy">Displaying <code>not</code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -39,4 +40,4 @@
     document.getElementById("GRAPH1").innerHTML = svg1;
   }
 </script>
-<div id="GRAPH1"></div></div>
+<div style="padding-left: 1em"><div id="GRAPH1"></div></div></div>

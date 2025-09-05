@@ -1,12 +1,4 @@
-Circuit not is defined.
-
-Circuit and is defined.
-
-Circuit or is defined.
-
-Circuit xor is defined.
-
-Circuit hadd is defined.
+Circuits not, and, or, xor, and hadd are defined.
 
 Truth table for hadd:
 X Y |    
@@ -75,9 +67,7 @@ Simulation for adc2:
 1 {} [11][10]0 -> 1[01]
 2 {}
 
-Circuit xor1 is defined.
-
-Circuit xor2 is defined.
+Circuits xor1 and xor2 are defined.
 
 Bisimulation between xor1, xor2:
 xor1 behaves like xor2

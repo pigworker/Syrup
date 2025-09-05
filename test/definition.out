@@ -1,8 +1,4 @@
-Circuit not is defined.
-
-Circuit and is defined.
-
-Circuit or is defined.
+Circuits not, and, and or are defined.
 
 DNF circuit for f:
 f(<Bit>, <Bit>, <Bit>) -> <Bit>

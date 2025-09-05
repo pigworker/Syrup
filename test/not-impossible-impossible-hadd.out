@@ -1,12 +1,4 @@
-Circuit not is defined.
-
-Circuit and is defined.
-
-Circuit or is defined.
-
-Circuit one is defined.
-
-Circuit xor is defined.
+Circuits not, and, or, one, and xor are defined.
 
 Error: I was trying to make sense of the following code:
 

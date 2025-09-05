@@ -129,7 +129,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
                         , stage0 = plan (Plan mI ta0 qs0)
                         , stage1 = plan (Plan (mI ++ ps) ta1 (mO ++ qs1))
                         }
-                  tell $ Seq.fromList (ACircuitDefined g : maybeRemarkable g rmk)
+                  tell $ Seq.fromList (ACircuitDefined [g] : maybeRemarkable g rmk)
                   hasLens %= insertArr (g, gc)
                   pure (True, Just def)
                 e -> do -- trace (show (sched st)) $

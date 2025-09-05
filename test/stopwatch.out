@@ -1,24 +1,8 @@
-Circuit not is defined.
-
-Circuit and is defined.
-
-Circuit or is defined.
-
-Circuit mux is defined.
-
-Circuit xor is defined.
-
-Circuit hadd is defined.
-
-Circuit fadd is defined.
+Circuits not, and, or, mux, xor, hadd, and fadd are defined.
 
 Type <Bit3> is defined.
 
-Circuit rca3 is defined.
-
-Circuit dff3 is defined.
-
-Circuit mux3 is defined.
+Circuits rca3, dff3, and mux3 are defined.
 
 Warning: the wire _ is defined but never used.
 
