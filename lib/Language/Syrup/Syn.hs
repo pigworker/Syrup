@@ -5,6 +5,7 @@
 ------------------------------------------------------------------------------
 
 {-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE StandaloneDeriving      #-}
 {-# LANGUAGE TypeFamilies      #-}
 
 module Language.Syrup.Syn

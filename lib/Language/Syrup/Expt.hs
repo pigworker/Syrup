@@ -51,6 +51,9 @@ import System.Process (readProcess)
 -- experiments
 ------------------------------------------------------------------------------
 
+impossible :: String -> a
+impossible str = error ("The IMPOSSIBLE has happened: " ++ str)
+
 type MonadExperiment s m =
   ( Has DotSt s
   , MonadReader Options m
@@ -287,6 +290,7 @@ template _           (Meta x)   = absurd x
 template (PVar _ v)  t          = Meta (max (length v) (sizeTy t)) -- ?!
 template p           (TVar s t) = template p t
 template (PCab _ ps) (Cable ts) = Cable (zipWith template ps ts)
+template (PCab _ _) (Bit _) = impossible "ill typed pattern"
 
 mTemplate :: Maybe Pat -> Ty a Void -> Template
 mTemplate Nothing  t = Meta (sizeTy t)
@@ -309,6 +313,9 @@ displayPat :: Template -> Pat -> String
 displayPat (TVar _ t) p           = displayPat (absurd <$> t) p
 displayPat (Meta s)   (PVar _ n)  = padRight (s - length n) n
 displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
+displayPat (Bit x) _ = absurd x
+displayPat (TyV _) (PCab _ _) = impossible "displaying a cable pattern at a meta type"
+displayPat (Cable _) (PVar _ _) = impossible "displaying a variable pattern at a cable type"
 
 displayMPat :: Template -> Maybe Pat -> String
 displayMPat t = maybe (displayEmpty t) (displayPat t)
@@ -320,6 +327,8 @@ displayVa :: Template -> Va -> String
 displayVa (Meta s)   v       = let n = show v in padRight (s - length n) n
 displayVa (TVar _ t) v       = displayVa (absurd <$> t) v
 displayVa (Cable ts) (VC vs) = "[" ++ displayVas ts vs ++ "]"
+displayVa (Cable _) _ = impossible "ill typed cable value"
+displayVa (Bit x) _ = absurd x
 
 displayVas :: [Template] -> [Va] -> String
 displayVas ts vs = unwords $ zipWith displayVa ts vs
@@ -409,6 +418,10 @@ spliceVas (Bit T0 : ts) (v : vs) ws = v : spliceVas ts vs ws
 spliceVas (Bit T1 : ts) vs (w : ws) = w : spliceVas ts vs ws
 spliceVas (Cable ts' : ts) (VC vs' : vs) (VC ws' : ws) =
   VC (spliceVas ts' vs' ws') : spliceVas ts vs ws
+spliceVas (Cable _ : _) (_ : _) (_ : _) =
+  impossible "ill typed cable values"
+spliceVas (_ : _) [] _ = impossible "arity mismatch"
+spliceVas (_ : _) _ [] = impossible "arity mismatch"
 
 
 ------------------------------------------------------------------------------
@@ -497,7 +510,7 @@ abstractStates c = AC $ go start
         observeS m = [findArr (fst (unstage c (m, i))) vi | i <- inTab]
     stop (PState isv vi _) = fmap glom isv where
       glom sm = (sm, [x | i <- inTab, x <- see i]) where
-        Just m = setElt sm
+        m = fromJust (setElt sm)
         see i =
           let (n, o) = unstage c (m, i)
           in  case findArr n vi of
@@ -522,6 +535,7 @@ whyDiffer ac ti xy = head (sortBy (compare `on` length) (go emptyArr xy))
                       | (is, ((xos, xn), (yos, yn))) <- blah, xn /= yn
                       , iss <- go (singleton xy <> seen) (xn, yn)
                       ]
+        _ -> impossible "could not generate whyDiffer explanation"
 
 
 ------------------------------------------------------------------------------
@@ -572,10 +586,10 @@ report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
   ++ mem
   ++ foldMapArr grot mr
   where
-    (loss, mem) = case findArr l ml of
-      Just (lvas, loss) -> (,) loss $ case leftmostArr lvas of
-        Just [] -> []
-        Just vs -> ["in memory state {" ++ foldMap show vs ++ "}"]
+    (loss, mem) = case fromJust $ findArr l ml of
+      (lvas, loss) -> (,) loss $ case fromJust $ leftmostArr lvas of
+        [] -> []
+        vs -> ["in memory state {" ++ foldMap show vs ++ "}"]
 
     grot :: forall st. Ord st => (st, (Set [Va], [([Va], st)])) -> [String]
     grot (r, (rvas, ross)) = (++ grump) $ case leftmostArr rvas of
@@ -599,10 +613,10 @@ report (lnom, rnom) (Report (InstantKarma ins ml [] (r : _) mr)) =
   ++ mem
   ++ foldMapArr grot ml
   where
-    (ross, mem) = case findArr r mr of
-      Just (rvas, ross) -> (,) ross $ case leftmostArr rvas of
-        Just [] -> []
-        Just vs -> ["in memory state {" ++ foldMap show vs ++ "}"]
+    (ross, mem) = case fromJust $ findArr r mr of
+      (rvas, ross) -> (,) ross $ case fromJust $ leftmostArr rvas of
+        [] -> []
+        vs -> ["in memory state {" ++ foldMap show vs ++ "}"]
     grot (l, (lvas, loss)) = (++ grump) $ case leftmostArr lvas of
       Just [] -> []
       _ -> ["when " ++ lnom ++ " has memory like {"
@@ -619,32 +633,34 @@ report (lnom, rnom) (Report (InstantKarma ins ml [] (r : _) mr)) =
       , " but "
       ,lnom,"(",foldMap show is,") = ", foldMap show los
       ]
+report _ (Report (InstantKarma _ _ [] [] _)) =
+  impossible "instant karma with no evidence"
 report (lnom, rnom) (Report (CounterModel ml (Left (l, rss)) mr)) =
   [lnom ++ " can be distinguished from all possible states of " ++ rnom
   ,"when " ++ lnom ++ " has memory {" ++ lmem ++ "}"
   ] ++ foldMapArr grump rss
   where
-  lmem = case findArr l ml of
-    Just (lvas, _) -> case leftmostArr lvas of
-      Just lmem -> foldMap show lmem
+  lmem = case fromJust $ findArr l ml of
+    (lvas, _) -> case fromJust $ leftmostArr lvas of
+      lmem -> foldMap show lmem
   grump (r, vss) =
     ["if " ++ rnom ++ " has memory like {" ++
      intercalate "," (foldMapSet statesh rs) ++ "}, try inputs " ++
      intercalate ";" (fmap (foldMap show) vss)
-    ] where Just (rs, _) = findArr r mr
+    ] where rs = fst $ fromJust $ findArr r mr
 report (lnom, rnom) (Report (CounterModel ml (Right (r, lss)) mr)) =
   [rnom ++ " can be distinguished from all possible states of " ++ lnom
   ,"when " ++ rnom ++ " has memory {" ++ rmem ++ "}"
   ] ++ foldMapArr grump lss
   where
-  rmem = case findArr r mr of
-    Just (rvas, _) -> case leftmostArr rvas of
-      Just rmem -> foldMap show rmem
+  rmem = case fromJust $ findArr r mr of
+    (rvas, _) -> case fromJust $ leftmostArr rvas of
+      rmem -> foldMap show rmem
   grump (l, vss) =
     ["if " ++ lnom ++ " has memory like {" ++
      intercalate "," (foldMapSet statesh ls) ++ "}, try inputs " ++
      intercalate ";" (fmap (foldMap show) vss)
-    ] where Just (ls, _) = findArr l ml
+    ] where ls = fst $ fromJust $ findArr l ml
 report (lnom, rnom) (Report (Bisimilar ml (Bisim l2r _) mr)) =
   [lnom ++ " behaves like " ++ rnom] ++ foldMapArr simState l2r
   where
@@ -656,6 +672,7 @@ report (lnom, rnom) (Report (Bisimilar ml (Bisim l2r _) mr)) =
         ,  intercalate "," (foldMapSet statesh rs)
         ,  "}"
         ]
+      (_, _) -> ["The IMPOSSIBLE has happened: couldn't find states"]
 
 statesh :: [Va] -> [String]
 statesh vs = [foldMap show vs]
@@ -680,6 +697,7 @@ bisimReport cl cr = case (abstractStates cl, abstractStates cr) of
           (Right (r, imapArr (complete lvss) (fromJust (findArr r rido))))
           mr
       (Right (b : _), _) -> Bisimilar ml b mr
+      _ -> impossible "broken bisim analysis?!"
     where
 
       -- phase 0 check types
@@ -741,9 +759,10 @@ improve ml mr ins = go where
     -- rs is nonempty, so if no Rights, some Lefts
     [] -> case [c | Left c <- ws] of
       c : _ -> Left (l, c)
+      _ -> error "The IMPOSSIBLE has happened: neither Lefts nor Rights"
     where
-      loss l = case findArr l ml of Just (_, loss) -> loss
-      ross r = case findArr r mr of Just (_, ross) -> ross
+      loss l = snd $ fromJust $ findArr l ml
+      ross r = snd $ fromJust $ findArr r mr
 
       ws = map (tryCands l rs) bs
       bs' = [b | Right bs <- ws, b <- bs]
@@ -777,6 +796,7 @@ improve ml mr ins = go where
                 for tab $ \ (vs, ((_, l), (_, r))) ->
                   search vs $ growBis (l, r)
                 return ()
+              _ -> error "The IMPOSSIBLE has happened when trying to grow bisimulations"
 
       -- countermodel completion
 complete :: Eq a

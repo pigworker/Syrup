@@ -4,6 +4,8 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE FlexibleInstances #-}
+
 module Language.Syrup.Sub where
 
 import Language.Syrup.BigArray
