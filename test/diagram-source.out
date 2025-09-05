@@ -63,4 +63,3 @@ COPY_3__1:__VIRTUAL__1:s -> GATE_nand_3__0__0:Y:n [label=" ", arrowsize = .5 pen
 GATE_nand_3__0__0:Z:s -> GATE_not_3__OUTPUTS:__VIRTUAL__2 [label=" ", arrowsize = .5 penwidth= 2];
 GATE_not_3__INPUTS:x -> COPY_3__1:x:n [label=" ", arrowsize = .5 penwidth= 2 , dir = none];
 }
-

@@ -18,7 +18,6 @@ hadd(x,y) = a2, b1 where
 
 Error: You tried to use b1 but it is not in scope.
 
-
 Warning: Circuit hadd has been stubbed out.
 
 Circuit fadd is defined.
@@ -61,4 +60,3 @@ I got stuck here:
    {HERE} tripleAddTwo 
 I was looking for Syrup source code.
 At that point, I didn't know where to begin.
-

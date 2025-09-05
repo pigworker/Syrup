@@ -9,7 +9,6 @@ and(X,Y) = notnand where
 
 Error: You tried to use notnand but it is not in scope.
 
-
 Warning: Circuit and has been stubbed out.
 
 Error: I was trying to make sense of the following code:
@@ -20,4 +19,3 @@ I got stuck here:
   ... notnand  {HERE} = nand(nand(X,Y),nand(X,Y))  ...
 I was looking for a component template.
 At that point, I was hoping for (..) but I found = which vexed me.
-

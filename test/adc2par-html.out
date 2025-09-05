@@ -26,18 +26,17 @@
     content: "\1F480";
     padding: 0 6px 0 0;
   }
-</style>
 
-<div class="syrup-error">You haven't defined the circuit <code>undefined</code> just now.</div><br />
-<div class="syrup-warning">Circuit <code>undefined</code> has been stubbed out.</div><br />
-<div class="syrup-comment">Circuit <code>not</code> is defined.</div><br />
-<div class="syrup-happy">Printing  <code>not</code>:<br />
+</style>
+<div class="syrup-error">You haven&#39;t defined the circuit <code>undefined</code> just now.</div><br>
+<div class="syrup-warning">Circuit <code>undefined</code> has been stubbed out.</div><br>
+<div class="syrup-comment">Circuit <code>not</code> is defined.</div><br>
+<div class="syrup-happy"><p>Printing <code>not</code>:</p>
 <div class="syrup-code">!&lt;Bit&gt; -&gt; &lt;Bit&gt;
 !X = Z where
   Z = nand(X, X)
-</div>
-</div><br />
-<div class="syrup-happy">Displaying <code>not</code>:<br />
+</div></div><br>
+<div class="syrup-happy"><p>Displaying <code>not</code>:</p>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -47,17 +46,15 @@
     document.getElementById("GRAPH1").innerHTML = svg1;
   }
 </script>
-<div id="GRAPH1"></div>
-</div><br />
-<div class="syrup-comment">Circuit <code>and</code> is defined.</div><br />
-<div class="syrup-happy">Printing  <code>and</code>:<br />
+<div id="GRAPH1"></div></div><br>
+<div class="syrup-comment">Circuit <code>and</code> is defined.</div><br>
+<div class="syrup-happy"><p>Printing <code>and</code>:</p>
 <div class="syrup-code">&lt;Bit&gt; &amp; &lt;Bit&gt; -&gt; &lt;Bit&gt;
 X &amp; Y = Z where
   A = nand(X, Y)
   Z = !A
-</div>
-</div><br />
-<div class="syrup-happy">Displaying <code>and</code>:<br />
+</div></div><br>
+<div class="syrup-happy"><p>Displaying <code>and</code>:</p>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -67,17 +64,15 @@ X &amp; Y = Z where
     document.getElementById("GRAPH2").innerHTML = svg2;
   }
 </script>
-<div id="GRAPH2"></div>
-</div><br />
-<div class="syrup-comment">Circuit <code>or</code> is defined.</div><br />
-<div class="syrup-happy">Printing  <code>or</code>:<br />
+<div id="GRAPH2"></div></div><br>
+<div class="syrup-comment">Circuit <code>or</code> is defined.</div><br>
+<div class="syrup-happy"><p>Printing <code>or</code>:</p>
 <div class="syrup-code">&lt;Bit&gt; | &lt;Bit&gt; -&gt; &lt;Bit&gt;
 X | Y = Z where
   A, B = !X, !Y
   Z = nand(A, B)
-</div>
-</div><br />
-<div class="syrup-happy">Displaying <code>or</code>:<br />
+</div></div><br>
+<div class="syrup-happy"><p>Displaying <code>or</code>:</p>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -87,15 +82,13 @@ X | Y = Z where
     document.getElementById("GRAPH3").innerHTML = svg3;
   }
 </script>
-<div id="GRAPH3"></div>
-</div><br />
-<div class="syrup-comment">Circuit <code>nor</code> is defined.</div><br />
-<div class="syrup-happy">Printing  <code>nor</code>:<br />
+<div id="GRAPH3"></div></div><br>
+<div class="syrup-comment">Circuit <code>nor</code> is defined.</div><br>
+<div class="syrup-happy"><p>Printing <code>nor</code>:</p>
 <div class="syrup-code">nor(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 nor(X, Y) = !(X | Y)
-</div>
-</div><br />
-<div class="syrup-happy">Displaying <code>nor</code>:<br />
+</div></div><br>
+<div class="syrup-happy"><p>Displaying <code>nor</code>:</p>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -105,18 +98,16 @@ nor(X, Y) = !(X | Y)
     document.getElementById("GRAPH4").innerHTML = svg4;
   }
 </script>
-<div id="GRAPH4"></div>
-</div><br />
-<div class="syrup-comment">Circuit <code>xor</code> is defined.</div><br />
-<div class="syrup-happy">Printing  <code>xor</code>:<br />
+<div id="GRAPH4"></div></div><br>
+<div class="syrup-comment">Circuit <code>xor</code> is defined.</div><br>
+<div class="syrup-happy"><p>Printing <code>xor</code>:</p>
 <div class="syrup-code">xor(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 xor(X, Y) = Z where
   A, B = X | Y, X &amp; Y
   C = !B
   Z = A &amp; C
-</div>
-</div><br />
-<div class="syrup-happy">Displaying <code>xor</code>:<br />
+</div></div><br>
+<div class="syrup-happy"><p>Displaying <code>xor</code>:</p>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -126,17 +117,15 @@ xor(X, Y) = Z where
     document.getElementById("GRAPH5").innerHTML = svg5;
   }
 </script>
-<div id="GRAPH5"></div>
-</div><br />
-<div class="syrup-comment">Circuit <code>hadd</code> is defined.</div><br />
-<div class="syrup-happy">Printing  <code>hadd</code>:<br />
+<div id="GRAPH5"></div></div><br>
+<div class="syrup-comment">Circuit <code>hadd</code> is defined.</div><br>
+<div class="syrup-happy"><p>Printing <code>hadd</code>:</p>
 <div class="syrup-code">hadd(&lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;, &lt;Bit&gt;
 hadd(X1, Y1) = C2, S1 where
   C2 = X1 &amp; Y1
   S1 = xor(X1, Y1)
-</div>
-</div><br />
-<div class="syrup-happy">Displaying <code>hadd</code>:<br />
+</div></div><br>
+<div class="syrup-happy"><p>Displaying <code>hadd</code>:</p>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -146,18 +135,16 @@ hadd(X1, Y1) = C2, S1 where
     document.getElementById("GRAPH6").innerHTML = svg6;
   }
 </script>
-<div id="GRAPH6"></div>
-</div><br />
-<div class="syrup-comment">Circuit <code>fadd</code> is defined.</div><br />
-<div class="syrup-happy">Printing  <code>fadd</code>:<br />
+<div id="GRAPH6"></div></div><br>
+<div class="syrup-comment">Circuit <code>fadd</code> is defined.</div><br>
+<div class="syrup-happy"><p>Printing <code>fadd</code>:</p>
 <div class="syrup-code">fadd(&lt;Bit&gt;, &lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;, &lt;Bit&gt;
 fadd(X1, Y1, C1) = C2, Z1 where
   D2, D1 = hadd(X1, Y1)
   E2, Z1 = hadd(D1, C1)
   C2 = xor(D2, E2)
-</div>
-</div><br />
-<div class="syrup-happy">Displaying <code>fadd</code>:<br />
+</div></div><br>
+<div class="syrup-happy"><p>Displaying <code>fadd</code>:</p>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -167,9 +154,8 @@ fadd(X1, Y1, C1) = C2, Z1 where
     document.getElementById("GRAPH7").innerHTML = svg7;
   }
 </script>
-<div id="GRAPH7"></div>
-</div><br />
-<div class="syrup-happy">Truth table for <code>fadd</code>:<br />
+<div id="GRAPH7"></div></div><br>
+<div class="syrup-happy"><p>Truth table for <code>fadd</code>:</p>
 <pre>X1 Y1 C1 | C2 Z1
 ---------|------
 0  0  0  | 0  0 
@@ -180,18 +166,16 @@ fadd(X1, Y1, C1) = C2, Z1 where
 1  0  1  | 1  0 
 1  1  0  | 1  0 
 1  1  1  | 1  1 
-</pre>
-</div><br />
-<div class="syrup-comment">Type <code>&lt;Bit2&gt;</code> is defined.</div><br />
-<div class="syrup-comment">Circuit <code>adc2</code> is defined.</div><br />
-<div class="syrup-happy">Printing  <code>adc2</code>:<br />
+</pre></div><br>
+<div class="syrup-comment">Type <code>&lt;Bit2&gt;</code> is defined.</div><br>
+<div class="syrup-comment">Circuit <code>adc2</code> is defined.</div><br>
+<div class="syrup-happy"><p>Printing <code>adc2</code>:</p>
 <div class="syrup-code">adc2([&lt;Bit&gt;, &lt;Bit&gt;], [&lt;Bit&gt;, &lt;Bit&gt;], &lt;Bit&gt;) -&gt; &lt;Bit&gt;, [&lt;Bit&gt;, &lt;Bit&gt;]
 adc2([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   C2, Z1 = fadd(X1, Y1, C1)
   C4, Z2 = fadd(X2, Y2, C2)
-</div>
-</div><br />
-<div class="syrup-happy">Displaying <code>adc2</code>:<br />
+</div></div><br>
+<div class="syrup-happy"><p>Displaying <code>adc2</code>:</p>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -201,15 +185,13 @@ adc2([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
     document.getElementById("GRAPH8").innerHTML = svg8;
   }
 </script>
-<div id="GRAPH8"></div>
-</div><br />
-<div class="syrup-comment">Circuit <code>one</code> is defined.</div><br />
-<div class="syrup-happy">Printing  <code>one</code>:<br />
+<div id="GRAPH8"></div></div><br>
+<div class="syrup-comment">Circuit <code>one</code> is defined.</div><br>
+<div class="syrup-happy"><p>Printing <code>one</code>:</p>
 <div class="syrup-code">one() -&gt; &lt;Bit&gt;
 one() = !zero()
-</div>
-</div><br />
-<div class="syrup-happy">Displaying <code>one</code>:<br />
+</div></div><br>
+<div class="syrup-happy"><p>Displaying <code>one</code>:</p>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -219,15 +201,13 @@ one() = !zero()
     document.getElementById("GRAPH9").innerHTML = svg9;
   }
 </script>
-<div id="GRAPH9"></div>
-</div><br />
-<div class="syrup-comment">Circuit <code>mux</code> is defined.</div><br />
-<div class="syrup-happy">Printing  <code>mux</code>:<br />
+<div id="GRAPH9"></div></div><br>
+<div class="syrup-comment">Circuit <code>mux</code> is defined.</div><br>
+<div class="syrup-happy"><p>Printing <code>mux</code>:</p>
 <div class="syrup-code">mux(&lt;Bit&gt;, &lt;Bit&gt;, &lt;Bit&gt;) -&gt; &lt;Bit&gt;
 mux(C, X, Y) = C &amp; X | !C &amp; Y
-</div>
-</div><br />
-<div class="syrup-happy">Displaying <code>mux</code>:<br />
+</div></div><br>
+<div class="syrup-happy"><p>Displaying <code>mux</code>:</p>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -237,10 +217,9 @@ mux(C, X, Y) = C &amp; X | !C &amp; Y
     document.getElementById("GRAPH10").innerHTML = svg10;
   }
 </script>
-<div id="GRAPH10"></div>
-</div><br />
-<div class="syrup-comment">Circuit <code>adc2par</code> is defined.</div><br />
-<div class="syrup-happy">Printing  <code>adc2par</code>:<br />
+<div id="GRAPH10"></div></div><br>
+<div class="syrup-comment">Circuit <code>adc2par</code> is defined.</div><br>
+<div class="syrup-happy"><p>Printing <code>adc2par</code>:</p>
 <div class="syrup-code">adc2par([&lt;Bit&gt;, &lt;Bit&gt;], [&lt;Bit&gt;, &lt;Bit&gt;], &lt;Bit&gt;) -&gt; &lt;Bit&gt;, [&lt;Bit&gt;, &lt;Bit&gt;]
 adc2par([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   C2, Z1 = fadd(X1, Y1, C1)
@@ -248,9 +227,8 @@ adc2par([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   C41, Z21 = fadd(X2, Y2, one())
   C4 = mux(C2, C41, C40)
   Z2 = mux(C2, Z21, Z20)
-</div>
-</div><br />
-<div class="syrup-happy">Displaying <code>adc2par</code>:<br />
+</div></div><br>
+<div class="syrup-happy"><p>Displaying <code>adc2par</code>:</p>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -260,5 +238,4 @@ adc2par([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
     document.getElementById("GRAPH11").innerHTML = svg11;
   }
 </script>
-<div id="GRAPH11"></div>
-</div><br />
+<div id="GRAPH11"></div></div>
