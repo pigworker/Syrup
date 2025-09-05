@@ -8,6 +8,8 @@
 
 module Language.Syrup.Sub where
 
+import Data.IMaybe (IMaybe(IJust))
+
 import Language.Syrup.BigArray
 import Language.Syrup.Fdk
 import Language.Syrup.Syn

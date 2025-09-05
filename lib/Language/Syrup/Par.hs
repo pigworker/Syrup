@@ -12,6 +12,8 @@ import Control.Applicative
 import Control.Monad (ap, guard)
 import Control.Monad.Reader (MonadReader(..), asks)
 import Control.Monad.State (MonadState(..), gets)
+
+import Data.IMaybe (IMaybe(INothing))
 import Data.Monoid (Last(..))
 
 import Language.Syrup.BigArray

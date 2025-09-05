@@ -5,7 +5,6 @@
 ------------------------------------------------------------------------------
 
 {-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE StandaloneDeriving      #-}
 {-# LANGUAGE TypeFamilies      #-}
 
 module Language.Syrup.Syn
@@ -13,6 +12,7 @@ module Language.Syrup.Syn
   , module Language.Syrup.Syn
   ) where
 
+import Data.IMaybe (IMaybe(..))
 import Data.Kind (Type)
 import Data.Monoid (Sum(..), First(..))
 import Data.Void (Void)
@@ -79,11 +79,6 @@ data Def' ty
 defName :: Def' ty -> String
 defName (Stub f _) = f
 defName (Def (f, _) _ _) = f
-
-data IMaybe (b :: Bool) (a :: Type) :: Type where
-  IJust :: a -> IMaybe True a
-  INothing :: IMaybe False a
-deriving instance Show a => Show (IMaybe b a)
 
 data TY' b
   = BIT

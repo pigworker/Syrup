@@ -19,6 +19,7 @@ import Control.Monad.Writer (runWriterT, runWriter, tell)
 import Data.Bifunctor (bimap)
 import Data.Char (isAlpha)
 import Data.Foldable (traverse_, fold)
+import Data.IMaybe (fromIJust)
 import Data.List (intercalate)
 import Data.Maybe (isJust, fromJust)
 import Data.Monoid (Last(Last), First(..))
@@ -345,10 +346,10 @@ cookDec (DEC (f, is) os) =
   Dec (f, fmap (cookTY Unit id) is) (fmap (cookTY T1 (const T0)) os)
 
 cookTY :: t -> (t -> t) -> TY -> Ty t Void
-cookTY t old (TYVAR x (IJust ty)) = TVar x (cookTY t old ty)
-cookTY t old BIT                  = Bit t
-cookTY t old (OLD ty)             = cookTY (old t) old ty
-cookTY t old (CABLE tys)          = Cable (fmap (cookTY t old) tys)
+cookTY t old (TYVAR x ty) = TVar x (cookTY t old (fromIJust ty))
+cookTY t old BIT          = Bit t
+cookTY t old (OLD ty)     = cookTY (old t) old ty
+cookTY t old (CABLE tys)  = Cable (fmap (cookTY t old) tys)
 
 ------------------------------------------------------------------------------
 -- error reporting

@@ -9,6 +9,7 @@
 
 module Language.Syrup.Syn.Base where
 
+import Data.Void (Void)
 import Control.Monad (ap, guard)
 
 ------------------------------------------------------------------------------

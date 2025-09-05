@@ -71,7 +71,8 @@ library
 
 
     -- Modules exported by the library.
-    exposed-modules:  Language.Syrup.Anf
+    exposed-modules:  Data.IMaybe
+                    , Language.Syrup.Anf
                     , Language.Syrup.BigArray
                     , Language.Syrup.Bwd
                     , Language.Syrup.Chk

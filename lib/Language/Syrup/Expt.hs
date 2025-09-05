@@ -314,7 +314,7 @@ displayPat (TVar _ t) p           = displayPat (absurd <$> t) p
 displayPat (Meta s)   (PVar _ n)  = padRight (s - length n) n
 displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
 displayPat (Bit x) _ = absurd x
-displayPat (TyV _) (PCab _ _) = impossible "displaying a cable pattern at a meta type"
+displayPat (Meta _) (PCab _ _) = impossible "displaying a cable pattern at a meta type"
 displayPat (Cable _) (PVar _ _) = impossible "displaying a variable pattern at a cable type"
 
 displayMPat :: Template -> Maybe Pat -> String
