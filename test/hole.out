@@ -4,11 +4,14 @@ Circuit and is defined.
 
 Circuit or is defined.
 
+Type <Bit2> is defined.
+
 Warning: Found holes in circuit f:
   ?A : <Bit>
   ?B : <Bit>
   ?C : <Bit>
   ?D : [<Bit>, <Bit>]
+  ?E : [<Bit>, <Bit>]
 
 Warning: Circuit f has been stubbed out.
 
