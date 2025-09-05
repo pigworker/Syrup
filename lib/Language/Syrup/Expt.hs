@@ -254,7 +254,14 @@ tyVaChk :: Ty t Void -> Va -> Bool
 tyVaChk (Bit _) V0 = True
 tyVaChk (Bit _) V1 = True
 tyVaChk (Cable ts) (VC vs) = tyVaChks ts vs
-tyVaChk _ _ = False
+tyVaChk (Meta x) _ = absurd x
+-- Type unfolding
+tyVaChk (TVar _ t) v = tyVaChk t v
+-- Type errors
+tyVaChk (Bit _) (VC _) = False
+tyVaChk (Cable _) V0 = False
+tyVaChk (Cable _) V1 = False
+tyVaChk _ VQ = False -- impossible?
 
 ------------------------------------------------------------------------------
 -- tabulating behaviours of components

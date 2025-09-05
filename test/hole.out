@@ -11,7 +11,7 @@ Warning: Found holes in circuit f:
   ?B : <Bit>
   ?C : <Bit>
   ?D : [<Bit>, <Bit>]
-  ?E : [<Bit>, <Bit>]
+  ?E : <Bit2>
 
 Warning: Circuit f has been stubbed out.
 
