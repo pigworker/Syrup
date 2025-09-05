@@ -12,6 +12,8 @@ import Control.Applicative
 import Control.Monad (ap, guard)
 import Control.Monad.Reader (MonadReader(..), asks)
 import Control.Monad.State (MonadState(..), gets)
+
+import Data.IMaybe (IMaybe(INothing))
 import Data.Monoid (Last(..))
 
 import Language.Syrup.BigArray
@@ -228,7 +230,7 @@ pLhs s p = pClue (SEEKING "a component template") $
 -- non terminals
 pNT :: Par TYC
 pNT = BIT   <$  pTokIs (Id "Bit")
-  <|> TYVAR <$> pVar
+  <|> TYVAR <$> pVar <*> pure INothing
 
 pTY :: Par TYC
 pTY = pClue (SEEKING "a type") $
@@ -237,7 +239,7 @@ pTY = pClue (SEEKING "a type") $
   <|> OLD <$ pTokIs (Sym "@") <* pSpc <*> pTY
   <|> CABLE <$> pBrk Square  (SEEKING "cable contents")
                   (pAllSep (pTokIs (Sym ",")) pTY)
-  <|> TYVAR <$> pVar
+  <|> TYVAR <$> pVar <*> pure INothing
   <|> pYelp AARGH
 
 pTYA :: Par (String, TYC)

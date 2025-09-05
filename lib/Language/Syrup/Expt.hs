@@ -18,6 +18,7 @@ import Control.Monad.Writer (tell)
 
 import qualified Data.Bifunctor as Bi
 import Data.Foldable (toList)
+import Data.Forget (forget)
 import Data.Function (on)
 import Data.List (find, intercalate, sortBy)
 import Data.Maybe (fromMaybe, fromJust)
@@ -255,7 +256,14 @@ tyVaChk :: Ty t Void -> Va -> Bool
 tyVaChk (Bit _) V0 = True
 tyVaChk (Bit _) V1 = True
 tyVaChk (Cable ts) (VC vs) = tyVaChks ts vs
-tyVaChk _ _ = False
+tyVaChk (Meta x) _ = absurd x
+-- Type unfolding
+tyVaChk (TVar _ t) v = tyVaChk t v
+-- Type errors
+tyVaChk (Bit _) (VC _) = False
+tyVaChk (Cable _) V0 = False
+tyVaChk (Cable _) V1 = False
+tyVaChk _ VQ = False -- impossible?
 
 ------------------------------------------------------------------------------
 -- tabulating behaviours of components
@@ -288,13 +296,14 @@ data RowTemplate = RowTemplate
 
 -- Generate a template from a pattern and its type
 template :: Pat -> Ty a Void -> Template
-template _           (TyV x)    = absurd x
-template (PVar _ v)  t          = TyV (max (length v) (sizeTy t))
+template _           (Meta x)   = absurd x
+template (PVar _ v)  t          = Meta (max (length v) (sizeTy t)) -- ?!
+template p           (TVar s t) = template p t
 template (PCab _ ps) (Cable ts) = Cable (zipWith template ps ts)
 template (PCab _ _) (Bit _) = impossible "ill typed pattern"
 
 mTemplate :: Maybe Pat -> Ty a Void -> Template
-mTemplate Nothing  t = TyV (sizeTy t)
+mTemplate Nothing  t = Meta (sizeTy t)
 mTemplate (Just p) t = template p t
 
 inputTemplate :: InputWire -> Template
@@ -311,10 +320,11 @@ outputTemplate (OutputWire p t) = mTemplate (fmap (fst <$>) p) t
 
 -- `displayPat ts ps` PRECONDITION: ts was generated using ps
 displayPat :: Template -> Pat -> String
-displayPat (TyV s)    (PVar _ n)  = padRight (s - length n) n
+displayPat (TVar _ t) p           = displayPat (forget t) p
+displayPat (Meta s)   (PVar _ n)  = padRight (s - length n) n
 displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
 displayPat (Bit x) _ = absurd x
-displayPat (TyV _) (PCab _ _) = impossible "displaying a cable pattern at a meta type"
+displayPat (Meta _) (PCab _ _) = impossible "displaying a cable pattern at a meta type"
 displayPat (Cable _) (PVar _ _) = impossible "displaying a variable pattern at a cable type"
 
 displayMPat :: Template -> Maybe Pat -> String
@@ -324,7 +334,8 @@ displayEmpty :: Template -> String
 displayEmpty t = replicate (sum t) ' '
 
 displayVa :: Template -> Va -> String
-displayVa (TyV s)    v       = let n = show v in padRight (s - length n) n
+displayVa (Meta s)   v       = let n = show v in padRight (s - length n) n
+displayVa (TVar _ t) v       = displayVa (forget t) v
 displayVa (Cable ts) (VC vs) = "[" ++ displayVas ts vs ++ "]"
 displayVa (Cable _) _ = impossible "ill typed cable value"
 displayVa (Bit x) _ = absurd x
@@ -399,7 +410,8 @@ tabulate c = Tabulation (inpTys c) (memTys c) (oupTys c)
 ------------------------------------------------------------------------------
 
 tyVas :: Ty1 -> [Va]
-tyVas (TyV x)    = absurd x
+tyVas (Meta x)   = absurd x
+tyVas (TVar s t) = tyVas t
 tyVas (Bit _)    = [V0, V1]
 tyVas (Cable ts) = VC <$> traverse tyVas ts
 
@@ -410,7 +422,8 @@ tyVas (Cable ts) = VC <$> traverse tyVas ts
 
 spliceVas :: [Ty2] -> [Va] -> [Va] -> [Va]
 spliceVas [] _ _ = []
-spliceVas (TyV x  : _) _ _ = absurd x
+spliceVas (Meta x  : _) _ _ = absurd x
+spliceVas (TVar s t : ts) vs ws = spliceVas (t : ts) vs ws
 spliceVas (Bit T0 : ts) (v : vs) ws = v : spliceVas ts vs ws
 spliceVas (Bit T1 : ts) vs (w : ws) = w : spliceVas ts vs ws
 spliceVas (Cable ts' : ts) (VC vs' : vs) (VC ws' : ws) =

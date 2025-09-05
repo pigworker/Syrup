@@ -18,7 +18,9 @@ import Control.Monad.Writer (runWriterT, runWriter, tell)
 
 import Data.Bifunctor (bimap)
 import Data.Char (isAlpha)
+import Data.Forget (forget)
 import Data.Foldable (traverse_, fold)
+import Data.IMaybe (fromIJust)
 import Data.List (intercalate)
 import Data.Maybe (isJust, fromJust)
 import Data.Monoid (Last(Last), First(..))
@@ -40,10 +42,6 @@ import Utilities.Lens (hasLens, use, (%=))
 ------------------------------------------------------------------------------
 -- Checking whether a component is remarkable
 ------------------------------------------------------------------------------
-
-isBit :: Ty a Void -> Maybe a
-isBit (Bit a) = Just a
-isBit _ = Nothing
 
 isBisimilar :: Compo -> Compo -> Bool
 isBisimilar c d = case bisimReport c d of
@@ -164,9 +162,9 @@ guts :: TyMonad m => Dec -> Def -> m (([Pat], [Exp]), ([Pat], [Pat]), TypedDef)
 guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   | f /= g = tyErr (DecDef f g)
   | otherwise = do
-  let ss' = map stanTy ss
-  let ts' = map stanTy ts
-  typs <- local (:< TyINPUTS ss' ps) $ decPats ss' ps
+  let ss' = map fogTy ss
+  let ts' = map fogTy ts
+  typs <- local (:< TyINPUTS (forget ss') ps) $ decPats ss' ps
   (qs, tyes) <- local (:< TyOUTPUTS ts' es) $ chkExps (map (, Nothing) ts') es
   st <- get
   eqs <- traverse (traverse (\ eq -> local (:< TyEQN eq) $ chkEqn eq)) eqs
@@ -191,19 +189,24 @@ stubOut (Dec (g, ss) ts) = Compo
   } where (ts0, ts1) = foldMap splitTy2 ts
 
 
-decPats :: TyMonad m => [Typ] -> [Pat] -> m [TypedPat]
+decPats :: TyMonad m => [Ty1] -> [Pat] -> m [TypedPat]
 decPats [] [] = return []
 decPats [] ps = tyErr LongPats
 decPats ss [] = tyErr ShortPats
-decPats (s : ss) (p : ps) = (:) <$> decPat s p <*> decPats ss ps
+decPats (s : ss) (p : ps) = (:) <$> decPat Nothing s p <*> decPats ss ps
 
-decPat :: TyMonad m => Typ -> Pat -> m TypedPat
-decPat s (PVar () x) = PVar s x <$ defineWire (Just s) (Physical x)
-decPat s@(Cable ss) (PCab () ps)
-  | length ss == length ps = PCab s <$> decPats ss ps
+decPat :: TyMonad m
+       => Maybe Ty1   -- the folded type
+       -> Ty1         -- its current unfolding
+       -> Pat         -- the pattern to typecheck
+       -> m TypedPat
+decPat _ s (PVar () x) = PVar (forget s) x <$ defineWire (Just (forget s)) (Physical x)
+decPat _ s@(Cable ss) (PCab () ps)
+  | length ss == length ps = PCab (forget s) <$> decPats ss ps
   | otherwise = tyErr CableWidth
-decPat _ (PCab _ _) = tyErr BitCable
-
+decPat _ (Bit _) (PCab _ _) = tyErr BitCable
+decPat _ (Meta x) _ = absurd x
+decPat mty ty@(TVar _ t) p = decPat (mty <|> Just ty) t p
 
 ------------------------------------------------------------------------------
 -- where-equations
@@ -284,11 +287,11 @@ chkExp tqs e@(App _ fn es) = do
   let mTy = getCellType <$> memTys
   mIn <- for mTy $ \ ty -> do
     w <- wiF
-    defineWire (Just (stanTy ty)) (Physical w)
+    defineWire (Just (fogTy ty)) (Physical w)
     return (PVar () w)
   mOu <- for mTy $ \ ty -> do
     w <- wiF
-    defineWire (Just (stanTy ty))(Physical w)
+    defineWire (Just (fogTy ty))(Physical w)
     return (PVar () w)
   st <- get
   put $ st { memTy = memTys : memTy st
@@ -296,13 +299,15 @@ chkExp tqs e@(App _ fn es) = do
            , memOu = memOu st ++ mOu
            }
   let iTy = getInputType <$> inpTys f
-  (ps, es) <- local (:< TyAPP f es) $ chkExps (map (\t -> (stanTy t, Nothing)) iTy) es
+  (ps, es) <- local (:< TyAPP f es) $ chkExps (map (\t -> (fogTy t, Nothing)) iTy) es
   let oTy = getOutputType <$> oupTys f
   (qs, (qs0, qs1)) <- fold <$> traverse stage oTy
   schedule (qs0 :<- (stage0 f, mIn))
   schedule ((mOu ++ qs1) :<- (stage1 f, mIn ++ ps))
-  let oTy' = map stanTy oTy
+  let oTy' = map fogTy oTy
   (qs,,App oTy' fn es) <$> yield oTy' tqs
+chkExp ((TVar s t, q) : tqs) (Cab () es) =
+  chkExp ((forget t, q) : tqs) (Cab () es)
 chkExp (tq : tqs) (Cab () es) = do
   sqs <- case tq of
     (Cable ss, Just (PCab _ qs))
@@ -311,9 +316,9 @@ chkExp (tq : tqs) (Cab () es) = do
     (Cable ss, Just (PVar _ _)) -> return (map (, Nothing) ss) -- TODO:?
     (Cable ss, Nothing)         -> return (map (, Nothing) ss)
     (Bit _, _) -> tyErr BitCable
-    (TyV x, _) -> do
+    (Meta x, _) -> do
       ss <- traverse (const tyF) es
-      tyEq (Cable ss, TyV x)
+      tyEq (Cable ss, Meta x)
       return (map (, Nothing) ss)
   (ps, es) <- local (:< TyCAB es (fst <$> sqs)) $ chkExps sqs es
   return ([PCab () ps], tqs, Cab (Cable (map fst sqs)) es)
@@ -325,7 +330,8 @@ yield (s : ss) []  = tyErr ShortPats
 yield (s : ss) ((t , q) : tqs) = tyEq (s, t) >> yield ss tqs
 
 stage :: TyMonad m => Ty2 -> m ([Pat], ([Pat], [Pat]))
-stage (TyV x) = absurd x
+stage (Meta x) = absurd x
+stage (TVar _ t) = stage (forget t)
 stage (Bit t) = do
   w <- wiF
   defineWire (Just (Bit Unit)) (Physical w)
@@ -346,10 +352,10 @@ cookDec (DEC (f, is) os) =
   Dec (f, fmap (cookTY Unit id) is) (fmap (cookTY T1 (const T0)) os)
 
 cookTY :: t -> (t -> t) -> TY -> Ty t Void
-cookTY t old (TYVAR x)   = absurd x
-cookTY t old BIT         = Bit t
-cookTY t old (OLD ty)    = cookTY (old t) old ty
-cookTY t old (CABLE tys) = Cable (fmap (cookTY t old) tys)
+cookTY t old (TYVAR x ty) = TVar x (cookTY t old (fromIJust ty))
+cookTY t old BIT          = Bit t
+cookTY t old (OLD ty)     = cookTY (old t) old ty
+cookTY t old (CABLE tys)  = Cable (fmap (cookTY t old) tys)
 
 ------------------------------------------------------------------------------
 -- error reporting

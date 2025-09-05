@@ -103,13 +103,13 @@ isGlobalVar ga nm = do
     scopeError $ OutOfScope Global nm (hints gc nm)
 
 type family Level t :: ScopeLevel where
-  Level [a]         = Level a
-  Level (Maybe a)   = Level a
-  Level InputName   = 'Local
-  Level Pat         = 'Local
-  Level Eqn         = 'Local
-  Level (DEC' a)    = 'Global
-  Level (Source' a) = 'Global
+  Level [a]           = Level a
+  Level (Maybe a)     = Level a
+  Level InputName     = 'Local
+  Level Pat           = 'Local
+  Level Eqn           = 'Local
+  Level (DEC' a)      = 'Global
+  Level (Source' a b) = 'Global
 
 class Scoped t where
   scopecheck :: Scope                         -- input scope
@@ -216,21 +216,23 @@ instance Scoped EXPT where
 instance Scoped InputName where
   scopecheck ga (InputName x) = declareVar ga x
 
-instance Scoped (Source' a) where
+instance Scoped (Source' a b) where
   scopecheck ga = \case
     Declaration d -> scopecheck ga d
     TypeAlias{}   -> emptyExtension <$ pure ()
     Definition d  -> emptyExtension <$ scopecheck ga d
     Experiment e  -> emptyExtension <$ scopecheck ga e
 
-stub :: (Source' a, String) -> [Feedback]
-     -> [Either Feedback (Source' a, String)]
-     -> [Either Feedback (Source' a, String)]
+stub :: (Source' a b, String) -> [Feedback]
+     -> [Either Feedback (Source' a b, String)]
+     -> [Either Feedback (Source' a b, String)]
 stub (Definition (Def (nm, _) _ _), src) msg rst
    = Right (Definition (Stub nm msg), src) : rst
 stub _ msg rst = map Left msg ++ rst
 
-check :: Scope -> [Either Feedback (Source' a, String)] -> [Either Feedback (Source' a, String)]
+check :: Scope
+      -> [Either Feedback (Source' a b, String)]
+      -> [Either Feedback (Source' a b, String)]
 check ga []                     = []
 check ga (Left err        : ds) = Left err : check ga ds
 check ga (Right (d , src) : ds) = do

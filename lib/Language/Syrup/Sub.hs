@@ -8,24 +8,24 @@
 
 module Language.Syrup.Sub where
 
+import Data.IMaybe (IMaybe(IJust))
+
 import Language.Syrup.BigArray
 import Language.Syrup.Fdk
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 
-import Data.Void
-
 class TySubst t where
-  tySubst :: TyEnv -> t String -> Either String (t Void)
+  tySubst :: TyEnv -> t False -> Either String (t True)
 
 instance TySubst TY' where
   tySubst rho t = case t of
     BIT      -> pure BIT
     OLD t    -> OLD <$> tySubst rho t
     CABLE ts -> CABLE <$> mapM (tySubst rho) ts
-    TYVAR x  -> case findArr x rho of
+    TYVAR x _ -> case findArr x rho of
       Nothing -> Left x
-      Just v  -> pure v
+      Just v  -> pure $ TYVAR x (IJust v)
 
 instance TySubst DEC' where
   tySubst rho (DEC (str, ts) us) =

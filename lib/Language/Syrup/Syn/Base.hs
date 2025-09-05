@@ -9,6 +9,8 @@
 
 module Language.Syrup.Syn.Base where
 
+import Data.Forget (Forget)
+import Data.Void (Void)
 import Control.Monad (ap, guard)
 
 ------------------------------------------------------------------------------
@@ -43,16 +45,24 @@ circuitConfig isLHS (CircuitConfig mems vals) = concat $
 -- Types
 
 data Ty t x
-  = TyV x
+  = Meta x
+  | TVar String (Ty t Void) -- type aliases are closed
   | Bit t
   | Cable [Ty t x]
   deriving (Eq, Functor, Foldable, Traversable)
 
+instance Forget b c => Forget (Ty a b) (Ty a c) where
+
+isBit :: Ty t x -> Maybe t
+isBit (Bit a) = Just a
+isBit _ = Nothing
+
 -- boring instances
 
 instance Monad (Ty t) where
-  return = TyV
-  TyV x    >>= k = k x
+  return = Meta
+  Meta x   >>= k = k x
+  TVar s t >>= _ = TVar s t
   Bit t    >>= _ = Bit t
   Cable ts >>= k = Cable (fmap (>>= k) ts)
 

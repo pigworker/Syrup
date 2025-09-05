@@ -88,7 +88,7 @@ xor has a behaviour that or does not match
   xor(11) = 0 but or(11) = 1
 
 Typing for adc2:
-adc2([<Bit>, <Bit>], [<Bit>, <Bit>], <Bit>) -> <Bit>, [<Bit>, <Bit>]
+adc2(<Two>, <Two>, <Bit>) -> <Bit>, <Two>
 
 Printing adc2:
 adc2([<Bit>, <Bit>], [<Bit>, <Bit>], <Bit>) -> <Bit>, [<Bit>, <Bit>]

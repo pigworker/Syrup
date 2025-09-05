@@ -18,7 +18,9 @@ import Control.Monad.Reader (MonadReader, ask, asks, runReader)
 import Control.Monad.State (MonadState, get, gets, put)
 import Control.Monad.Writer (MonadWriter)
 
+import Data.Bifunctor (bimap)
 import Data.Foldable (traverse_)
+import Data.Forget (forget)
 import Data.Monoid (First(..))
 import Data.Sequence (Seq)
 import Data.Void (Void, absurd)
@@ -46,13 +48,16 @@ type TypedDef = Def' Typ
 
 sizeBits :: Ty a Void -> Int
 sizeBits = \case
-  TyV v -> absurd v
-  Bit{} -> 1
+  Meta v   -> absurd v
+  TVar _ t -> sizeBits t
+  Bit{}    -> 1
   Cable ts -> sum (sizeBits <$> ts)
 
+-- TODO: check exact usage
 sizeTy :: Ty a Void -> Int
 sizeTy = \case
-  TyV v    -> absurd v
+  Meta v   -> absurd v
+  TVar _ t -> sizeTy t
   Bit{}    -> 1
   Cable ts -> 2 + sum (sizeTy <$> ts)
 
@@ -141,18 +146,16 @@ data Compo = Compo
 instance Show Compo where
   show _ = "<component>"
 
-fogTy :: Ty t Void -> Ty1
-fogTy (TyV x)     = absurd x
+fogTy :: Ty t Void -> Ty Unit a
+fogTy (Meta x)    = absurd x
+fogTy (TVar s t)  = TVar s (fogTy t)
 fogTy (Bit _)     = Bit Unit
 fogTy (Cable ts)  = Cable (fmap fogTy ts)
 
-stanTy :: Ty t Void -> Typ
-stanTy (TyV x)    = absurd x
-stanTy (Bit _)    = Bit Unit
-stanTy (Cable ts) = Cable (fmap stanTy ts)
-
 splitTy2 :: Ty2 -> ([Ty1], [Ty1])
-splitTy2 (TyV x)    = absurd x
+splitTy2 (Meta x)   = absurd x
+splitTy2 (TVar s t) = bimap rewrap rewrap (splitTy2 t) where
+  rewrap = fmap (TVar s)
 splitTy2 (Bit T0)   = ([Bit Unit], [])
 splitTy2 (Bit T1)   = ([], [Bit Unit])
 splitTy2 (Cable ts) = ([Cable ts0], [Cable ts1]) where
@@ -285,7 +288,7 @@ tyF = do
   st <- get
   let u = tyNew st
   put (st {tyNew = u + 1})
-  return (TyV u)
+  return (Meta u)
 
 wiF :: TyMonad m => m String
 wiF = do
@@ -304,8 +307,9 @@ tyO :: TyMonad m => (TyNom -> Bool) -> Typ -> m Typ
 tyO bad t = do
   t <- hnf t
   case t of
-    TyV y | bad y     -> tyErr CableLoop
-          | otherwise -> return t
+    Meta y | bad y     -> tyErr CableLoop
+           | otherwise -> return t
+    TVar s t -> pure (TVar s t)
     Bit _ -> pure (Bit Unit)
     Cable ts -> Cable <$> traverse (tyO bad) ts
 
@@ -359,11 +363,11 @@ class Hnf t where
   hnf :: TyMonad m => t -> m t
 
 instance Hnf Typ where
-  hnf (TyV u) = tyvH u where
+  hnf (Meta u) = tyvH u where
     tyvH x = do
       g <- gets tyDef
       case findArr x g of
-        Nothing -> return (TyV x)
+        Nothing -> return (Meta x)
         Just t -> do
           t' <- hnf t
           st <- get
@@ -416,8 +420,13 @@ tyEq st = hnf st >>= \ st -> case st of
     | otherwise -> tyErr CableWidth
   (Bit _,    Cable _)  -> tyErr BitCable
   (Cable _,  Bit _)    -> tyErr BitCable
-  (TyV x,    t)        -> tyD (x, t)
-  (t,        TyV y)    -> tyD (y, t)
+  (Meta x,    t)       -> tyD (x, t)
+  (t,        Meta y)   -> tyD (y, t)
+  (TVar s t, TVar s' t')
+    | s == s' -> return ()
+    | otherwise -> tyEq (forget t, forget t')
+  (TVar _ t, t') -> tyEq (forget t, t')
+  (t, TVar _ t') -> tyEq (t, forget t')
 
 
 ------------------------------------------------------------------------------
@@ -425,6 +434,7 @@ tyEq st = hnf st >>= \ st -> case st of
 ------------------------------------------------------------------------------
 
 stub :: Ty1 -> Va
-stub (TyV x) = absurd x
-stub (Bit _) = VQ
+stub (Meta x)   = absurd x
+stub (TVar s t) = stub t
+stub (Bit _)    = VQ
 stub (Cable ts) = VC (fmap stub ts)
