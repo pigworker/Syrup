@@ -310,9 +310,9 @@ chkExp (tq : tqs) (Cab () es) = do
       | otherwise              -> return (map (, Nothing) ss)
     (Cable ss, Nothing)        -> return (map (, Nothing) ss)
     (Bit _, _) -> tyErr BitCable
-    (TyV x, _) -> do
+    (Meta x, _) -> do
       ss <- traverse (const tyF) es
-      tyEq (Cable ss, TyV x)
+      tyEq (Cable ss, Meta x)
       return (map (, Nothing) ss)
   (ps, es) <- local (:< TyCAB es (fst <$> sqs)) $ chkExps sqs es
   return ([PCab () ps], tqs, Cab (Cable (map fst sqs)) es)
@@ -324,7 +324,7 @@ yield (s : ss) []  = tyErr ShortPats
 yield (s : ss) ((t , q) : tqs) = tyEq (s, t) >> yield ss tqs
 
 stage :: TyMonad m => Ty2 -> m ([Pat], ([Pat], [Pat]))
-stage (TyV x) = absurd x
+stage (Meta x) = absurd x
 stage (Bit t) = do
   w <- wiF
   defineWire (Just (Bit Unit)) (Physical w)

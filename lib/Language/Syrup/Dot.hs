@@ -129,10 +129,11 @@ tellEdge :: Typ -> String -> String -> Bool -> WhiteBox ()
 tellEdge ty x y dir = tell (Graph emptyArr (single (x, single (y, Edge (size ty) dir))))
 
   where
+    -- This is sizeBits, but without knowing `meta = Void`
     size :: Typ -> Int
     size (Bit _) = 1
     size (Cable ss) = sum (size <$> ss)
-    size (TyV _) = 1 -- should never happen
+    size (Meta _) = 1 -- should never happen
 
 
 toWhitebox :: String -> Gate

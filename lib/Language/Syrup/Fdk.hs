@@ -153,7 +153,7 @@ instance Render ScopeError where
 
 instance Render (Ty t Void) where
   render = \case
-    TyV v -> absurd v
+    Meta v -> absurd v
     Bit{} -> pure "<Bit>"
     Cable ts -> [concat ("[" : foldMap render ts ++ ["]"])]
 

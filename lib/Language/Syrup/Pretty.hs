@@ -184,8 +184,8 @@ instance Pretty Ti where
 
 instance (Pretty t, Pretty x) => Pretty (Ty t x) where
   prettyPrec lvl = \case
-    TyV x -> between (Doc "<") (Doc ">") <$> pretty x
-    Bit t -> (<>) <$> pretty t <*> pretty "<Bit>"
+    Meta x   -> between (Doc "<") (Doc ">") <$> pretty x
+    Bit t    -> (<>) <$> pretty t <*> pretty "<Bit>"
     Cable ps -> pretty (AList ps)
 
 instance Pretty (Eqn' ty) where

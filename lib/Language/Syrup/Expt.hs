@@ -283,12 +283,12 @@ data RowTemplate = RowTemplate
 
 -- Generate a template from a pattern and its type
 template :: Pat -> Ty a Void -> Template
-template _           (TyV x)    = absurd x
-template (PVar _ v)  t          = TyV (max (length v) (sizeTy t))
+template _           (Meta x)   = absurd x
+template (PVar _ v)  t          = Meta (max (length v) (sizeTy t)) -- ?!
 template (PCab _ ps) (Cable ts) = Cable (zipWith template ps ts)
 
 mTemplate :: Maybe Pat -> Ty a Void -> Template
-mTemplate Nothing  t = TyV (sizeTy t)
+mTemplate Nothing  t = Meta (sizeTy t)
 mTemplate (Just p) t = template p t
 
 inputTemplate :: InputWire -> Template
@@ -305,7 +305,7 @@ outputTemplate (OutputWire p t) = mTemplate (fmap (fst <$>) p) t
 
 -- `displayPat ts ps` PRECONDITION: ts was generated using ps
 displayPat :: Template -> Pat -> String
-displayPat (TyV s)    (PVar _ n)  = padRight (s - length n) n
+displayPat (Meta s)   (PVar _ n)  = padRight (s - length n) n
 displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
 
 displayMPat :: Template -> Maybe Pat -> String
@@ -315,7 +315,7 @@ displayEmpty :: Template -> String
 displayEmpty t = replicate (sum t) ' '
 
 displayVa :: Template -> Va -> String
-displayVa (TyV s)    v       = let n = show v in padRight (s - length n) n
+displayVa (Meta s)   v       = let n = show v in padRight (s - length n) n
 displayVa (Cable ts) (VC vs) = "[" ++ displayVas ts vs ++ "]"
 
 displayVas :: [Template] -> [Va] -> String
@@ -388,7 +388,7 @@ tabulate c = Tabulation (inpTys c) (memTys c) (oupTys c)
 ------------------------------------------------------------------------------
 
 tyVas :: Ty1 -> [Va]
-tyVas (TyV x)    = absurd x
+tyVas (Meta x)   = absurd x
 tyVas (Bit _)    = [V0, V1]
 tyVas (Cable ts) = VC <$> traverse tyVas ts
 
@@ -399,7 +399,7 @@ tyVas (Cable ts) = VC <$> traverse tyVas ts
 
 spliceVas :: [Ty2] -> [Va] -> [Va] -> [Va]
 spliceVas [] _ _ = []
-spliceVas (TyV x  : _) _ _ = absurd x
+spliceVas (Meta x  : _) _ _ = absurd x
 spliceVas (Bit T0 : ts) (v : vs) ws = v : spliceVas ts vs ws
 spliceVas (Bit T1 : ts) vs (w : ws) = w : spliceVas ts vs ws
 spliceVas (Cable ts' : ts) (VC vs' : vs) (VC ws' : ws) =

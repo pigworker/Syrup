@@ -43,7 +43,7 @@ circuitConfig isLHS (CircuitConfig mems vals) = concat $
 -- Types
 
 data Ty t x
-  = TyV x
+  = Meta x
   | Bit t
   | Cable [Ty t x]
   deriving (Eq, Functor, Foldable, Traversable)
@@ -51,8 +51,8 @@ data Ty t x
 -- boring instances
 
 instance Monad (Ty t) where
-  return = TyV
-  TyV x    >>= k = k x
+  return = Meta
+  Meta x   >>= k = k x
   Bit t    >>= _ = Bit t
   Cable ts >>= k = Cable (fmap (>>= k) ts)
 
