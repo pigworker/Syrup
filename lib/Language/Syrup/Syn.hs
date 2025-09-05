@@ -20,15 +20,15 @@ import Language.Syrup.BigArray
 import Language.Syrup.Syn.Base
 import Language.Syrup.Fdk
 
-data Source' a
-  = Declaration (DEC' a)
-  | TypeAlias (a, TY' a)
+data Source' a b
+  = Declaration (DEC' b)
+  | TypeAlias (a, TY' b)
   | Definition Def
   | Experiment EXPT
 
 -- Concrete and internal sources
-type SourceC = Source' String
-type Source  = Source' Void
+type SourceC = Source' String False
+type Source  = Source' Void   True
 
 type Exp = Exp' ()
 data Exp' ty
@@ -79,23 +79,28 @@ defName :: Def' ty -> String
 defName (Stub f _) = f
 defName (Def (f, _) _ _) = f
 
-data TY' a
+data IMaybe (b :: Bool) (a :: Type) :: Type where
+  IJust :: a -> IMaybe True a
+  INothing :: IMaybe False a
+deriving instance Show a => Show (IMaybe b a)
+
+data TY' b
   = BIT
-  | OLD (TY' a)
-  | CABLE [TY' a]
-  | TYVAR a
-  deriving Show
+  | OLD (TY' b)
+  | CABLE [TY' b]
+  | TYVAR String (IMaybe b (TY' b))
+  deriving (Show)
 
 -- Concrete and internal types
-type TYC = TY' String
-type TY  = TY' Void
+type TYC = TY' False
+type TY  = TY' True
 
-data DEC' a = DEC (String,[TY' a]) [TY' a]
+data DEC' b = DEC (String,[TY' b]) [TY' b]
   deriving Show
 
 -- Concrete and internal declarations
-type DECC = DEC' String
-type DEC  = DEC' Void
+type DECC = DEC' False
+type DEC  = DEC' True
 
 data InputName = InputName { getInputName :: String }
   deriving Show

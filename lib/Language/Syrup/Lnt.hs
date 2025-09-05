@@ -58,7 +58,7 @@ instance ty ~ () => Lint (Def' ty) where
         ]
 
 
-instance Lint (Source' a) where
+instance Lint (Source' a b) where
   linters = [deflint] where
 
     deflint = \case

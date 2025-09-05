@@ -176,7 +176,6 @@ instance Pretty a => Pretty (Pat' ty a) where
     PVar _ a -> pretty a
     PCab _ ps -> pretty (AList ps)
 
-
 instance Pretty Ti where
   prettyPrec lvl = prettyPrec lvl . \case
     T0 -> "@"
@@ -184,7 +183,8 @@ instance Pretty Ti where
 
 instance (Pretty t, Pretty x) => Pretty (Ty t x) where
   prettyPrec lvl = \case
-    Meta x   -> between (Doc "<") (Doc ">") <$> pretty x
+    Meta x   -> between (Doc "<?") (Doc ">") <$> pretty x -- ugh...
+    TVar s _ -> between (Doc "<") (Doc ">") <$> pretty s
     Bit t    -> (<>) <$> pretty t <*> pretty "<Bit>"
     Cable ps -> pretty (AList ps)
 

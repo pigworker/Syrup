@@ -18,6 +18,7 @@ import Control.Monad.Reader (MonadReader, ask, asks, runReader)
 import Control.Monad.State (MonadState, get, gets, put)
 import Control.Monad.Writer (MonadWriter)
 
+import Data.Bifunctor (bimap)
 import Data.Foldable (traverse_)
 import Data.Monoid (First(..))
 import Data.Sequence (Seq)
@@ -47,12 +48,15 @@ type TypedDef = Def' Typ
 sizeBits :: Ty a Void -> Int
 sizeBits = \case
   Meta v   -> absurd v
+  TVar _ t -> sizeBits t
   Bit{}    -> 1
   Cable ts -> sum (sizeBits <$> ts)
 
+-- TODO: check exact usage
 sizeTy :: Ty a Void -> Int
 sizeTy = \case
   Meta v   -> absurd v
+  TVar _ t -> sizeTy t
   Bit{}    -> 1
   Cable ts -> 2 + sum (sizeTy <$> ts)
 
@@ -141,18 +145,16 @@ data Compo = Compo
 instance Show Compo where
   show _ = "<component>"
 
-fogTy :: Ty t Void -> Ty1
+fogTy :: Ty t Void -> Ty Unit a
 fogTy (Meta x)    = absurd x
+fogTy (TVar s t)  = TVar s (fogTy t)
 fogTy (Bit _)     = Bit Unit
 fogTy (Cable ts)  = Cable (fmap fogTy ts)
 
-stanTy :: Ty t Void -> Typ
-stanTy (Meta x)   = absurd x
-stanTy (Bit _)    = Bit Unit
-stanTy (Cable ts) = Cable (fmap stanTy ts)
-
 splitTy2 :: Ty2 -> ([Ty1], [Ty1])
 splitTy2 (Meta x)   = absurd x
+splitTy2 (TVar s t) = bimap rewrap rewrap (splitTy2 t) where
+  rewrap = fmap (TVar s)
 splitTy2 (Bit T0)   = ([Bit Unit], [])
 splitTy2 (Bit T1)   = ([], [Bit Unit])
 splitTy2 (Cable ts) = ([Cable ts0], [Cable ts1]) where
@@ -306,6 +308,7 @@ tyO bad t = do
   case t of
     Meta y | bad y     -> tyErr CableLoop
            | otherwise -> return t
+    TVar s t -> pure (TVar s t)
     Bit _ -> pure (Bit Unit)
     Cable ts -> Cable <$> traverse (tyO bad) ts
 
@@ -418,6 +421,11 @@ tyEq st = hnf st >>= \ st -> case st of
   (Cable _,  Bit _)    -> tyErr BitCable
   (Meta x,    t)       -> tyD (x, t)
   (t,        Meta y)   -> tyD (y, t)
+  (TVar s t, TVar s' t')
+    | s == s' -> return ()
+    | otherwise -> tyEq (absurd <$> t, absurd <$> t')
+  (TVar _ t, t') -> tyEq (absurd <$> t, t')
+  (t, TVar _ t') -> tyEq (t, absurd <$> t')
 
 
 ------------------------------------------------------------------------------
@@ -426,5 +434,6 @@ tyEq st = hnf st >>= \ st -> case st of
 
 stub :: Ty1 -> Va
 stub (Meta x)   = absurd x
+stub (TVar s t) = stub t
 stub (Bit _)    = VQ
 stub (Cable ts) = VC (fmap stub ts)

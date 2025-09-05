@@ -44,15 +44,21 @@ circuitConfig isLHS (CircuitConfig mems vals) = concat $
 
 data Ty t x
   = Meta x
+  | TVar String (Ty t Void) -- type aliases are closed
   | Bit t
   | Cable [Ty t x]
   deriving (Eq, Functor, Foldable, Traversable)
+
+isBit :: Ty t x -> Maybe t
+isBit (Bit a) = Just a
+isBit _ = Nothing
 
 -- boring instances
 
 instance Monad (Ty t) where
   return = Meta
   Meta x   >>= k = k x
+  TVar s t >>= _ = TVar s t
   Bit t    >>= _ = Bit t
   Cable ts >>= k = Cable (fmap (>>= k) ts)
 

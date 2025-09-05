@@ -273,7 +273,7 @@ data Tabulation = Tabulation
                       )]
   }
 
-type Template = Ty () Int
+type Template = Ty Void Int
 
 data RowTemplate = RowTemplate
   { inputTemplates  :: [Template]
@@ -285,6 +285,7 @@ data RowTemplate = RowTemplate
 template :: Pat -> Ty a Void -> Template
 template _           (Meta x)   = absurd x
 template (PVar _ v)  t          = Meta (max (length v) (sizeTy t)) -- ?!
+template p           (TVar s t) = template p t
 template (PCab _ ps) (Cable ts) = Cable (zipWith template ps ts)
 
 mTemplate :: Maybe Pat -> Ty a Void -> Template
@@ -305,6 +306,7 @@ outputTemplate (OutputWire p t) = mTemplate (fmap (fst <$>) p) t
 
 -- `displayPat ts ps` PRECONDITION: ts was generated using ps
 displayPat :: Template -> Pat -> String
+displayPat (TVar _ t) p           = displayPat (absurd <$> t) p
 displayPat (Meta s)   (PVar _ n)  = padRight (s - length n) n
 displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
 
@@ -316,6 +318,7 @@ displayEmpty t = replicate (sum t) ' '
 
 displayVa :: Template -> Va -> String
 displayVa (Meta s)   v       = let n = show v in padRight (s - length n) n
+displayVa (TVar _ t) v       = displayVa (absurd <$> t) v
 displayVa (Cable ts) (VC vs) = "[" ++ displayVas ts vs ++ "]"
 
 displayVas :: [Template] -> [Va] -> String
@@ -389,6 +392,7 @@ tabulate c = Tabulation (inpTys c) (memTys c) (oupTys c)
 
 tyVas :: Ty1 -> [Va]
 tyVas (Meta x)   = absurd x
+tyVas (TVar s t) = tyVas t
 tyVas (Bit _)    = [V0, V1]
 tyVas (Cable ts) = VC <$> traverse tyVas ts
 
@@ -400,6 +404,7 @@ tyVas (Cable ts) = VC <$> traverse tyVas ts
 spliceVas :: [Ty2] -> [Va] -> [Va] -> [Va]
 spliceVas [] _ _ = []
 spliceVas (Meta x  : _) _ _ = absurd x
+spliceVas (TVar s t : ts) vs ws = spliceVas (t : ts) vs ws
 spliceVas (Bit T0 : ts) (v : vs) ws = v : spliceVas ts vs ws
 spliceVas (Bit T1 : ts) vs (w : ws) = w : spliceVas ts vs ws
 spliceVas (Cable ts' : ts) (VC vs' : vs) (VC ws' : ws) =
