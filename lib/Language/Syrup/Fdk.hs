@@ -28,7 +28,7 @@ import Language.Syrup.Opt (Options(..), quiet)
 import Language.Syrup.Syn.Base
 
 import Text.Blaze.Html5
-  (AttributeValue, Html, (!), br, code, div, p, pre, preEscapedString, toHtml, toValue)
+  (AttributeValue, Html, (!), br, code, div, pre, preEscapedString, toHtml, toValue)
 import qualified Text.Blaze.Html5 as Html
 import Text.Blaze.Html5.Attributes
   (class_, id, style, type_)
@@ -387,13 +387,15 @@ instance Render Feedback where
         ["Cannot display a diagram for the stubbed out circuit ", identifier nm, "."]
 
       AnExperiment str x ls -> pure $$$
-        [ p $$ [toHtml str, " ", punctuate ", " (identifier <$> x), ":"]
+        [ fold [toHtml str, " ", punctuate ", " (identifier <$> x), ":"]
+        , br
         , foldMap toHtml ls
         ]
       ADotGraph xs x ls -> do
         n <- show <$> fresh
         pure $$$ let graphName = "GRAPH" ++ n in
-          [ p $$ ["Displaying ", identifier x, extra, ":"]
+          [ fold ["Displaying ", identifier x, extra, ":"]
+          , br
           , Html.script ! type_ "module" $$$
               let dotName = "dot" <> toHtml n in
               let svgName = "svg" <> toHtml n in
@@ -407,34 +409,38 @@ instance Render Feedback where
               , "  }"
               , ""
               ]
-          , div ! id (toValue graphName) $ ""
+          , div ! style "padding-left: 1em" $ div ! id (toValue graphName) $ ""
           ]
         where extra = case xs of
                 [] -> ""
                 _ -> fold [" (with ", punctuate ", " (map identifier xs), " unfolded)"]
 
       AFoundHoles f ls -> pure $$$
-        [ p $$ ["Found holes in circuit ", identifier f, ":"]
-        , foldMap toHtml ls
+        [ fold ["Found holes in circuit ", identifier f, ":"]
+        , br
+        , div ! style "padding-left: 1em" $ foldMap toHtml ls
         ]
       ALint ls -> pure $$ fmap toHtml ls
       ANoExecutable exe -> pure $$
         [ "Could not find the ", identifier exe, " executable :(" ]
       AnSVGGraph xs x ls -> pure $$
-        [ p $$ ["Displaying ", identifier x, extra, ":"]
-        , foldMap toHtml ls
+        [ fold ["Displaying ", identifier x, extra, ":"]
+        , br
+        , div ! style "padding-left: 1em" $ foldMap toHtml ls
         ]
         where extra = case xs of
                 [] -> ""
                 _ -> fold [" (with ", punctuate ", " (map identifier xs), " unfolded)"]
       ASuccessfulUnitTest -> pure "Success!"
       ARawCode str x ls -> pure $$$
-        [ p $$ [ toHtml str, " ", identifier x, ":" ]
-        , div ! class_ "syrup-code" $ (toHtml $ unlines ls)
+        [ fold [ toHtml str, " ", identifier x, ":" ]
+        , br
+        , div ! style "padding-left: 1em" $ div ! class_ "syrup-code" $ (toHtml $ unlines ls)
         ]
       ATruthTable x ls -> pure $$$
-        [ p $$ ["Truth table for ", identifier x, ":"]
-        , pre (toHtml $ unlines ls)
+        [ fold ["Truth table for ", identifier x, ":"]
+        , br
+        , div ! style "padding-left: 1em" $ pre (toHtml $ unlines ls)
         ]
       AnUnreasonablyLargeExperiment lim size x -> pure $$
         [ "Gave up on experimenting on ", identifier x
@@ -455,7 +461,8 @@ instance Render Feedback where
       AMissingImplementation x -> pure $$
         [ "I don't have an implementation for ", identifier x, "." ]
       AnAmbiguousDefinition f zs -> pure $$$
-        [ p $$ [ "I don't know which of the following is your preferred ", identifier f, ":" ]
+        [ fold [ "I don't know which of the following is your preferred ", identifier f, ":" ]
+        , br
         , div ! style "padding-left: 1em" $ punctuate br (map (pre . toHtml . punctuate "\n") zs)
         ]
       AnUndefinedCircuit f -> pure $$
@@ -479,7 +486,7 @@ instance Render Feedback where
       AnIllTypedMemory x mTys m0 -> do
         mTys <- traverse renderHtml mTys
         m0 <- traverse renderHtml m0
-        pure $ p $$
+        pure $$
           [ "Memory for ", identifier x, " has type "
           , code (braces $ punctuate ", " mTys), "."
           , br
@@ -488,7 +495,7 @@ instance Render Feedback where
       AnIllTypedOutputs x oTys os -> do
         oTys <- traverse renderHtml oTys
         os <- traverse renderHtml os
-        pure $ p $$
+        pure $$
           [ "Outputs for ", identifier x, " are typed "
           , code (punctuate ", " oTys), "."
           , br
@@ -498,7 +505,7 @@ instance Render Feedback where
       AWrongFinalMemory mo mo' -> do
         mo <- traverse renderHtml mo
         mo' <- traverse renderHtml mo'
-        pure $ p $$
+        pure $$
           [ "Wrong final memory: expected "
           , code (braces $$ mo)
           , " but got "
@@ -517,15 +524,17 @@ instance Render Feedback where
       WhenUnitTesting x is os fdks -> do
         fdks <- traverse renderHtml fdks
         pure $$$
-          [ p $$ [ "When unit testing ", identifier x
+          [ fold [ "When unit testing ", identifier x
                  , toHtml (circuitConfig True is), " = "
                  , toHtml (circuitConfig False os), ":"]
+          , br
           , div ! style "padding-left: 1em" $ punctuate (br <> "\n") fdks
           ]
       WhenDisplaying f fdks -> do
         fdks <- traverse renderHtml fdks
         pure $$$
-          [ p $$ [ "When displaying ", identifier f, ":" ]
+          [ fold [ "When displaying ", identifier f, ":" ]
+          , br
           , div ! style "padding-left: 1em" $ punctuate (br <> "\n") fdks
           ]
 
