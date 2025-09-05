@@ -20,6 +20,7 @@ import Control.Monad.Writer (MonadWriter)
 
 import Data.Bifunctor (bimap)
 import Data.Foldable (traverse_)
+import Data.Forget (forget)
 import Data.Monoid (First(..))
 import Data.Sequence (Seq)
 import Data.Void (Void, absurd)
@@ -423,9 +424,9 @@ tyEq st = hnf st >>= \ st -> case st of
   (t,        Meta y)   -> tyD (y, t)
   (TVar s t, TVar s' t')
     | s == s' -> return ()
-    | otherwise -> tyEq (absurd <$> t, absurd <$> t')
-  (TVar _ t, t') -> tyEq (absurd <$> t, t')
-  (t, TVar _ t') -> tyEq (t, absurd <$> t')
+    | otherwise -> tyEq (forget t, forget t')
+  (TVar _ t, t') -> tyEq (forget t, t')
+  (t, TVar _ t') -> tyEq (t, forget t')
 
 
 ------------------------------------------------------------------------------

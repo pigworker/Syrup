@@ -71,7 +71,8 @@ library
 
 
     -- Modules exported by the library.
-    exposed-modules:  Data.IMaybe
+    exposed-modules:  Data.Forget
+                    , Data.IMaybe
                     , Language.Syrup.Anf
                     , Language.Syrup.BigArray
                     , Language.Syrup.Bwd
@@ -121,6 +122,7 @@ library
                       , GeneralisedNewtypeDeriving
                       , KindSignatures
                       , LambdaCase
+                      , MultiParamTypeClasses
                       , PatternGuards
                       , TupleSections
                       , TypeOperators

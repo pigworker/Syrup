@@ -9,6 +9,7 @@
 
 module Language.Syrup.Syn.Base where
 
+import Data.Forget (Forget)
 import Data.Void (Void)
 import Control.Monad (ap, guard)
 
@@ -49,6 +50,8 @@ data Ty t x
   | Bit t
   | Cable [Ty t x]
   deriving (Eq, Functor, Foldable, Traversable)
+
+instance Forget b c => Forget (Ty a b) (Ty a c) where
 
 isBit :: Ty t x -> Maybe t
 isBit (Bit a) = Just a

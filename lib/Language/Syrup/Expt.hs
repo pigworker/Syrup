@@ -18,6 +18,7 @@ import Control.Monad.Writer (tell)
 
 import qualified Data.Bifunctor as Bi
 import Data.Foldable (toList)
+import Data.Forget (forget)
 import Data.Function (on)
 import Data.List (find, intercalate, sortBy)
 import Data.Maybe (fromMaybe, fromJust)
@@ -310,7 +311,7 @@ outputTemplate (OutputWire p t) = mTemplate (fmap (fst <$>) p) t
 
 -- `displayPat ts ps` PRECONDITION: ts was generated using ps
 displayPat :: Template -> Pat -> String
-displayPat (TVar _ t) p           = displayPat (absurd <$> t) p
+displayPat (TVar _ t) p           = displayPat (forget t) p
 displayPat (Meta s)   (PVar _ n)  = padRight (s - length n) n
 displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
 displayPat (Bit x) _ = absurd x
@@ -325,7 +326,7 @@ displayEmpty t = replicate (sum t) ' '
 
 displayVa :: Template -> Va -> String
 displayVa (Meta s)   v       = let n = show v in padRight (s - length n) n
-displayVa (TVar _ t) v       = displayVa (absurd <$> t) v
+displayVa (TVar _ t) v       = displayVa (forget t) v
 displayVa (Cable ts) (VC vs) = "[" ++ displayVas ts vs ++ "]"
 displayVa (Cable _) _ = impossible "ill typed cable value"
 displayVa (Bit x) _ = absurd x
