@@ -17,4 +17,3 @@ Error: Invalid truth table output for i.
 DNF circuit for j:
 j() -> <Bit>
 j() = zero()
-

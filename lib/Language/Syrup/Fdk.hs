@@ -6,28 +6,43 @@
 
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Language.Syrup.Fdk where
+
+import Prelude hiding (div, id)
+import qualified Prelude
 
 import Control.Monad.State (MonadState, get, put, evalState)
 import Control.Monad.Writer (MonadWriter, tell)
 
+import Data.Foldable (fold)
 import Data.List (intercalate, intersperse)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
+import Data.String (IsString)
 import Data.Void (Void, absurd)
 
-import Utilities.HTML (asHTML, escapeHTML)
-import qualified Utilities.HTML as HTML
-
 import Language.Syrup.BigArray (Set, isEmptyArr, foldMapSet)
-import Language.Syrup.Opt (Options(..), quiet, OutputFormat(..))
+import Language.Syrup.Opt (Options(..), quiet)
 import Language.Syrup.Syn.Base
+
+import Text.Blaze.Html5
+  (AttributeValue, Html, (!), br, code, div, p, pre, preEscapedString, toHtml, toValue)
+import qualified Text.Blaze.Html5 as Html
+import Text.Blaze.Html5.Attributes
+  (class_, id, style, type_)
+
+($$) :: (Html -> a) -> [Html] -> a
+f $$ x = f (fold x)
+
+($$$) :: (Html -> a) -> [Html] -> a
+f $$$ x = f $$ intersperse "\n" x
 
 ------------------------------------------------------------------------------
 -- Feedback classes
 
-type MonadRenderHTML m =
+type MonadRenderHtml m =
   ( MonadState Int m
   )
 
@@ -36,19 +51,28 @@ class Categorise t where
 
 class Render t where
   render :: t -> [String]
-  renderHTML :: MonadRenderHTML m => t -> m String
+  renderHtml :: MonadRenderHtml m => t -> m Html
+  renderHtml = pure . toHtml . concat . render
 
-instance Render t => Render [t] where
-  render = concatMap ((++ [""]) . render)
-  renderHTML = fmap (intercalate HTML.br) . traverse renderHTML
+instance Render Va where
+  render = pure . show
+  renderHtml = pure . toHtml . show
 
 indent :: Int -> String -> String
 indent n str = replicate n ' ' ++ str
 
-plural :: [a] -> String -> String -> String
-plural []  str _ = str
-plural [_] str _ = str
-plural _   str s = str ++ s
+plural :: Monoid s => [a] -> s -> s -> s
+plural (_ : _ : _) str s = str <> s
+plural _ str _ = str
+
+braces :: (Monoid a, IsString a) => a -> a
+braces s = fold ["{", s, "}"]
+
+parens :: (Monoid a, IsString a) => a -> a
+parens s = fold ["(", s, ")"]
+
+punctuate :: Monoid a => a -> [a] -> a
+punctuate pun s = fold $ intersperse pun s
 
 ------------------------------------------------------------------------------
 -- Feedback status
@@ -84,20 +108,23 @@ instance Monoid FeedbackStatus where
   mempty = Success
   mappend = (<>)
 
-instance Render FeedbackStatus where
-  render = pure . \case
+
+feedbackStatus :: FeedbackStatus -> String
+feedbackStatus = \case
     Success -> ""
     Comment -> ""
     Warning -> "Warning"
     Error -> "Error"
     Internal -> "Internal error"
 
-  renderHTML = pure . \case
-      Success -> "happy"
-      Comment -> "comment"
-      Warning -> "warning"
-      Error -> "error"
-      Internal -> "internal"
+toCSSClass :: FeedbackStatus -> AttributeValue
+toCSSClass st = toValue $ ("syrup-" ++) $ case st of
+  Success -> "happy"
+  Comment -> "comment"
+  Warning -> "warning"
+  Error -> "error"
+  Internal -> "internal"
+
 
 ------------------------------------------------------------------------------
 -- Scope errors
@@ -108,7 +135,7 @@ type Names = Set Name
 data ScopeLevel = Local | Global
   deriving (Eq)
 
-levelMsg :: ScopeLevel -> String
+levelMsg :: IsString a => ScopeLevel -> a
 levelMsg = \case
   Local  -> "local"
   Global -> "top-level"
@@ -125,31 +152,32 @@ instance Categorise ScopeError where
     Shadowing Local _  -> Error
     Shadowing Global _ -> Warning
 
-metaRender :: (String -> String) -> ScopeError -> String
-metaRender f e = concat $ case e of
+metaRender :: (IsString a, Monoid a) => (Name -> a) -> ScopeError -> a
+metaRender f e = fold $ case e of
     OutOfScope l n ns ->
       let names = foldMapSet (pure . f) ns in
       "You tried to use "
-      : n
+      : f n
       : " but it is not in scope."
       : if isEmptyArr ns then [] else
-        "\n"
-        : plural names "Did you mean" " one of these"
-        : ": "
-        : intersperse ", " names
-        ++ ["?"]
+        [ "\n"
+        , plural names "Did you mean" " one of these"
+        , ": "
+        , punctuate ", " names
+        , "?"
+        ]
     Shadowing l ns ->
       let names = foldMapSet (pure . f) ns in
-      "You are redefining the "
-      : levelMsg l
-      : " " : plural names "variable" "s"
-      : " " : intersperse ", " names
-      ++ ["."]
-
+      [ "You are redefining the "
+      , levelMsg l
+      , " ", plural names "variable" "s"
+      , " ", punctuate ", " names
+      , "."
+      ]
 
 instance Render ScopeError where
-  render = pure . metaRender id
-  renderHTML = pure . metaRender identifier
+  render = pure . metaRender Prelude.id
+  renderHtml = pure . metaRender identifier
 
 instance Render (Ty t Void) where
   render = \case
@@ -158,7 +186,7 @@ instance Render (Ty t Void) where
     Bit{} -> pure "<Bit>"
     Cable ts -> [concat ("[" : foldMap render ts ++ ["]"])]
 
-  renderHTML = pure . concat . render
+  renderHtml = pure . toHtml . concat . render
 
 data Feedback
   -- internal errors
@@ -269,12 +297,12 @@ fresh = do
   put sn
   pure sn
 
-identifier :: String -> String
-identifier = HTML.code . escapeHTML
+identifier :: String -> Html
+identifier = code . toHtml
 
 instance Render Feedback where
   render e =
-    let preamb = concat (render $ categorise e) in
+    let preamb = feedbackStatus $ categorise e in
     prepend (plural preamb preamb ": ") (go e) where
 
     prepend :: Semigroup a => a -> [a] -> [a]
@@ -342,154 +370,201 @@ instance Render Feedback where
       WhenDisplaying f fdks -> ("When displaying " ++ f ++ ":") : concatMap (map (indent 2) . render) fdks
 
 
-  renderHTML e = do
-    cat <- renderHTML (categorise e)
-    let div = HTML.div ["class=" ++ show ("syrup-" ++ cat)]
-    msg <- goHTML e
-    pure (div msg)
+  renderHtml e = do
+    let cat = categorise e
+    msg <- goHtml e
+    pure $ div ! class_ (toCSSClass cat) $ msg
 
 
     where
 
-    goHTML = \case
-      AnImpossibleError str -> pure ("The IMPOSSIBLE has happened: " ++ str ++ ".")
-      ACouldntFindCircuitDiagram nm -> pure ("Could not find the diagram for the circuit " ++ identifier nm ++ ".")
-      ACannotDisplayStub nm -> pure ("Cannot display a diagram for the stubbed out circuit " ++ identifier nm ++ ".")
+    goHtml :: MonadRenderHtml m => Feedback -> m Html
+    goHtml = \case
+      AnImpossibleError str -> pure $$ ["The IMPOSSIBLE has happened: ", toHtml str, "."]
+      ACouldntFindCircuitDiagram nm -> pure $$
+        ["Could not find the diagram for the circuit ", identifier nm, "."]
+      ACannotDisplayStub nm -> pure $$
+        ["Cannot display a diagram for the stubbed out circuit ", identifier nm, "."]
 
-      AnExperiment str x ls -> pure $ unlines
-        [ str ++ " " ++ intercalate ", " (identifier <$> x) ++ ":" ++ HTML.br
-        , asHTML ls
+      AnExperiment str x ls -> pure $$$
+        [ p $$ [toHtml str, " ", punctuate ", " (identifier <$> x), ":"]
+        , foldMap toHtml ls
         ]
       ADotGraph xs x ls -> do
         n <- show <$> fresh
-        pure $ unlines
-          [ "Displaying " ++ identifier x ++ extra ++ ":" ++ HTML.br
-          , "<script type=" ++ show "module" ++ ">"
-          , "  import { Graphviz } from \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js\";"
-          , "  if (Graphviz) {"
-          , "    const graphviz = await Graphviz.load();"
-          , "    const dot" ++ n ++ " = " ++ show (unlines ls) ++ ";"
-          , "    const svg" ++ n ++ " = graphviz.dot(dot" ++ n ++ ");"
-          , "    document.getElementById(\"GRAPH" ++ n ++ "\").innerHTML = svg" ++ n ++ ";"
-          , "  }"
-          , "</script>"
-          , "<div id=" ++ show ("GRAPH" ++ n) ++ "></div>"
+        pure $$$ let graphName = "GRAPH" ++ n in
+          [ p $$ ["Displaying ", identifier x, extra, ":"]
+          , Html.script ! type_ "module" $$$
+              let dotName = "dot" <> toHtml n in
+              let svgName = "svg" <> toHtml n in
+              [ ""
+              , "  import { Graphviz } from \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js\";"
+              , "  if (Graphviz) {"
+              , "    const graphviz = await Graphviz.load();"
+              , "    const " <> dotName <> " = " <> preEscapedString (show (unlines ls)) <> ";"
+              , "    const " <> svgName <> " = graphviz.dot(" <> dotName <> ");"
+              , "    document.getElementById(\"" <> toHtml graphName <> "\").innerHTML = " <> svgName <> ";"
+              , "  }"
+              , ""
+              ]
+          , div ! id (toValue graphName) $ ""
           ]
         where extra = case xs of
                 [] -> ""
-                _ -> concat [" (with ", intercalate ", " (map identifier xs), " unfolded)"]
+                _ -> fold [" (with ", punctuate ", " (map identifier xs), " unfolded)"]
 
-      AFoundHoles f ls -> pure ("Found holes in circuit " ++ identifier f ++ ":" ++ HTML.br ++ asHTML ls)
-
-      ALint ls -> pure (asHTML ls)
-      ANoExecutable exe -> pure ("Could not find the " ++ identifier exe ++ " executable :(")
-      AnSVGGraph xs x ls -> pure (unlines (("Displaying " ++ identifier x ++ extra ++ ":" ++ HTML.br) : ls))
+      AFoundHoles f ls -> pure $$$
+        [ p $$ ["Found holes in circuit ", identifier f, ":"]
+        , foldMap toHtml ls
+        ]
+      ALint ls -> pure $$ fmap toHtml ls
+      ANoExecutable exe -> pure $$
+        [ "Could not find the ", identifier exe, " executable :(" ]
+      AnSVGGraph xs x ls -> pure $$
+        [ p $$ ["Displaying ", identifier x, extra, ":"]
+        , foldMap toHtml ls
+        ]
         where extra = case xs of
                 [] -> ""
-                _ -> concat [" (with ", intercalate ", " (map identifier xs), " unfolded)"]
+                _ -> fold [" (with ", punctuate ", " (map identifier xs), " unfolded)"]
       ASuccessfulUnitTest -> pure "Success!"
-      ARawCode str x ls -> pure $ unlines
-        [ str ++ "  " ++ identifier x ++ ":" ++ HTML.br
-        , HTML.div ["class=" ++ show "syrup-code"] (unlines $ escapeHTML <$> ls)
+      ARawCode str x ls -> pure $$$
+        [ p $$ [ toHtml str, " ", identifier x, ":" ]
+        , div ! class_ "syrup-code" $ (toHtml $ unlines ls)
         ]
-      ATruthTable x ls -> pure (unlines ["Truth table for " ++ identifier x ++ ":" ++ HTML.br, HTML.pre (unlines ls)])
-      ASyntaxError ls -> pure (asHTML ls)
-      AScopeError ls -> renderHTML ls
-      ACircuitDefined str -> pure ("Circuit " ++ identifier str ++ " is defined.")
-      ATypeDefined str -> pure ("Type " ++ identifier ("<" ++ str ++ ">") ++ " is defined.")
-      AStubbedOut nm -> pure ("Circuit " ++ identifier nm ++ " has been stubbed out.")
-      AnUnreasonablyLargeExperiment lim size x ->
-        pure ("Gave up on experimenting on " ++ identifier x ++ " due to its size (" ++ show size
-           ++ " but the limit is " ++ show lim ++ ").")
-
-      ATypeError ls -> pure (asHTML ls)
-      AnUnknownIdentifier x -> pure ("I don't know what " ++ identifier x ++ " is.")
-      AMissingImplementation x -> pure ("I don't have an implementation for " ++ identifier x ++ ".")
-      AnAmbiguousDefinition f zs ->
-        pure (asHTML (("I don't know which of the following is your preferred " ++ f ++ ":") : intercalate [""] zs))
-      AnUndefinedCircuit f -> pure ("You haven't defined the circuit " ++ identifier f ++ " just now.")
-      AnUndeclaredCircuit f -> pure ("You haven't declared the circuit " ++ identifier f ++ " just now.")
-      AnUndefinedType x -> pure ("You haven't defined the type " ++ identifier x ++ " just now.")
-      AnInvalidTruthTableOutput f -> pure ("Invalid truth table output for " ++ identifier f ++ ".")
-      AnIllTypedInputs x iTys is -> pure $ unlines
-        [ concat ["Inputs for ", identifier x, " are typed "
-                 , HTML.code (concat ["(", intercalate ", " (foldMap render iTys), ")"]), "."
-                 ]
-        , concat ["That can't accept ", HTML.code (concat ["(", foldMap show is, ")"]), "."]
+      ATruthTable x ls -> pure $$$
+        [ p $$ ["Truth table for ", identifier x, ":"]
+        , pre (toHtml $ unlines ls)
         ]
-      AnIllTypedMemory x mTys m0 -> pure $ unlines
-        [ concat ["Memory for ", identifier x, " has type "
-                 , HTML.code (concat ["{", intercalate ", " (foldMap render mTys), "}"]), "."]
-        , concat ["That can't store {", foldMap show m0, "}."]
+      AnUnreasonablyLargeExperiment lim size x -> pure $$
+        [ "Gave up on experimenting on ", identifier x
+        , " due to its size (", toHtml (show size)
+        , " but the limit is ", toHtml (show lim),")."
         ]
-      AnIllTypedOutputs x oTys os -> pure $ unlines
-        [ concat ["Outputs for ", identifier x, " are typed "
-                 , HTML.code (intercalate ", " (foldMap render oTys)), "."]
-        , concat ["That can't accept ", HTML.code (foldMap show os), "."]
+      ASyntaxError ls -> pure $$ fmap toHtml ls
+      AScopeError ls -> renderHtml ls
+      ACircuitDefined str -> pure $$
+        [ "Circuit ", identifier str, " is defined." ]
+      ATypeDefined str -> pure $$
+        [ "Type ", identifier ("<" ++ str ++ ">"), " is defined." ]
+      AStubbedOut nm -> pure $$
+        [ "Circuit ", identifier nm, " has been stubbed out." ]
+      ATypeError ls -> pure $$ fmap toHtml ls
+      AnUnknownIdentifier x -> pure $$
+        [ "I don't know what ", identifier x, " is." ]
+      AMissingImplementation x -> pure $$
+        [ "I don't have an implementation for ", identifier x, "." ]
+      AnAmbiguousDefinition f zs -> pure $$$
+        [ p $$ [ "I don't know which of the following is your preferred ", identifier f, ":" ]
+        , div ! style "padding-left: 1em" $ punctuate br (map (pre . toHtml . punctuate "\n") zs)
         ]
-      AWrongFinalMemory mo mo' -> pure $ unlines
-        [ "Wrong final memory: expected "
-        , HTML.code (concat ["{", foldMap show mo, "}"])
-        , " but got "
-        , HTML.code (concat ["{", foldMap show mo', "}"])
-        , "." ]
-      AWrongOutputSignals os os' -> pure $ unlines
-        [ "Wrong output signals: expected "
-        , HTML.code (foldMap show os)
-        , " but got "
-        , HTML.code (foldMap show os')
-        , "." ]
-
+      AnUndefinedCircuit f -> pure $$
+        [ "You haven't defined the circuit ", identifier f, " just now." ]
+      AnUndeclaredCircuit f -> pure $$
+        [ "You haven't declared the circuit ", identifier f, " just now." ]
+      AnUndefinedType x -> pure $$
+        [ "You haven't defined the type ", identifier x, " just now." ]
+      AnInvalidTruthTableOutput f -> pure $$
+        [ "Invalid truth table output for ", identifier f, "." ]
+      AnIllTypedInputs x iTys is -> do
+        iTys <- traverse renderHtml iTys
+        is <- traverse renderHtml is
+        pure $$
+          [ "Inputs for ", identifier x, " are typed "
+          , code (parens $ punctuate ", " iTys), "."
+          , br
+          , "That can't accept "
+          , code (parens $$ is), "."
+          ]
+      AnIllTypedMemory x mTys m0 -> do
+        mTys <- traverse renderHtml mTys
+        m0 <- traverse renderHtml m0
+        pure $ p $$
+          [ "Memory for ", identifier x, " has type "
+          , code (braces $ punctuate ", " mTys), "."
+          , br
+          , "That can't store ", braces $$ m0 ,"."
+          ]
+      AnIllTypedOutputs x oTys os -> do
+        oTys <- traverse renderHtml oTys
+        os <- traverse renderHtml os
+        pure $ p $$
+          [ "Outputs for ", identifier x, " are typed "
+          , code (punctuate ", " oTys), "."
+          , br
+          , "That can't accept "
+          , code (punctuate ", " os), "."
+          ]
+      AWrongFinalMemory mo mo' -> do
+        mo <- traverse renderHtml mo
+        mo' <- traverse renderHtml mo'
+        pure $ p $$
+          [ "Wrong final memory: expected "
+          , code (braces $$ mo)
+          , " but got "
+          , code (braces $$ mo')
+          , "." ]
+      AWrongOutputSignals os os' -> do
+        os <- traverse renderHtml os
+        os' <- traverse renderHtml os'
+        pure $$
+          [ "Wrong output signals: expected "
+          , code (parens $$ os)
+          , " but got "
+          , code (parens $$ os')
+          , "." ]
 
       WhenUnitTesting x is os fdks -> do
-        fdks <- traverse renderHTML fdks
-        pure $ unlines
-          [ concat [ "When unit testing ", identifier x, circuitConfig True is
-                                         , " = ", circuitConfig False os, ":", HTML.br ]
-          , HTML.div ["style=\"padding-left: 1em\""] (intercalate (HTML.br ++ "\n") fdks)
+        fdks <- traverse renderHtml fdks
+        pure $$$
+          [ p $$ [ "When unit testing ", identifier x
+                 , toHtml (circuitConfig True is), " = "
+                 , toHtml (circuitConfig False os), ":"]
+          , div ! style "padding-left: 1em" $ punctuate (br <> "\n") fdks
           ]
       WhenDisplaying f fdks -> do
-        fdks <- traverse renderHTML fdks
-        pure $ unlines
-          [ "When displaying " ++ identifier f ++ ":" ++ HTML.br
-          , HTML.div ["style=\"padding-left: 1em\""] (intercalate (HTML.br ++ "\n") fdks)
+        fdks <- traverse renderHtml fdks
+        pure $$$
+          [ p $$ [ "When displaying ", identifier f, ":" ]
+          , div ! style "padding-left: 1em" $ punctuate (br <> "\n") fdks
           ]
 
+feedbackText :: [Feedback] -> [String]
+feedbackText = intercalate [""] . map render
 
-feedback :: Options -> [Feedback] -> [String]
-feedback opts = (. filter (keep opts)) $ case outputFormat opts of
-  TextOutput -> render
-  HTMLOutput -> (headerHTML:) . map (++ HTML.br) . flip evalState 0 . traverse renderHTML
+feedbackHtml :: [Feedback] -> Html
+feedbackHtml = (headerHtml <>) . punctuate (br <> "\n") . flip evalState 0 . traverse renderHtml
 
   where
-  headerHTML = unlines
-    [ "<style>"
-    , "  .syrup-code {"
-    , "    display: block;"
-    , "    font-family: monospace;"
-    , "    font-size: 17px;"
-    , "    white-space: pre;"
-    , "    margin: 1em 0;"
-    , "  }"
-    , "  .syrup-happy:before {"
-    , "    content: \"\\2705\";"
-    , "    padding: 0 6px 0 0;"
-    , "  }"
-    , "  .syrup-comment:before {"
-    , "    content: \"\\2705\";"
-    , "    padding: 0 6px 0 0;"
-    , "  }"
-    , "  .syrup-warning:before {"
-    , "    content: \"\\26A0\\FE0F\";"
-    , "    padding: 0 6px 0 0;"
-    , "  }"
-    , "  .syrup-error:before {"
-    , "    content: \"\\274C\";"
-    , "    padding: 0 6px 0 0;"
-    , "  }"
-    , "  .syrup-internal:before {"
-    , "    content: \"\\1F480\";"
-    , "    padding: 0 6px 0 0;"
-    , "  }"
-    , "</style>"
-    ]
+    headerHtml :: Html
+    headerHtml = (<> "\n") $ Html.style $ toHtml $ unlines
+      [ ""
+      , "  .syrup-code {"
+      , "    display: block;"
+      , "    font-family: monospace;"
+      , "    font-size: 17px;"
+      , "    white-space: pre;"
+      , "    margin: 1em 0;"
+      , "  }"
+      , "  .syrup-happy:before {"
+      , "    content: \"\\2705\";"
+      , "    padding: 0 6px 0 0;"
+      , "  }"
+      , "  .syrup-comment:before {"
+      , "    content: \"\\2705\";"
+      , "    padding: 0 6px 0 0;"
+      , "  }"
+      , "  .syrup-warning:before {"
+      , "    content: \"\\26A0\\FE0F\";"
+      , "    padding: 0 6px 0 0;"
+      , "  }"
+      , "  .syrup-error:before {"
+      , "    content: \"\\274C\";"
+      , "    padding: 0 6px 0 0;"
+      , "  }"
+      , "  .syrup-internal:before {"
+      , "    content: \"\\1F480\";"
+      , "    padding: 0 6px 0 0;"
+      , "  }"
+      , ""
+      ]

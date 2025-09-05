@@ -57,4 +57,3 @@ Circuit m is defined.
 Simplification of m:
 m(<Bit>, <Bit>) -> <Bit>
 m(X, Y) = nand(X, Y)
-

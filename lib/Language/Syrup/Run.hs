@@ -21,10 +21,13 @@ import Data.Functor (void)
 import qualified Data.Sequence as Seq
 import Data.Void (absurd)
 
+import Text.Blaze.Html5 (Html)
+import Text.Blaze.Html.Renderer.String (renderHtml)
+
 import Language.Syrup.Chk
 import Language.Syrup.Dot
 import Language.Syrup.Expt
-import Language.Syrup.Fdk
+import Language.Syrup.Fdk (Feedback(..), feedbackText, feedbackHtml, keep)
 import Language.Syrup.Lnt
 import Language.Syrup.Opt
 import Language.Syrup.Par
@@ -106,16 +109,27 @@ runSyrup txt = do
   hasLens .= t'
   grokSy srcs
 
-
 -- The sort of interface Marx prefers
-oldRunSyrup :: Options -> SyrupEnv -> String -> (SyrupEnv, String)
-oldRunSyrup opts env src
-  = fmap (unlines . feedback opts . toList)
+oldRunSyrup
+  :: ([Feedback] -> a)
+  -> Options -> SyrupEnv -> String -> (SyrupEnv, a)
+oldRunSyrup fdk opts env src
+  = fmap (fdk . filter (keep opts) . toList)
   $ runWriter
   $ flip runReaderT opts
   $ flip execStateT env
   $ runSyrup src
 
+marxRunSyrup :: Options -> SyrupEnv -> String -> (SyrupEnv, Html)
+marxRunSyrup = oldRunSyrup feedbackHtml
 
 syrup :: Options -> String -> String
-syrup opts src = snd $ oldRunSyrup opts (SyrupEnv myTyEnv myCoEnv myDotSt) src
+syrup opts src = snd $ oldRunSyrup fdk opts env src where
+
+  env :: SyrupEnv
+  env = SyrupEnv myTyEnv myCoEnv myDotSt
+
+  fdk :: [Feedback] -> String
+  fdk = case outputFormat opts of
+    TextOutput -> unlines . feedbackText
+    HtmlOutput -> renderHtml . feedbackHtml

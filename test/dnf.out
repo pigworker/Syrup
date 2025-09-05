@@ -9,4 +9,3 @@ Circuit complex is defined.
 Disjunctive Normal Form of complex:
 complex(<Bit>, <Bit>, <Bit>) -> <Bit>
 complex(X, Y, Z) = !X & !Y | !X & !Z
-

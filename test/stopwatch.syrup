@@ -1,0 +1,71 @@
+not(<Bit>) -> <Bit>
+not(X) = nand(X,X)
+
+and(<Bit>, <Bit>) -> <Bit>
+and(X,Y) = !nand(X,Y)
+
+or(<Bit>, <Bit>) -> <Bit>
+or(X,Y) = nand(!X,!Y)
+
+mux(<Bit>, <Bit>, <Bit>) -> <Bit>
+mux(C,X,Y) = !C&X | C&Y
+
+xor(<Bit>, <Bit>) -> <Bit>
+xor(X,Y) = X&!Y | !X&Y
+
+hadd(<Bit>, <Bit>) -> <Bit>, <Bit>
+hadd(X,Y) = X&Y, xor(X,Y)
+
+fadd(<Bit>, <Bit>, <Bit>) -> <Bit>, <Bit>
+fadd(X,Y,C) = Z2, Z1 where
+
+  A2, A1 = hadd(X,Y)
+  B2, Z1 = hadd(A1,C)
+  Z2 = A2|B2
+
+type <Bit3> = [<Bit>, <Bit>, <Bit>]
+
+rca3(<Bit3>, <Bit3>, <Bit>) -> <Bit>, <Bit3>
+rca3([X4,X2,X1], [Y4,Y2,Y1], C1) = C8,[Z4,Z2,Z1] where
+
+  C2, Z1 = fadd(X1,Y1,C1)
+  C4, Z2 = fadd(X2,Y2,C2)
+  C8, Z4 = fadd(X4,Y4,C4)
+
+dff3(<Bit3>) -> @<Bit3>
+dff3([X,Y,Z]) = [Q1,Q2,Q3] where
+
+  Q1 = dff(X)
+  Q2 = dff(Y)
+  Q3 = dff(Z)
+
+mux3(<Bit>, <Bit3>, <Bit3>) -> <Bit3>
+mux3(C, [X3,X2,X1], [Y3,Y2,Y1])
+  = [mux(C,X3,Y3), mux(C,X2,Y2), mux(C,X1,Y1)]
+
+stopwatch(<Bit>) -> @<Bit3>
+stopwatch(RUN) = SECS where
+
+  Z  = RUN & !RUN
+  O  = RUN | !RUN
+  Z3 = [Z,Z,Z]
+
+  RUNNING = dff(RUN)
+  _,INCR  = rca3(SECS,Z3,O)
+  SECS    = dff3(mux3(!xor(RUN, RUNNING),Z3,INCR))
+
+experiment stopwatch
+
+
+stopwatch2(<Bit>) -> @<Bit3>
+stopwatch2(RUN) = SECS where
+
+  Z  = RUN & !RUN
+  O  = RUN | !RUN
+  Z3 = [Z,Z,Z]
+
+  RUNNING = dff(RUN)
+  _,INCR  = rca3(SECS,Z3,O)
+  SECS    = dff3(mux3(RUN,SECS,mux3(RUNNING, Z3, INCR)))
+
+experiment stopwatch2

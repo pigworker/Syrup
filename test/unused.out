@@ -5,4 +5,3 @@ Circuit f is defined.
 Simplification of f:
 f(<Bit>) -> <Bit>
 f(X) = X
-

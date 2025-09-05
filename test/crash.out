@@ -33,4 +33,3 @@ two can be distinguished from all possible states of one
 when two has memory {10}
 if one has memory like {1}, try inputs 0;1;0
 if one has memory like {0}, try inputs 0
-
