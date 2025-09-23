@@ -25,19 +25,11 @@ data Source' a b
   = Declaration (DEC' b)
   | TypeAlias (a, TY' b)
   | Definition Def
-  | Experiment EXPT
+  | Experiment (EXPT' Exp)
 
 -- Concrete and internal sources
 type SourceC = Source' String False
 type Source  = Source' Void   True
-
-type Exp = Exp' ()
-data Exp' ty
-  = Var ty String
-  | Hol ty String
-  | App [ty] String [Exp' ty]
-  | Cab ty [Exp' ty]
-  deriving (Eq, Functor, Foldable, Traversable)
 
 expTys :: Exp' ty -> [ty]
 expTys = \case
@@ -84,6 +76,7 @@ data TY' b
   = BIT
   | OLD (TY' b)
   | CABLE [TY' b]
+  | META
   | TYVAR String (IMaybe b (TY' b))
   deriving (Show)
 
@@ -101,10 +94,11 @@ type DEC  = DEC' True
 data InputName = InputName { getInputName :: String }
   deriving Show
 
-data EXPT
+data EXPT' e
   = Anf String
   | Bisimilarity String String
   | UnitTest String CircuitConfig CircuitConfig
+  | PropertyTest [String] e e
   | Costing [String] String
   | Display [String] String
   | Dnf String
@@ -116,6 +110,7 @@ data EXPT
   | FromOutputs String [InputName] [Bool]
   deriving Show
 
+type EXPTC = EXPT' Exp
 
 
 ------------------------------------------------------------------------------

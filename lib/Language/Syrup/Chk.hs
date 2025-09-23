@@ -30,7 +30,7 @@ import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
-import Language.Syrup.Expt
+import Language.Syrup.Expt (isBisimilar)
 import Language.Syrup.Fdk
 import Language.Syrup.Pretty (basicShow, csepShow)
 import Language.Syrup.Syn
@@ -42,11 +42,6 @@ import Utilities.Lens (hasLens, use, (%=))
 ------------------------------------------------------------------------------
 -- Checking whether a component is remarkable
 ------------------------------------------------------------------------------
-
-isBisimilar :: Compo -> Compo -> Bool
-isBisimilar c d = case bisimReport c d of
-  Report (Bisimilar{}) -> True
-  _ -> False
 
 checkRemarkable :: Compo -> Maybe Remarkable
 checkRemarkable cmp
@@ -465,6 +460,30 @@ yank ts x = foldMap go ts where
   go (qs :<- (_, ps))
     | x `inSet` foldMap support qs = foldMap support ps
     | otherwise = mempty
+
+
+
+
+
+checkExperiment :: MonadCompo s m
+                => EXPT' Exp -> m (EXPT' (Exp, Compo))
+checkExperiment (Anf nm) = pure (Anf nm)
+checkExperiment (Bisimilarity nm nm') = pure (Bisimilarity nm nm')
+checkExperiment (UnitTest nm vs vs') = pure (UnitTest nm vs vs')
+checkExperiment (PropertyTest vars lhs rhs) = do
+  x <- mkComponent (DEC "#lhs" _a) (Just _b)
+  _azg
+
+checkExperiment (Costing nms nm) = pure (Costing nms nm)
+checkExperiment (Display nms nm) = pure (Display nms nm)
+checkExperiment (Dnf nm) = pure (Dnf nm)
+checkExperiment (Print nm) = pure (Print nm)
+checkExperiment (Simplify nm) = pure (Simplify nm)
+checkExperiment (Simulate nm vs vss) = pure (Simulate nm vs vss)
+checkExperiment (Typing nm) = pure (Typing nm)
+checkExperiment (Tabulate nm) = pure (Tabulate nm)
+checkExperiment (FromOutputs nm is bs) = pure (FromOutputs nm is bs)
+
 
 
 ------------------------------------------------------------------------------

@@ -17,10 +17,8 @@ module Language.Syrup.Scp where
 
 import Control.Monad (foldM, unless, when, void)
 
-import Data.Bifunctor ()
 import Data.Char (toLower)
 import Data.Foldable (traverse_)
-import Data.Monoid ()
 
 import Language.Syrup.BigArray
 import Language.Syrup.Fdk
@@ -137,7 +135,7 @@ instance Scoped Pat where
     PVar _ x  -> declareVar ga x
     PCab _ ps -> scopecheck ga ps
 
-instance Scoped Exp where
+instance Scoped (Exp' ty) where
   scopecheck ga = \case
     Var _ s  -> emptyExtension <$ isLocalVar ga s
     Hol _ s  -> pure emptyExtension
@@ -148,7 +146,7 @@ instance Scoped Exp where
 
 instance Scoped [InputName]
 instance Scoped [Pat]
-instance Scoped [Exp]
+instance Scoped [Exp' ty]
 
 instance Scoped [Eqn] where
   scopecheck ga whr = do
@@ -175,7 +173,7 @@ instance Scoped Def where
 instance Scoped (DEC' a) where
   scopecheck ga (DEC (nm, _) _) = declareVar ga nm
 
-instance Scoped EXPT where
+instance Scoped e => Scoped (EXPT' e) where
   scopecheck ga = \case
     Tabulate nm         -> emptyExtension <$ isGlobalVar ga nm
     Simulate nm _ _     -> emptyExtension <$ isGlobalVar ga nm
@@ -185,6 +183,11 @@ instance Scoped EXPT where
       pure emptyExtension
     UnitTest nm ins outs -> do
       isGlobalVar ga nm
+      pure emptyExtension
+    PropertyTest vars lhs rhs -> do
+      let ga' = ga `extend` (Extend (foldMap singleton vars) :: Extension Local)
+      void $ scopecheck ga' lhs
+      void $ scopecheck ga' rhs
       pure emptyExtension
     Display nms nm -> do
       traverse_ (isGlobalVar ga) nms

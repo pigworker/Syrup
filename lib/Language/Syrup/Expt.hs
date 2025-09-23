@@ -85,7 +85,7 @@ ifSmallEnough c act = do
   if cSize <= lim then act else
     tell $ Seq.singleton (AnUnreasonablyLargeExperiment lim cSize (monick c))
 
-experiment :: MonadExperiment s m => EXPT -> m ()
+experiment :: MonadExperiment s m => EXPT' (Exp, Compo) -> m ()
 experiment (Tabulate x) = withCompo x $ \ c -> ifSmallEnough c $
   tell $ Seq.singleton $ ATruthTable x $ displayTabulation (tabulate c)
 experiment (Simulate x m0 iss) = withCompo x $ \ c -> case runCompo c m0 iss of
@@ -95,6 +95,12 @@ experiment (UnitTest x is os) = withCompo x $ \ c ->
   tell $ Seq.singleton $ WhenUnitTesting x is os $ case unitTest c is os of
   Left fdk -> [fdk]
   Right () -> [ASuccessfulUnitTest]
+experiment (PropertyTest vars (e, lhs) (f, rhs)) = do
+  g <- use hasLens
+  let pe = prettyShow g e
+  let pf = prettyShow g f
+  tell $ Seq.singleton $ WhenPropertyTesting vars pe pf $
+    report (pe, pf) (bisimReport lhs rhs)
 experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc ->
   anExperiment "Bisimulation between" [l, r] $ report (l, r) (bisimReport lc rc)
 experiment (Print x) = withImplem x $ \ i -> do
@@ -584,6 +590,11 @@ data Report' st st'
 
 data Report = forall st st'.
   (Ord st, Ord st', Show st, Show st') => Report (Report' st st')
+
+isBisimilar :: Compo -> Compo -> Bool
+isBisimilar c d = case bisimReport c d of
+  Report (Bisimilar{}) -> True
+  _ -> False
 
 report :: (String, String) -> Report -> [String]
 report (lnom, rnom) (Report (Incompatible (lis, los) (ris, ros))) =
