@@ -206,8 +206,8 @@ adc2([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
 <div class="syrup-comment">Circuit <code>one</code> is defined.</div><br>
 <div class="syrup-happy">Printing <code>one</code>:
 <br>
-<div style="padding-left: 1em"><div class="syrup-code">one() -&gt; &lt;Bit&gt;
-one() = !zero()
+<div style="padding-left: 1em"><div class="syrup-code">1 -&gt; &lt;Bit&gt;
+1 = !0
 </div></div></div><br>
 <div class="syrup-happy">Displaying <code>one</code>:
 <br>
@@ -245,8 +245,8 @@ mux(C, X, Y) = C &amp; X | !C &amp; Y
 <div style="padding-left: 1em"><div class="syrup-code">adc2par([&lt;Bit&gt;, &lt;Bit&gt;], [&lt;Bit&gt;, &lt;Bit&gt;], &lt;Bit&gt;) -&gt; &lt;Bit&gt;, [&lt;Bit&gt;, &lt;Bit&gt;]
 adc2par([X2, X1], [Y2, Y1], C1) = C4, [Z2, Z1] where
   C2, Z1 = fadd(X1, Y1, C1)
-  C40, Z20 = fadd(X2, Y2, zero())
-  C41, Z21 = fadd(X2, Y2, one())
+  C40, Z20 = fadd(X2, Y2, 0)
+  C41, Z21 = fadd(X2, Y2, 1)
   C4 = mux(C2, C41, C40)
   Z2 = mux(C2, Z21, Z20)
 </div></div></div><br>

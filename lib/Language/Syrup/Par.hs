@@ -217,7 +217,9 @@ pDef = pClue (SEEKING "a definition") $ Def
 
 pLhs :: String -> Par x -> Par (String, [x])
 pLhs s p = pClue (SEEKING "a component template") $
-      (,) "not" <$ pTokIs (Sym "!") <* pSpc <*> ((:[]) <$> p)
+      (,) "zero" [] <$ pTokIs (Sym "0") <* pSpc
+  <|> (,) "one" [] <$ pTokIs (Sym "1") <* pSpc
+  <|> (,) "not" <$ pTokIs (Sym "!") <* pSpc <*> ((:[]) <$> p)
   <|> (,) "and" <$>
         ((:) <$> p <* pSpc <* pTokIs (Sym "&") <* pSpc <*> ((:[]) <$> p))
   <|> (,) "or" <$>
@@ -273,6 +275,8 @@ pWee = pClue (SEEKING "an expression") $
   <|> Cab () <$> pBrk Square (SEEKING "cable contents")
                  (pSep (pTokIs (Sym ",")) pExp)
   <|> (App [] "not" . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
+  <|> App [] "zero" [] <$ pTokIs (Sym "0") <* pSpc
+  <|> App [] "one" [] <$ pTokIs (Sym "1") <* pSpc
   <|> pBrk Round (SEEKING "an expression in parentheses") pExp
   <|> pYelp AARGH
 

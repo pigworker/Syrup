@@ -9,6 +9,8 @@ or(X,Y) = nand(Z, S) where
   Z = not(X)
   S = not(Y)
 
+one() -> <Bit>
+one() = !0
 
 
 

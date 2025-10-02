@@ -1,4 +1,4 @@
-Circuits not, and, or, and complex are defined.
+Circuits not, and, or, one, and complex are defined.
 
 Disjunctive Normal Form of complex:
 complex(<Bit>, <Bit>, <Bit>) -> <Bit>

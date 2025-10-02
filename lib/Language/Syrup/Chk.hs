@@ -56,6 +56,7 @@ checkRemarkable cmp
   = do guard (isJust (traverse_ (isBit . getInputType) $ inpTys cmp))
        case inpTys cmp of
          []    -> IsZeroGate <$ guard (isBisimilar cmp zeroCompo)
+                  <|> IsOneGate <$ guard (isBisimilar cmp oneCompo)
          [i]   -> IsNotGate  <$ guard (isBisimilar cmp notCompo)
          [i,j] -> IsNandGate <$ guard (isBisimilar cmp nandCompo)
               <|> IsAndGate  <$ guard (isBisimilar cmp andCompo)
@@ -68,6 +69,7 @@ maybeRemarkable str Nothing = []
 maybeRemarkable str (Just g) = [] -- [str ++ " is a remarkable gate (" ++ enunciate g ++ ")."]
   where enunciate = \case
           IsZeroGate -> "zero"
+          IsOneGate -> "one"
           IsNotGate -> "not"
           IsNandGate -> "nand"
           IsAndGate -> "and"
@@ -513,6 +515,18 @@ zeroCompo = Compo
       , inpTys = []
       , oupTys = [OutputWire Nothing (Bit T0)]
       , stage0 = \ _ -> [V0]
+      , stage1 = \ _ -> []
+      }
+
+oneCompo :: Compo
+oneCompo = Compo
+      { monick = "one"
+      , rmk = Just IsOneGate
+      , defn = Nothing
+      , memTys = []
+      , inpTys = []
+      , oupTys = [OutputWire Nothing (Bit T0)]
+      , stage0 = \ _ -> [V1]
       , stage1 = \ _ -> []
       }
 

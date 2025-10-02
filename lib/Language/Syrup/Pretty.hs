@@ -149,6 +149,10 @@ defaultApp f es = do
 
 instance Pretty a => Pretty (FunctionCall a) where
   prettyPrec lvl = \case
+    FunctionCall f [] -> isRemarkable f >>= \case
+      Just IsZeroGate | f == "zero" -> pure $ Doc "0"
+      Just IsOneGate | f == "one" -> pure $ Doc "1"
+      _ -> defaultApp f ([] :: [Exp' ()])
     FunctionCall f [s] -> isRemarkable f >>= \case
       Just IsNotGate | f == "not" -> (Doc "!" <>) <$> prettyPrec NegatedClause s
       _ -> defaultApp f [s]

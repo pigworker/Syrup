@@ -7,6 +7,9 @@ and(X,Y) = !nand(X,Y)
 or(<Bit>, <Bit>) -> <Bit>
 or(X,Y) = nand(!X,!Y)
 
+1 -> <Bit>
+1 = !0
+
 definition f [X,Y,Z] [0,0,0,0,1,0,0,1]
 definition g [X,Y,X] [0,0,0,0,1,0,0,1]
 definition h [] []

@@ -99,6 +99,7 @@ mkOutputWire ms e ty = flip OutputWire ty $ do
 
 data Remarkable
   = IsZeroGate
+  | IsOneGate
   | IsNotGate
   | IsNandGate
   | IsAndGate
@@ -117,6 +118,7 @@ getRemarkable f = do
 data AllRemarkables ty = AllRemarkables
   { bitTypeName  :: ty
   , zeroGateName :: String
+  , oneGateName  :: String
   , notGateName  :: String
   , orGateName   :: String
   , andGateName  :: String
@@ -125,10 +127,11 @@ data AllRemarkables ty = AllRemarkables
 allRemarkables :: CoEnv -> ty -> Maybe (AllRemarkables ty)
 allRemarkables env ty = do
   zeroN <- runReader (getRemarkable IsZeroGate) env
+  oneN  <- runReader (getRemarkable IsOneGate)  env
   notN  <- runReader (getRemarkable IsNotGate)  env
   orN   <- runReader (getRemarkable IsOrGate)   env
   andN  <- runReader (getRemarkable IsAndGate)  env
-  pure (AllRemarkables ty zeroN notN orN andN)
+  pure (AllRemarkables ty zeroN oneN notN orN andN)
 
 data Compo = Compo
   { monick :: String

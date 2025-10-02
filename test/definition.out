@@ -1,4 +1,4 @@
-Circuits not, and, and or are defined.
+Circuits not, and, or, and one are defined.
 
 DNF circuit for f:
 f(<Bit>, <Bit>, <Bit>) -> <Bit>
@@ -12,4 +12,4 @@ Error: Invalid truth table output for i.
 
 DNF circuit for j:
 j() -> <Bit>
-j() = zero()
+j() = 0
