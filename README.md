@@ -1,4 +1,4 @@
-# Syrup
+![Syrup logo](assets/syrup.png) # Syrup
 being a programming language for sequential circuits
 
 
