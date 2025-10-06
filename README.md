@@ -1,4 +1,4 @@
-<img align="left" alt="Syrup logo">assets/syrup.png</img>
+<img align="left" alt="Syrup logo" src="assets/syrup.png" />
 
 # Syrup
 being a programming language for sequential circuits
