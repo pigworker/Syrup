@@ -1,6 +1,4 @@
-<div style="float:left">
-![Syrup logo](assets/syrup.png)
-</div>
+<img align="left" alt="Syrup logo">assets/syrup.png</img>
 
 # Syrup
 being a programming language for sequential circuits
