@@ -250,9 +250,11 @@ data Feedback
   | AnExperiment String [String] [String]
   | AnSVGGraph [String] String [String]
   | ASuccessfulUnitTest
+  | ASuccessfulPropertyTest
 
   -- contextual
   | WhenDisplaying String [Feedback]
+  | WhenPropertyTesting [String] String String [String]
   | WhenUnitTesting String CircuitConfig CircuitConfig [Feedback]
 
 instance Categorise Feedback where
@@ -297,10 +299,12 @@ instance Categorise Feedback where
     AnExperiment{} -> Success
     AnSVGGraph{} -> Success
     ASuccessfulUnitTest{} -> Success
+    ASuccessfulPropertyTest{} -> Success
 
     -- contextual
     WhenDisplaying _ fdks -> foldMap categorise fdks
     WhenUnitTesting _ _ _ fdks -> foldMap categorise fdks
+    WhenPropertyTesting _ _ _ fdks -> Success
 
 anExperiment :: MonadWriter (Seq Feedback) m => String -> [String] -> [String] -> m ()
 anExperiment str xs ls = tell $ Seq.singleton $ AnExperiment str xs ls
@@ -384,6 +388,7 @@ instance Render Feedback where
                 [] -> ""
                 _ -> concat [" (with ", intercalate ", " xs, " unfolded)"]
       ASuccessfulUnitTest -> [ "Success!" ]
+      ASuccessfulPropertyTest -> [ "Success!" ]
       AnUndeclaredCircuit f -> ["You haven't declared the circuit " ++ f ++ " just now."]
       AnUndefinedCircuit f -> ["You haven't defined the circuit " ++ f ++ " just now."]
       AnUndefinedType x -> ["You haven't defined the type alias " ++ x ++ " just now."]
@@ -410,6 +415,9 @@ instance Render Feedback where
       WhenUnitTesting x is os fdks ->
         concat [ "When unit testing ", x, circuitConfig True is, " = ", circuitConfig False os, ":" ]
         : concatMap (map (indent 2) . render) fdks
+      WhenPropertyTesting vars lhs rhs fdks ->
+        concat [ "When property testing ", lhs, " = ", rhs, ":" ]
+        : map (indent 2) fdks
       WhenDisplaying f fdks -> ("When displaying " ++ f ++ ":") : concatMap (map (indent 2) . render) fdks
 
 
@@ -475,6 +483,7 @@ instance Render Feedback where
                 [] -> ""
                 _ -> fold [" (with ", punctuate ", " (map identifier xs), " unfolded)"]
       ASuccessfulUnitTest -> pure "Success!"
+      ASuccessfulPropertyTest -> pure "Success!"
       ARawCode str x ls -> pure $$$
         [ fold [ toHtml str, " ", identifier x, ":" ]
         , br
@@ -576,10 +585,19 @@ instance Render Feedback where
         fdks <- traverse renderHtml fdks
         pure $$$
           [ fold [ "When unit testing ", identifier x
-                 , toHtml (circuitConfig True is), " = "
-                 , toHtml (circuitConfig False os), ":"]
+                 , code (toHtml (circuitConfig True is)), " = "
+                 , code (toHtml (circuitConfig False os)), ":"]
           , br
           , div ! style "padding-left: 1em" $ punctuate (br <> "\n") fdks
+          ]
+      WhenPropertyTesting vars lhs rhs txt -> do
+        pure $$$
+          [ fold [ "When property testing "
+                 , code (toHtml lhs)
+                 , " = "
+                 , code (toHtml rhs), ":"]
+          , br
+          , div ! style "padding-left: 1em" $ punctuate (br <> "\n") (map toHtml txt)
           ]
       WhenDisplaying f fdks -> do
         fdks <- traverse renderHtml fdks

@@ -309,10 +309,10 @@ pEqn = pClue (SEEKING "an equation") $
 -- parsing experiments
 ------------------------------------------------------------------------------
 
-pCommand :: String -> (String -> EXPT) -> Par EXPT
+pCommand :: String -> (String -> EXPTC) -> Par EXPTC
 pCommand str con = con <$ pTokIs (Id str) <* pSpc <*> pVar <* pSpc <* pEOI
 
-pEXPT :: Par EXPT
+pEXPT :: Par EXPTC
 pEXPT
    =  pCommand "print" Print
   <|> pCommand "anf" Anf
