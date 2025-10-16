@@ -67,13 +67,20 @@ myLines (c : s) = case myLines s of
 myLines [] = []
 
 dentLines :: String -> [String]
-dentLines = dentify B0 . myLines . unix where
+dentLines = cleanup . dentify B0 . myLines . unix where
   dentify lz [] = dump lz []
   dentify lz (l : ls) = case l of
     c : _ | not (isSpace c) -> dump lz (dentify (B0 :< l) ls)
     _ -> dentify (lz :< l) ls
   dump B0 ls = ls
   dump lz ls = concat (fmap (++ "\n") lz) : ls
+
+  -- trailing '\n' get attached to the block that came before
+  -- unfortunately the first block may have been empty and so
+  -- we used to create a confusing "\n\n\n"-style block.
+  -- Now we drop instead
+  cleanup (hd : rest) = if all ('\n' ==) hd then rest else (hd:rest)
+  cleanup xs = xs
 
 raw :: String -> [Token]
 raw "" = []
