@@ -56,9 +56,6 @@ extra-doc-files:    CHANGELOG.md
 -- extra-source-files:
 
 common warnings
-    ghc-options: -Wall
-
-library
     -- Silence some flags
     ghc-options:  -Wall
                   -Wno-name-shadowing
@@ -69,6 +66,8 @@ library
                   -Wno-unused-matches
                   -Werror=incomplete-patterns
 
+library
+    import: warnings
 
     -- Modules exported by the library.
     exposed-modules:  Data.Forget
