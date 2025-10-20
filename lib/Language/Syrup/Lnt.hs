@@ -48,7 +48,7 @@ instance ty ~ () => Lint (Def' ty) where
         , "Did you consider giving each cable a name without breaking it up?"
         ]
 
-    deadcode d = case foldMapSet pure (unused d) of
+    deadcode d = case filter (/= "_") $ foldMapSet pure (unused d) of
       [] -> []
       ns -> pure $ ALint
         [ "the " ++ plural ns "wire" "s" ++ " "

@@ -1,8 +1,4 @@
-Circuits not, and, or, nor, xor, xor1, xor2, and hadd are defined.
-
-Warning: the wire _ is defined but never used.
-
-Circuits fadd, jkff, and adc2 are defined.
+Circuits not, and, or, nor, xor, xor1, xor2, hadd, fadd, jkff, and adc2 are defined.
 
 Type <Two> is defined.
 

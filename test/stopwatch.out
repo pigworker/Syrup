@@ -2,11 +2,7 @@ Circuits not, and, or, mux, xor, hadd, and fadd are defined.
 
 Type <Bit3> is defined.
 
-Circuits rca3, dff3, and mux3 are defined.
-
-Warning: the wire _ is defined but never used.
-
-Circuit stopwatch is defined.
+Circuits rca3, dff3, mux3, and stopwatch are defined.
 
 Truth table for stopwatch:
 RUN { RUNNING       -> RUNNING       } SECS 
@@ -43,8 +39,6 @@ RUN { RUNNING       -> RUNNING       } SECS
     { 1       1 0 1 -> 1       1 1 0 } [101]
     { 1       1 1 0 -> 1       1 1 1 } [110]
     { 1       1 1 1 -> 1       0 0 0 } [111]
-
-Warning: the wire _ is defined but never used.
 
 Circuit stopwatch2 is defined.
 
