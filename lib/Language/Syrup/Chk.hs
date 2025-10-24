@@ -127,7 +127,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
                         , defn = Just def
                         , memTys = mems
                         , inpTys = zipWith (InputWire . pure) ps ss
-                        , oupTys = zipWith (mkOutputWire mems) rhs ts
+                        , oupTys = mkOutputWires mems rhs ts
                         , stage0 = plan (Plan mI ta0 qs0)
                         , stage1 = plan (Plan (mI ++ ps) ta1 (mO ++ qs1))
                         }
@@ -160,7 +160,7 @@ mkComponent :: MonadCompo s m
             -> m (Bool, Maybe TypedDef)
 mkComponent = mkComponent' False
 
-guts :: TyMonad m => Dec -> Def -> m (([Pat], [Exp]), ([Pat], [Pat]), TypedDef)
+guts :: TyMonad m => Dec -> Def -> m (([Pat], [TypedExp]), ([Pat], [Pat]), TypedDef)
 guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   | f /= g = tyErr (DecDef f g)
   | otherwise = do
@@ -173,7 +173,7 @@ guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   (qs', (qs0, qs1)) <- fold <$> traverse stage ts
   solders qs' qs
   def <- normDef (Def (f, typs) tyes eqs)
-  return ((ps, es), (qs0, qs1), def)
+  return ((ps, tyes), (qs0, qs1), def)
 guts (Dec (g, ss) ts) (Stub f msg)
   | f /= g    = tyErr (DecDef f g)
   | otherwise = tyErr (Stubbed msg)
@@ -501,7 +501,7 @@ dffCompo = Compo
       , defn = Nothing
       , memTys = [MemoryCell (Just $ CellName "Q") (Bit Unit)]
       , inpTys = [InputWire  (Just (PVar () "D")) (Bit Unit)]
-      , oupTys = [OutputWire (Just (PVar () ("Q", True))) (Bit T0)]
+      , oupTys = [OutputWire (Just (PVar (Bit Unit) ("Q", True))) (Bit T0)]
       , stage0 = \ [q] -> [q]
       , stage1 = \ [_, d] -> [d]
       }

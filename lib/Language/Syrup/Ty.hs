@@ -74,7 +74,7 @@ data InputWire = InputWire
   , getInputType :: Ty1
   }
 
-type OPat = Pat' () (String, Bool)
+type OPat = Pat' Typ (String, Bool)
 data OutputWire = OutputWire
   { getOutputPat  :: Maybe OPat
   , getOutputType :: Ty2
@@ -89,13 +89,24 @@ isProperOPat op = do
 
 -- From a pattern and a list of memory cells, check whether any of the
 -- pattern's variables are pointing to one of the memory cell.
-mkOPat :: [MemoryCell] -> Pat -> OPat
+mkOPat :: [MemoryCell] -> TypedPat -> OPat
 mkOPat ms = fmap $ \ str -> (str, any ((Just (CellName str) ==) . getCellName) ms)
 
-mkOutputWire :: [MemoryCell] -> Exp -> Ty2 -> OutputWire
-mkOutputWire ms e ty = flip OutputWire ty $ do
+mkOutputWire :: [MemoryCell] -> Maybe TypedExp -> Ty2 -> OutputWire
+mkOutputWire ms me ty = flip OutputWire ty $ do
+  e <- me
   p <- exPat e
   isProperOPat (mkOPat ms p) <|> Just ((, False) <$> p)
+
+mkOutputWires :: [MemoryCell] -> [TypedExp] -> [Ty2] -> [OutputWire]
+mkOutputWires ms [] _ = []
+mkOutputWires ms (e:es) tys = case expTys e of
+  [ty] -> case tys of
+    [] -> error "The IMPOSSIBLE has happened"
+    (this : rest) -> mkOutputWire ms (Just e) this : mkOutputWires ms es rest
+  many -> case splitAt (length many) tys of
+    (these, rest) -> (mkOutputWire ms Nothing <$> these) ++ mkOutputWires ms es rest
+
 
 data Remarkable
   = IsZeroGate

@@ -1,0 +1,23 @@
+Circuit dup is defined.
+
+Truth table for dup:
+X | X X
+--|----
+0 | 0 0
+1 | 1 1
+
+Circuits not and dop are defined.
+
+Truth table for dop:
+X |    
+--|----
+0 | 1 1
+1 | 0 0
+
+Circuit doop is defined.
+
+Truth table for doop:
+X |        
+--|--------
+0 | 1 1 1 1
+1 | 0 0 0 0

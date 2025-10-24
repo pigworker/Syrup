@@ -295,14 +295,14 @@ data RowTemplate = RowTemplate
   }
 
 -- Generate a template from a pattern and its type
-template :: Pat -> Ty a Void -> Template
+template :: Pat' ty String -> Ty a Void -> Template
 template _           (Meta x)   = absurd x
 template (PVar _ v)  t          = Meta (max (length v) (sizeTy t)) -- ?!
 template p           (TVar s t) = template p t
 template (PCab _ ps) (Cable ts) = Cable (zipWith template ps ts)
 template (PCab _ _) (Bit _) = impossible "ill typed pattern"
 
-mTemplate :: Maybe Pat -> Ty a Void -> Template
+mTemplate :: Maybe (Pat' ty String) -> Ty a Void -> Template
 mTemplate Nothing  t = Meta (sizeTy t)
 mTemplate (Just p) t = template p t
 
@@ -319,7 +319,7 @@ outputTemplate :: OutputWire -> Template
 outputTemplate (OutputWire p t) = mTemplate (fmap (fst <$>) p) t
 
 -- `displayPat ts ps` PRECONDITION: ts was generated using ps
-displayPat :: Template -> Pat -> String
+displayPat :: Template -> Pat' ty String -> String
 displayPat (TVar _ t) p           = displayPat (forget t) p
 displayPat (Meta s)   (PVar _ n)  = padRight (s - length n) n
 displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
@@ -327,7 +327,7 @@ displayPat (Bit x) _ = absurd x
 displayPat (Meta _) (PCab _ _) = impossible "displaying a cable pattern at a meta type"
 displayPat (Cable _) (PVar _ _) = impossible "displaying a variable pattern at a cable type"
 
-displayMPat :: Template -> Maybe Pat -> String
+displayMPat :: Template -> Maybe (Pat' ty String) -> String
 displayMPat t = maybe (displayEmpty t) (displayPat t)
 
 displayEmpty :: Template -> String
