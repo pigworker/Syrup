@@ -7,6 +7,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 
 module Language.Syrup.Pretty where
 
@@ -22,63 +24,47 @@ import Language.Syrup.BigArray (emptyArr)
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 
+import qualified Text.PrettyPrint.Annotated as Doc
+import Text.PrettyPrint.Annotated
+  (annotate, braces, brackets, hcat, hsep, nest, parens, punctuate, text, vcat)
+
 ------------------------------------------------------------------------
 -- Doc type and basic combinators
 
-newtype Doc = Doc { runDoc :: String } -- for now
+data SyrupAnnotations
+  = Keyword
+  | Type
+  | Function
 
-indent :: Int -> Doc -> Doc
-indent i d = Doc (replicate i ' ') <> d
-
-(<+>) :: Doc -> Doc -> Doc
-d <+> e = d <> Doc " " <> e
+type Doc = Doc.Doc SyrupAnnotations
 
 between :: Doc -> Doc -> (Doc -> Doc)
 between left right middle = fold [left, middle, right]
-
-curlies :: Doc -> Doc
-curlies = between (Doc "{") (Doc "}")
-
-square :: Doc -> Doc
-square = between (Doc "[") (Doc "]")
-
-parens :: Doc -> Doc
-parens = between (Doc "(") (Doc ")")
 
 parensIf :: Bool -> Doc -> Doc
 parensIf True  = parens
 parensIf False = id
 
-sepBy :: Doc -> [Doc] -> Doc
-sepBy d = fold . intersperse d
-
 unwords :: [Doc] -> Doc
-unwords = sepBy (Doc " ")
+unwords = hsep -- punctuate " "
 
 unlines :: [Doc] -> Doc
-unlines = sepBy (Doc "\n")
+unlines = vcat -- sepBy "\n"
 
 csep :: [Doc] -> Doc
-csep = sepBy (Doc ", ")
+csep = hcat . punctuate ", "
 
 list :: [Doc] -> Doc
-list = square . csep
+list =  brackets . csep
 
 tuple :: [Doc] -> Doc
 tuple = parens . csep
 
 set :: [Doc] -> Doc
-set = curlies . csep
+set = braces . csep
 
 questionMark :: Doc
-questionMark = Doc "?"
-
-instance Semigroup Doc where
-  Doc e <> Doc f = Doc (e <> f)
-
-instance Monoid Doc where
-  mempty = Doc ""
-  mappend = (<>)
+questionMark = "?"
 
 ------------------------------------------------------------------------
 -- Pretty class
@@ -103,7 +89,7 @@ class Pretty t where
   prettyPrec :: MonadPretty m => PrecedenceLevel -> t -> m Doc
 
 instance Pretty String where
-  prettyPrec _ = pure . Doc
+  prettyPrec _ = pure . text
 
 instance Pretty Integer where
   prettyPrec _ = pretty . show
@@ -112,10 +98,10 @@ instance Pretty Void where
   prettyPrec _ = absurd
 
 instance Pretty () where
-  prettyPrec _ _ = pretty "()"
+  prettyPrec _ _ = pure "()"
 
 instance Pretty Unit where
-  prettyPrec _ _ = pretty ""
+  prettyPrec _ _ = pure ""
 
 instance Pretty a => Pretty (AList a) where
   prettyPrec _ (AList xs) = list <$> traverse pretty xs
@@ -128,9 +114,9 @@ instance Pretty a => Pretty (ASet a) where
 
 instance Pretty Va where
   prettyPrec _ = \case
-    VQ    -> pretty "?"
-    V0    -> pretty "0"
-    V1    -> pretty "1"
+    VQ    -> pure "?"
+    V0    -> pure "0"
+    V1    -> pure "1"
     VC vs -> pretty (AList vs)
 
 ------------------------------------------------------------------------
@@ -145,26 +131,26 @@ defaultApp :: (MonadPretty m, Pretty a) => String -> [a] -> m Doc
 defaultApp f es = do
   f <- pretty f
   args <- pretty (ATuple es)
-  pure $ fold [f, args]
+  pure $ fold [annotate Function f, args]
 
 instance Pretty a => Pretty (FunctionCall a) where
   prettyPrec lvl = \case
     FunctionCall f [] -> isRemarkable f >>= \case
-      Just IsZeroGate | f == "zero" -> pure $ Doc "0"
-      Just IsOneGate | f == "one" -> pure $ Doc "1"
+      Just IsZeroGate | f == "zero" -> pure "0"
+      Just IsOneGate | f == "one" -> pure "1"
       _ -> defaultApp f ([] :: [Exp' ()])
     FunctionCall f [s] -> isRemarkable f >>= \case
-      Just IsNotGate | f == "not" -> (Doc "!" <>) <$> prettyPrec NegatedClause s
+      Just IsNotGate | f == "not" -> ("!" <>) <$> prettyPrec NegatedClause s
       _ -> defaultApp f [s]
     FunctionCall f [s, t] -> isRemarkable f >>= \case
       Just IsOrGate | f == "or" -> do
         s <- prettyPrec AndClause s
         t <- prettyPrec OrClause t
-        pure $ parensIf (lvl > OrClause) $ unwords [s, Doc "|", t]
+        pure $ parensIf (lvl > OrClause) $ unwords [s, "|", t]
       Just IsAndGate | f == "and" -> do
         s <- prettyPrec NegatedClause s
         t <- prettyPrec AndClause t
-        pure $ parensIf (lvl > AndClause) $ unwords [s, Doc "&", t]
+        pure $ parensIf (lvl > AndClause) $ unwords [s, "&", t]
       _ -> defaultApp f [s, t]
     FunctionCall f es -> defaultApp f es
 
@@ -181,33 +167,33 @@ instance Pretty a => Pretty (Pat' ty a) where
     PCab _ ps -> pretty (AList ps)
 
 instance Pretty Ti where
-  prettyPrec lvl = prettyPrec lvl . \case
-    T0 -> "@"
+  prettyPrec lvl = pure . \case
+    T0 -> annotate Keyword "@"
     T1 -> ""
 
 instance (Pretty t, Pretty x) => Pretty (Ty t x) where
   prettyPrec lvl = \case
-    Meta x   -> between (Doc "<?") (Doc ">") <$> pretty x -- ugh...
-    TVar s _ -> between (Doc "<") (Doc ">") <$> pretty s
-    Bit t    -> (<>) <$> pretty t <*> pretty "<Bit>"
+    Meta x   -> annotate Type . between "<?" ">" <$> pretty x -- ugh...
+    TVar s _ -> annotate Type . between "<"  ">" <$> pretty s
+    Bit t    -> (<> annotate Type (text "<Bit>")) <$> pretty t
     Cable ps -> pretty (AList ps)
 
 instance Pretty (Eqn' ty) where
   prettyPrec _ (ps :=: es) = do
     ps <- csep <$> traverse pretty ps
     es <- csep <$> traverse pretty es
-    pure $ unwords [ps, Doc "=", es]
+    pure $ unwords [ps, "=", es]
 
 instance Pretty TypedDef where
   prettyPrec _ = \case
-    Stub{} -> pure (Doc "Stubbed out definition")
+    Stub{} -> pure ("Stubbed out definition")
     (Def (fn, ps) rhs meqns) -> do
       -- Type declaration
       let pstys = map patTy ps
       lhsTy <- pretty (FunctionCall fn pstys)
       let rhstys = map (head . expTys) rhs
       rhsTy <- csep <$> traverse pretty rhstys
-      let decl = unwords [lhsTy, Doc "->", rhsTy]
+      let decl = unwords [lhsTy, "->", rhsTy]
       -- Circuit definition
       lhsDef <- pretty (FunctionCall fn ps)
       rhsDef <- csep <$> traverse pretty rhs
@@ -215,8 +201,8 @@ instance Pretty TypedDef where
         Nothing -> pure []
         Just eqns -> do
           eqns <- traverse pretty eqns
-          pure [unlines (Doc "where" : map (indent 2) eqns)]
-      let defn = unwords (lhsDef : Doc "=" : rhsDef : eqnDef)
+          pure [unlines ("where" : map (nest 2) eqns)]
+      let defn = unwords (lhsDef : "=" : rhsDef : eqnDef)
       -- Combining everything
       pure $ unlines [decl, defn]
 
@@ -224,8 +210,9 @@ instance (Pretty t, Pretty x, Pretty t', Pretty x') => Pretty (TypeDecl t x t' x
   prettyPrec _ (TypeDecl fn is os) = do
     lhsTy <- pretty (FunctionCall fn is)
     rhsTy <- csep <$> traverse pretty os
-    pure $ unwords [lhsTy, Doc "->", rhsTy]
+    pure $ unwords [lhsTy, "->", rhsTy]
 
+{-
 prettyShow :: Pretty t => CoEnv -> t -> String
 prettyShow env = runDoc . flip runReader env . pretty
 
@@ -234,3 +221,4 @@ basicShow = prettyShow emptyArr
 
 csepShow :: Pretty t => [t] -> String
 csepShow = intercalate ", " . map basicShow
+-}
