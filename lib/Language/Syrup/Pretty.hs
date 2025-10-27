@@ -24,48 +24,6 @@ import Language.Syrup.BigArray (emptyArr)
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 
-import qualified Text.PrettyPrint.Annotated as Doc
-import Text.PrettyPrint.Annotated
-  (annotate, braces, brackets, hcat, hsep, nest, parens, punctuate, text, vcat)
-
-------------------------------------------------------------------------
--- Doc type and basic combinators
-
-data SyrupAnnotations
-  = Keyword
-  | Type
-  | Function
-
-type Doc = Doc.Doc SyrupAnnotations
-
-between :: Doc -> Doc -> (Doc -> Doc)
-between left right middle = fold [left, middle, right]
-
-parensIf :: Bool -> Doc -> Doc
-parensIf True  = parens
-parensIf False = id
-
-unwords :: [Doc] -> Doc
-unwords = hsep -- punctuate " "
-
-unlines :: [Doc] -> Doc
-unlines = vcat -- sepBy "\n"
-
-csep :: [Doc] -> Doc
-csep = hcat . punctuate ", "
-
-list :: [Doc] -> Doc
-list =  brackets . csep
-
-tuple :: [Doc] -> Doc
-tuple = parens . csep
-
-set :: [Doc] -> Doc
-set = braces . csep
-
-questionMark :: Doc
-questionMark = "?"
-
 ------------------------------------------------------------------------
 -- Pretty class
 

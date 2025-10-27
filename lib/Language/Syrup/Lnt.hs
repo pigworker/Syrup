@@ -32,8 +32,8 @@ instance ty ~ () => Lint (Def' ty) where
             ] where
 
     emptyWhere = \case
-      Def (fun, _) _ (Just []) -> pure $ ALint
-        [ "empty where clause in the definition of " ++ getName fun ++ "."
+      Def (fun, _) _ (Just []) -> pure $ ALint $ vcat
+        [ "Empty where clause in the definition of" <+> pretty fun <+> "."
         , "Did you forget to indent the block of local definitions using spaces?"
         ]
       _ -> []

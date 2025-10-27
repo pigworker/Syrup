@@ -10,7 +10,7 @@
 
 module Language.Syrup.Fdk where
 
-import Prelude hiding (div, id)
+import Prelude hiding (div, id, unlines, unwords)
 
 import Control.Monad.State (MonadState, get, put, evalState)
 import Control.Monad.Writer (MonadWriter, tell)
@@ -24,6 +24,7 @@ import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray (isEmptyArr, foldMapSet)
 import Language.Syrup.Opt (Options(..), quiet)
+import Language.Syrup.Doc
 import Language.Syrup.Syn.Base
 
 import Text.Blaze.Html5
@@ -31,6 +32,7 @@ import Text.Blaze.Html5
 import qualified Text.Blaze.Html5 as Html
 import Text.Blaze.Html5.Attributes
   (class_, id, style, type_)
+
 
 ($$) :: (Html -> a) -> [Html] -> a
 f $$ x = f (fold x)
@@ -75,24 +77,6 @@ indent n str = replicate n ' ' ++ str
 plural :: Monoid s => [a] -> s -> s -> s
 plural (_ : _ : _) str s = str <> s
 plural _ str _ = str
-
-between :: Monoid a => (a, a) -> a -> a
-between (l,r) m = fold [l, m, r]
-
-squares :: (Monoid a, IsString a) => a -> a
-squares = between ("[", "]")
-
-angles :: (Monoid a, IsString a) => a -> a
-angles = between ("<", ">")
-
-braces :: (Monoid a, IsString a) => a -> a
-braces = between ("{", "}")
-
-parens :: (Monoid a, IsString a) => a -> a
-parens = between ("(", ")")
-
-punctuate :: Monoid a => a -> [a] -> a
-punctuate pun s = fold $ intersperse pun s
 
 ------------------------------------------------------------------------------
 -- Feedback status
@@ -232,7 +216,7 @@ data Feedback
 
   -- warnings
   | AFoundHoles Name [String]
-  | ALint [String]
+  | ALint Doc
   | AMissingImplementation Name
   | AStubbedOut Name
   | AnUnreasonablyLargeExperiment Int Int Name
@@ -330,6 +314,7 @@ groupFeedback (ATypeDefined cs : ATypeDefined es : rest) =
 groupFeedback (fdk : rest) = fdk : groupFeedback rest
 groupFeedback [] = []
 
+{-
 instance Render [Feedback] where
   render = intercalate [""] . map render . groupFeedback
   renderHtml = fmap (punctuate (br <> "\n")) . traverse renderHtml . groupFeedback
@@ -631,3 +616,4 @@ feedbackHtml = (headerHtml <>) . flip evalState 0 . renderHtml
       , "  }"
       , ""
       ]
+-}
