@@ -6,6 +6,7 @@
 
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 
 module Language.Syrup.Chk where
@@ -64,10 +65,11 @@ checkRemarkable cmp
          _ -> Nothing
 checkRemarkable _ = Nothing
 
-maybeRemarkable :: String -> Maybe Remarkable -> [Feedback]
+maybeRemarkable :: Name -> Maybe Remarkable -> [Feedback]
 maybeRemarkable str Nothing = []
 maybeRemarkable str (Just g) = [] -- [str ++ " is a remarkable gate (" ++ enunciate g ++ ")."]
-  where enunciate = \case
+  where enunciate :: Remarkable -> String
+        enunciate = \case
           IsZeroGate -> "zero"
           IsOneGate -> "one"
           IsNotGate -> "not"
@@ -127,7 +129,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
                         , defn = Just def
                         , memTys = mems
                         , inpTys = zipWith (InputWire . pure) ps ss
-                        , oupTys = zipWith (mkOutputWire mems) rhs ts
+                        , oupTys = mkOutputWires mems rhs ts
                         , stage0 = plan (Plan mI ta0 qs0)
                         , stage1 = plan (Plan (mI ++ ps) ta1 (mO ++ qs1))
                         }
@@ -160,7 +162,7 @@ mkComponent :: MonadCompo s m
             -> m (Bool, Maybe TypedDef)
 mkComponent = mkComponent' False
 
-guts :: TyMonad m => Dec -> Def -> m (([Pat], [Exp]), ([Pat], [Pat]), TypedDef)
+guts :: TyMonad m => Dec -> Def -> m (([Pat], [TypedExp]), ([Pat], [Pat]), TypedDef)
 guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   | f /= g = tyErr (DecDef f g)
   | otherwise = do
@@ -173,7 +175,7 @@ guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   (qs', (qs0, qs1)) <- fold <$> traverse stage ts
   solders qs' qs
   def <- normDef (Def (f, typs) tyes eqs)
-  return ((ps, es), (qs0, qs1), def)
+  return ((ps, tyes), (qs0, qs1), def)
 guts (Dec (g, ss) ts) (Stub f msg)
   | f /= g    = tyErr (DecDef f g)
   | otherwise = tyErr (Stubbed msg)
@@ -347,7 +349,7 @@ stage (Cable ts) = do
 ------------------------------------------------------------------------------
 
 data Dec
-  = Dec (String, [Ty1]) [Ty2]
+  = Dec (Name, [Ty1]) [Ty2]
 
 cookDec :: DEC -> Dec
 cookDec (DEC (f, is) os) =
@@ -381,14 +383,14 @@ typeErrorReport (cz, e) = concat
     problem BitCable   = ["I found a cable connected to a bit wire."]
     problem CableLoop  = ["I couldn't fit a cable inside itself."]
     problem (DecDef c f) = [ concat
-      [ "I found a declaration for ", c
-      , " but its definition was for ", f, "."] ]
+      [ "I found a declaration for ", getName c
+      , " but its definition was for ", getName f, "."] ]
     problem (Stubbed msg) = map (punctuate "\n" . render) msg
     problem (DuplicateWire x) = [ concat
       ["I found more than one signal called ", x, "."] ]
     problem LongPats  = ["I found fewer signals than I needed."]
     problem ShortPats = ["I found more signals than I needed."]
-    problem (Don'tKnow f) = ["I didn't know what " ++ f ++ " was."]
+    problem (Don'tKnow f) = ["I didn't know what " ++ getName f ++ " was."]
     problem (Stage0 xs) = case foldMapSet human xs of
       [] -> [ "There were some signals I couldn't compute from memories."]
       xs -> [ "I couldn't compute the following just from memories:"
@@ -440,7 +442,7 @@ typeErrorReport (cz, e) = concat
       , "at the time."
       ]
     context' (_ :< TyAPP c es) =
-      [ "I was trying to use " ++ monick c ++ " which wants input types"
+      [ "I was trying to use " ++ getName (monick c) ++ " which wants input types"
       , "  " ++ csepShow (getInputType <$> inpTys c)
       , "but feeding in these expressions"
       , "  " ++ csepShow es
@@ -501,7 +503,7 @@ dffCompo = Compo
       , defn = Nothing
       , memTys = [MemoryCell (Just $ CellName "Q") (Bit Unit)]
       , inpTys = [InputWire  (Just (PVar () "D")) (Bit Unit)]
-      , oupTys = [OutputWire (Just (PVar () ("Q", True))) (Bit T0)]
+      , oupTys = [OutputWire (Just (PVar (Bit Unit) ("Q", True))) (Bit T0)]
       , stage0 = \ [q] -> [q]
       , stage1 = \ [_, d] -> [d]
       }

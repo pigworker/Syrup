@@ -91,6 +91,12 @@ class Pretty t where
 instance Pretty String where
   prettyPrec _ = pure . text
 
+instance Pretty Name where
+  prettyPrec _ = pretty . getName
+
+instance Pretty TyName where
+  prettyPrec _ = pretty . getTyName
+
 instance Pretty Integer where
   prettyPrec _ = pretty . show
 
@@ -123,11 +129,11 @@ instance Pretty Va where
 -- Pretty instances
 
 data FunctionCall a = FunctionCall
-  { functionName :: String
+  { functionName :: Name
   , functionArgs :: [a]
   }
 
-defaultApp :: (MonadPretty m, Pretty a) => String -> [a] -> m Doc
+defaultApp :: (MonadPretty m, Pretty a) => Name -> [a] -> m Doc
 defaultApp f es = do
   f <- pretty f
   args <- pretty (ATuple es)

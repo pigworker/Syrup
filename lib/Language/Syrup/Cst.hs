@@ -16,21 +16,21 @@ import Language.Syrup.Ty
 
 -- costing in terms of the specified gates (and those that do
 -- not have a definition)
-type Costing = Arr String (Sum Int)
+type Costing = Arr Name (Sum Int)
 
 costing :: CoEnv             -- Environment containing definitions
-        -> Set String        -- Express costing in term of these
-        -> String            -- Definition to cost
+        -> Set Name          -- Express costing in term of these
+        -> Name              -- Definition to cost
         -> Costing           -- Final costing
 costing env supp fn = evalState (loop fn) emptyArr where
 
-  defaultCost :: String -> State (Arr String Costing) Costing
+  defaultCost :: Name -> State (Arr Name Costing) Costing
   defaultCost fn = do
     let cost = single (fn, Sum 1)
     modify (insertArr (fn, cost))
     pure cost
 
-  loop :: String -> State (Arr String Costing) Costing
+  loop :: Name -> State (Arr Name Costing) Costing
   loop fn = gets (findArr fn) >>= \case
     -- If the circuit has already been costed, return that
     Just cost -> pure cost

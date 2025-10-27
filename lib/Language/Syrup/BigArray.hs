@@ -199,6 +199,9 @@ instance (Ord k, Semigroup v) => Monoid (Arr k v) where
 
 type Set x = Arr x ()
 
+mapSet :: Ord y => (x -> y) -> Set x -> Set y
+mapSet f = foldMapSet (singleton . f)
+
 domain :: Ord k => Arr k v -> Set k
 domain = runIdentity . travArr (\ (k, _) -> Identity ())
 

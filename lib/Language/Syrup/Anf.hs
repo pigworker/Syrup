@@ -198,7 +198,7 @@ elabDef def@(Def (nm, ps) rhs eqns) = do
        , outputs     = ous
        , letBindings = concat (lcsA : lcs0 ++ lcs1 ++ lcs2)
        }
-  pure (Just (nm, gate))
+  pure (Just (getName nm, gate))
 
 -- When elaborating an equations we have two situations:
 --    A,B,C = e
@@ -239,7 +239,7 @@ elabAss (ous, e) = case e of
   App tys f es -> do
     (args, eqs) <- unzip <$> mapM elabExp es
     ih <- mapM elabAss $ concat eqs
-    pure $ (ous, Call tys f (cowire <$> args)) : concat ih
+    pure $ (ous, Call tys (getName f) (cowire <$> args)) : concat ih
   Cab ty es -> do
     (args, eqs) <- unzip <$> mapM elabExp es
     ih <- mapM elabAss $ concat eqs
@@ -257,7 +257,7 @@ toGate = evalFresh . (`evalStateT` emptyArr) . elabDef
 -- `d` and `toANF d` are bisimilar!
 fromGate :: String -> Gate -> TypedDef
 fromGate nm g =
-  Def (nm, map (\ i -> PVar (inputType i) (inputName i)) (inputs g))
+  Def (Name nm, map (\ i -> PVar (inputType i) (inputName i)) (inputs g))
       (map (\ o -> Var (outputType o) (outputName o)) (outputs g))
   $ case letBindings g of
       []   -> Nothing
@@ -267,7 +267,7 @@ fromGate nm g =
                 [case rhs of
                    Alias ty x -> Var ty x
                    Copy ty x -> let n = length os in Cab (Cable (replicate n ty)) (replicate n (Var ty (inputName x)))
-                   Call tys f es -> App tys f (map (\ i -> Var (inputType i) (inputName i)) es)
+                   Call tys f es -> App tys (Name f) (map (\ i -> Var (inputType i) (inputName i)) es)
                    FanIn os   -> let ty = Cable (map inputType os) in
                                  Cab ty (map (\ i -> Var (inputType i) (inputName i)) os)
                    FanOut i   -> Var (inputType i) (inputName i)

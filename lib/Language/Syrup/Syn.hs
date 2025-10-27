@@ -28,14 +28,14 @@ data Source' a b
   | Experiment EXPT
 
 -- Concrete and internal sources
-type SourceC = Source' String False
+type SourceC = Source' TyName False
 type Source  = Source' Void   True
 
 type Exp = Exp' ()
 data Exp' ty
   = Var ty String
   | Hol ty String
-  | App [ty] String [Exp' ty]
+  | App [ty] Name [Exp' ty]
   | Cab ty [Exp' ty]
   deriving (Eq, Functor, Foldable, Traversable)
 
@@ -72,11 +72,11 @@ type Eqn = Eqn' ()
 data Eqn' ty = [Pat' ty String] :=: [Exp' ty]
 type Def = Def' ()
 data Def' ty
-  = Stub String [Feedback]
+  = Stub Name [Feedback]
   -- stubbed out definition together with error msg
-  | Def (String, [Pat' ty String]) [Exp' ty] (Maybe [Eqn' ty])
+  | Def (Name, [Pat' ty String]) [Exp' ty] (Maybe [Eqn' ty])
 
-defName :: Def' ty -> String
+defName :: Def' ty -> Name
 defName (Stub f _) = f
 defName (Def (f, _) _ _) = f
 
@@ -84,14 +84,14 @@ data TY' b
   = BIT
   | OLD (TY' b)
   | CABLE [TY' b]
-  | TYVAR String (IMaybe b (TY' b))
+  | TYVAR TyName (IMaybe b (TY' b))
   deriving (Show)
 
 -- Concrete and internal types
 type TYC = TY' False
 type TY  = TY' True
 
-data DEC' b = DEC (String,[TY' b]) [TY' b]
+data DEC' b = DEC (Name,[TY' b]) [TY' b]
   deriving Show
 
 -- Concrete and internal declarations
@@ -102,18 +102,18 @@ data InputName = InputName { getInputName :: String }
   deriving Show
 
 data EXPT
-  = Anf String
-  | Bisimilarity String String
-  | UnitTest String CircuitConfig CircuitConfig
-  | Costing [String] String
-  | Display [String] String
-  | Dnf String
-  | Print String
-  | Simplify String
-  | Simulate String [Va] [[Va]]
-  | Typing String
-  | Tabulate String
-  | FromOutputs String [InputName] [Bool]
+  = Anf Name
+  | Bisimilarity Name Name
+  | UnitTest Name CircuitConfig CircuitConfig
+  | Costing [Name] Name
+  | Display [Name] Name
+  | Dnf Name
+  | Print Name
+  | Simplify Name
+  | Simulate Name [Va] [[Va]]
+  | Typing Name
+  | Tabulate Name
+  | FromOutputs Name [InputName] [Bool]
   deriving Show
 
 
@@ -125,7 +125,7 @@ data EXPT
 class IsCircuit t where
   type VarTy t :: Type
   allVars  :: t -> Arr String (First (VarTy t), Sum Int)
-  allGates :: t -> Arr String (Sum Int)
+  allGates :: t -> Arr Name (Sum Int)
   allHoles :: t -> Arr String (First (VarTy t))
 
   default allVars
@@ -135,7 +135,7 @@ class IsCircuit t where
 
   default allGates
     :: (t ~ f a, Foldable f, IsCircuit a)
-    => t -> Arr String (Sum Int)
+    => t -> Arr Name (Sum Int)
   allGates = foldMap allGates
 
   default allHoles
