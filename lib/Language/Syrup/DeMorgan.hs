@@ -34,7 +34,7 @@ deMorgan env d = d
 
 data Polarity ty
   = Positive
-  | Negative String ty
+  | Negative Name ty
   -- ^ this is storing the names of:
   -- 1. the not gate
   -- 2. the Bit type
@@ -47,7 +47,7 @@ instance Show (Polarity ty) where
   show Positive = "+"
   show Negative{} = "-"
 
-inverse :: String -> ty -> Polarity ty -> Polarity ty
+inverse :: Name -> ty -> Polarity ty -> Polarity ty
 inverse nm ty Positive = Negative nm ty
 inverse _ _ (Negative _ _) = Positive
 
@@ -73,7 +73,7 @@ applyPolarity :: Polarity ty -> Exp' ty -> Exp' ty
 applyPolarity Positive e = e
 applyPolarity (Negative fn ty) e = App [ty] fn [e]
 
-mkIdempotent :: [ty] -> String -> Exp' ty -> Exp' ty -> Exp' ty
+mkIdempotent :: [ty] -> Name -> Exp' ty -> Exp' ty -> Exp' ty
 mkIdempotent tys fn e1 e2
   | (() <$ e1) == (() <$ e2) = e1
   | otherwise = App tys fn [e1, e2]
@@ -93,7 +93,7 @@ instance DeMorgan ty (Exp' ty) where
     Just IsAndGate | not (isPositive pol) -> do
       e1 <- simplify Positive e1
       e2 <- simplify Positive e2
-      pure $ App [ty] "nand" [e1, e2]
+      pure $ App [ty] (Name "nand") [e1, e2]
     Just IsOrGate | not (isPositive pol) ->
       getRemarkable IsAndGate >>= \case
         Just and -> do
@@ -110,7 +110,7 @@ instance DeMorgan ty (Exp' ty) where
           rmkl <- isRemarkable ln
           rmkr <- isRemarkable rn
           pure $ case (,) <$> rmkl <*> rmkr of
-            Just (IsNotGate, IsNotGate) -> App [ty] "nand" [e1', e2']
+            Just (IsNotGate, IsNotGate) -> App [ty] (Name "nand") [e1', e2']
             _ -> dflt
         (App [_] ln [e11, e12], App [_] rn [e2']) -> do
           rmkl <- isRemarkable ln
@@ -118,7 +118,7 @@ instance DeMorgan ty (Exp' ty) where
           mand <- getRemarkable IsAndGate
           pure $ case (,,) <$> mand <*> rmkl <*> rmkr of
             Just (and, IsNandGate, IsNotGate) ->
-              App [ty] "nand" [mkIdempotent [ty] and e11 e12, e2']
+              App [ty] (Name "nand") [mkIdempotent [ty] and e11 e12, e2']
             _ -> dflt
         (App [_] ln [e1'], App [_] rn [e21, e22]) -> do
           rmkl <- isRemarkable ln
@@ -126,7 +126,7 @@ instance DeMorgan ty (Exp' ty) where
           mand <- getRemarkable IsAndGate
           pure $ case (,,) <$> mand <*> rmkl <*> rmkr of
             Just (and, IsNotGate, IsNandGate) ->
-              App [ty] "nand" [e1', mkIdempotent [ty] and e21 e22]
+              App [ty] (Name "nand") [e1', mkIdempotent [ty] and e21 e22]
             _ -> dflt
         _ -> pure dflt
     _ -> structural

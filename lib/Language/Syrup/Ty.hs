@@ -80,7 +80,7 @@ data OutputWire = OutputWire
   , getOutputType :: Ty2
   }
 
-data TypeDecl t x t' x' = TypeDecl String [Ty t x] [Ty t' x']
+data TypeDecl t x t' x' = TypeDecl Name [Ty t x] [Ty t' x']
 
 isProperOPat :: OPat -> Maybe OPat
 isProperOPat op = do
@@ -117,10 +117,10 @@ data Remarkable
   | IsOrGate
   deriving (Eq)
 
-isRemarkable :: MonadReader CoEnv m => String -> m (Maybe Remarkable)
+isRemarkable :: MonadReader CoEnv m => Name -> m (Maybe Remarkable)
 isRemarkable f = asks (findArr f >=> rmk)
 
-getRemarkable :: MonadReader CoEnv m => Remarkable -> m (Maybe String)
+getRemarkable :: MonadReader CoEnv m => Remarkable -> m (Maybe Name)
 getRemarkable f = do
   arr <- ask
   pure $ getFirst $ flip foldMapArr arr $ \ (k, v) ->
@@ -128,11 +128,11 @@ getRemarkable f = do
 
 data AllRemarkables ty = AllRemarkables
   { bitTypeName  :: ty
-  , zeroGateName :: String
-  , oneGateName  :: String
-  , notGateName  :: String
-  , orGateName   :: String
-  , andGateName  :: String
+  , zeroGateName :: Name
+  , oneGateName  :: Name
+  , notGateName  :: Name
+  , orGateName   :: Name
+  , andGateName  :: Name
   }
 
 allRemarkables :: CoEnv -> ty -> Maybe (AllRemarkables ty)
@@ -145,7 +145,7 @@ allRemarkables env ty = do
   pure (AllRemarkables ty zeroN oneN notN orN andN)
 
 data Compo = Compo
-  { monick :: String
+  { monick :: Name
   , rmk    :: Maybe Remarkable
   , defn   :: Maybe TypedDef
   , memTys :: [MemoryCell]
@@ -236,13 +236,13 @@ data TyErr
   = CableWidth            -- cable widths have mismatched!
   | BitCable              -- a bit has been connected to a cable!
   | CableLoop             -- there's a spatial loop!
-  | DecDef String String  -- declaration and definition names mismatch!
+  | DecDef Name Name      -- declaration and definition names mismatch!
   | Stubbed [Feedback]    -- definition already stubbed out!
   | DuplicateWire String  -- same name used for two wires!
   | ConflictingHoles String -- same name used for two holes with different types
   | LongPats              -- too many patterns for the types!
   | ShortPats             -- not enough patterns for the expressions!
-  | Don'tKnow String      -- don't know what that component is!
+  | Don'tKnow Name        -- don't know what that component is!
   | Stage0 (Set String)   -- couldn't compute from memory!
   | Stage1 (Set String)   -- couldn't compute from memory and inputs!
   | Junk                  -- spurious extra stuff!
@@ -279,8 +279,8 @@ data Wire
 
 type Cxt = Arr Wire (Bool, Typ)
 
-type CoEnv = Arr String Compo
-type TyEnv = Arr String TY
+type CoEnv = Arr Name Compo
+type TyEnv = Arr TyName TY
 
 type TyNom = Integer
 

@@ -64,13 +64,13 @@ type MonadExperiment s m =
   )
 
 withCompo :: MonadCompo s m
-          => String -> (Compo -> m ()) -> m ()
+          => Name -> (Compo -> m ()) -> m ()
 withCompo x k = gets (findArr x . (^. hasLens)) >>= \case
   Nothing -> tell $ Seq.singleton (AnUnknownIdentifier x)
   Just c -> k c
 
 withImplem :: MonadCompo s m
-           => String -> (TypedDef -> m ()) -> m ()
+           => Name -> (TypedDef -> m ()) -> m ()
 withImplem x k = withCompo x $ \ c -> case defn c of
   Nothing -> tell $ Seq.singleton (AMissingImplementation x)
   Just i -> k i
@@ -96,7 +96,7 @@ experiment (UnitTest x is os) = withCompo x $ \ c ->
   Left fdk -> [fdk]
   Right () -> [ASuccessfulUnitTest]
 experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc ->
-  anExperiment "Bisimulation between" [l, r] $ report (l, r) (bisimReport lc rc)
+  anExperiment "Bisimulation between" [l, r] $ report (getName l, getName r) (bisimReport lc rc)
 experiment (Print x) = withImplem x $ \ i -> do
   g <- use hasLens
   let txt = prettyShow g i
@@ -109,7 +109,7 @@ experiment (Typing x) = withCompo x $ \ c -> do
   anExperiment "Typing for" [x] $ lines txt
 experiment (Display xs x) = withImplem x $ \ i -> do
   st <- use hasLens
-  let (fdk, circuit) = whiteBoxDef st xs i
+  let (fdk, circuit) = whiteBoxDef st (map getName xs) i
   unless (null fdk) $ tell $ Seq.singleton (WhenDisplaying x $ toList fdk)
   case circuit of
     Nothing -> pure ()
@@ -139,7 +139,7 @@ experiment (Costing nms x) = do
   anExperiment "Cost for" [x] $
     flip foldMapArr cost (\ (x, Sum k) ->
       let copies = "cop" ++ if k > 1 then "ies" else "y" in
-      ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
+      ["  " ++ show k ++ " " ++ copies ++ " of " ++ getName x])
 experiment (Simplify x) = withImplem x $ \ i -> do
   g <- use hasLens
   let txt = prettyShow g (deMorgan g i)
@@ -588,8 +588,8 @@ data Report = forall st st'.
 report :: (String, String) -> Report -> [String]
 report (lnom, rnom) (Report (Incompatible (lis, los) (ris, ros))) =
   [ lnom ++ " and " ++ rnom ++ " are incompatible"
-  , basicShow (TypeDecl lnom lis los)
-  , basicShow (TypeDecl rnom ris ros)
+  , basicShow (TypeDecl (Name lnom) lis los)
+  , basicShow (TypeDecl (Name rnom) ris ros)
   ]
 report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
   [lnom ++ " has a behaviour that " ++ rnom ++ " does not match"]

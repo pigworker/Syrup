@@ -16,7 +16,7 @@ import Language.Syrup.Syn
 import Language.Syrup.Ty
 
 class TySubst t where
-  tySubst :: TyEnv -> t False -> Either String (t True)
+  tySubst :: TyEnv -> t False -> Either TyName (t True)
 
 instance TySubst TY' where
   tySubst rho t = case t of
@@ -32,7 +32,7 @@ instance TySubst DEC' where
     DEC <$> ((str,) <$> mapM (tySubst rho) ts)
         <*> mapM (tySubst rho) us
 
-subAlias :: TyEnv -> SourceC -> Either String (TyEnv, Either String Source)
+subAlias :: TyEnv -> SourceC -> Either TyName (TyEnv, Either TyName Source)
 subAlias rho c = case c of
   Declaration d    -> (rho,) . pure . Declaration <$> tySubst rho d
   TypeAlias (n, t) -> do

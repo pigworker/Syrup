@@ -135,6 +135,12 @@ pVar = do
       moan t = WantedIdSymbolic t
   pClue (SEEKING "variable") (pTok moan happy)
 
+pName :: Par Name
+pName = Name <$> pVar
+
+pTyName :: Par TyName
+pTyName = TyName <$> pVar
+
 pHol :: Par String
 pHol = do
   let happy (QM x) = Just x
@@ -215,16 +221,16 @@ pDef = pClue (SEEKING "a definition") $ Def
   <*> pClue (SEEKING "list of outputs") (pSep (pTokIs (Sym ",")) pExp)
   <* pSpc <*> pEqns
 
-pLhs :: String -> Par x -> Par (String, [x])
+pLhs :: String -> Par x -> Par (Name, [x])
 pLhs s p = pClue (SEEKING "a component template") $
-      (,) "zero" [] <$ pTokIs (Sym "0") <* pSpc
-  <|> (,) "one" [] <$ pTokIs (Sym "1") <* pSpc
-  <|> (,) "not" <$ pTokIs (Sym "!") <* pSpc <*> ((:[]) <$> p)
-  <|> (,) "and" <$>
+      (,) (Name "zero") [] <$ pTokIs (Sym "0") <* pSpc
+  <|> (,) (Name "one") [] <$ pTokIs (Sym "1") <* pSpc
+  <|> (,) (Name "not") <$ pTokIs (Sym "!") <* pSpc <*> ((:[]) <$> p)
+  <|> (,) (Name "and") <$>
         ((:) <$> p <* pSpc <* pTokIs (Sym "&") <* pSpc <*> ((:[]) <$> p))
-  <|> (,) "or" <$>
+  <|> (,) (Name "or") <$>
         ((:) <$> p <* pSpc <* pTokIs (Sym "|") <* pSpc <*> ((:[]) <$> p))
-  <|> (,) <$> pVar <* pSpc
+  <|> (,) <$> pName <* pSpc
           <*> pBrk Round (SEEKING $ "list of input " ++ s ++ "s")
              (  pSep (pTokIs (Sym ",")) p)
   <|> pYelp AARGH
@@ -232,7 +238,7 @@ pLhs s p = pClue (SEEKING "a component template") $
 -- non terminals
 pNT :: Par TYC
 pNT = BIT   <$  pTokIs (Id "Bit")
-  <|> TYVAR <$> pVar <*> pure INothing
+  <|> TYVAR <$> pTyName <*> pure INothing
 
 pTY :: Par TYC
 pTY = pClue (SEEKING "a type") $
@@ -241,14 +247,14 @@ pTY = pClue (SEEKING "a type") $
   <|> OLD <$ pTokIs (Sym "@") <* pSpc <*> pTY
   <|> CABLE <$> pBrk Square  (SEEKING "cable contents")
                   (pAllSep (pTokIs (Sym ",")) pTY)
-  <|> TYVAR <$> pVar <*> pure INothing
+  <|> TYVAR <$> pTyName <*> pure INothing
   <|> pYelp AARGH
 
-pTYA :: Par (String, TYC)
+pTYA :: Par (TyName, TYC)
 pTYA = pTokIs (Id "type") *> pSpc *>
   pClue (SEEKING "a type alias")
     ( (,) <$
-      pTokIs (Sym "<") <*> pVar <* pTokIs (Sym ">")
+      pTokIs (Sym "<") <*> pTyName <* pTokIs (Sym ">")
       <* pSpc <* pTokIs (Sym "=") <* pSpc
       <*> pTY
     )
@@ -268,15 +274,15 @@ pExpPrec prec = pWee >>= pMore prec
 
 pWee :: Par Exp
 pWee = pClue (SEEKING "an expression") $
-      (pVar >>= \ f -> App [] f <$ pSpc <*> pBrk Round
-        (SEEKING $ "input for " ++ f) (pAllSep (pTokIs (Sym ",")) pExp))
+      (pName >>= \ f -> App [] f <$ pSpc <*> pBrk Round
+        (SEEKING $ "input for " ++ getName f) (pAllSep (pTokIs (Sym ",")) pExp))
   <|> Var () <$> pVar <* pPeek notApp
   <|> Hol () <$> pHol
   <|> Cab () <$> pBrk Square (SEEKING "cable contents")
                  (pSep (pTokIs (Sym ",")) pExp)
-  <|> (App [] "not" . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
-  <|> App [] "zero" [] <$ pTokIs (Sym "0") <* pSpc
-  <|> App [] "one" [] <$ pTokIs (Sym "1") <* pSpc
+  <|> (App [] (Name "not") . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
+  <|> App [] (Name "zero") [] <$ pTokIs (Sym "0") <* pSpc
+  <|> App [] (Name "one") [] <$ pTokIs (Sym "1") <* pSpc
   <|> pBrk Round (SEEKING "an expression in parentheses") pExp
   <|> pYelp AARGH
 
@@ -287,10 +293,10 @@ notApp _ = True
 
 pMore :: Int -> Exp -> Par Exp
 pMore prec e = ( pSpc *> (
-  (App [] "or" <$ guard (prec <= 1) <* pTokIs (Sym "|") <* pSpc
+  (App [] (Name "or") <$ guard (prec <= 1) <* pTokIs (Sym "|") <* pSpc
      <*> (((e:) . (:[])) <$> pExpPrec 1) >>= pMore prec)
   <|>
-  (App [] "and" <$ guard (prec <= 2) <* pTokIs (Sym "&") <* pSpc
+  (App [] (Name "and") <$ guard (prec <= 2) <* pTokIs (Sym "&") <* pSpc
      <*> (((e:) . (:[])) <$> pExpPrec 2) >>= pMore prec)
   ) ) <|> pure e
 
@@ -309,8 +315,8 @@ pEqn = pClue (SEEKING "an equation") $
 -- parsing experiments
 ------------------------------------------------------------------------------
 
-pCommand :: String -> (String -> EXPT) -> Par EXPT
-pCommand str con = con <$ pTokIs (Id str) <* pSpc <*> pVar <* pSpc <* pEOI
+pCommand :: String -> (Name -> EXPT) -> Par EXPT
+pCommand str con = con <$ pTokIs (Id str) <* pSpc <*> pName <* pSpc <* pEOI
 
 pEXPT :: Par EXPT
 pEXPT
@@ -319,32 +325,32 @@ pEXPT
   <|> pCommand "dnf" Dnf
   <|> pCommand "type" Typing
   <|> pCommand "simplify" Simplify
-  <|> Display <$ pTokIs (Id "display") <* pSpc <*> pSupp <* pSpc <*> pVar <* pSpc <* pEOI
-  <|> Costing <$ pTokIs (Id "cost") <* pSpc <*> pSupp <* pSpc <*> pVar <* pSpc <* pEOI
+  <|> Display <$ pTokIs (Id "display") <* pSpc <*> pSupp <* pSpc <*> pName <* pSpc <* pEOI
+  <|> Costing <$ pTokIs (Id "cost") <* pSpc <*> pSupp <* pSpc <*> pName <* pSpc <* pEOI
   <|> FromOutputs
       <$ pTokIs (Id "definition")
-      <* pSpc <*> pVar
+      <* pSpc <*> pName
       <* pSpc <*> pBrk Square (SEEKING "Truth table variables")
            (pAllSep (pTokIs (Sym ",")) (InputName <$> pVar))
       <* pSpc <*> pBrk Square (SEEKING "Truth table values")
            (pAllSep (pTokIs (Sym ",")) (False <$ pTokIs (Sym "0") <|> True <$ pTokIs (Sym "1")))
   <|> pTokIs (Id "experiment") *> pSpc *>
   pClue (SEEKING "an experiment")
-  (    Tabulate <$> pVar <* pSpc <* pEOI
-  <|>  UnitTest <$> pVar <* pSpc
+  (    Tabulate <$> pName <* pSpc <* pEOI
+  <|>  UnitTest <$> pName <* pSpc
         <*> (CircuitConfig <$> pMem <* pSpc <*> pBrk Round (SEEKING "test inputs") pVas)
         <* pSpc <* pTokIs (Sym "=") <* pSpc
         <*> (CircuitConfig <$> pMem <* pSpc <*> pVas) <* pSpc <* pEOI
-  <|>  Simulate <$> pVar <* pSpc <*> pMem <* pSpc <*>
+  <|>  Simulate <$> pName <* pSpc <*> pMem <* pSpc <*>
          pBrk Round (SEEKING "a sequence of test inputs")
            (pAllSep (pTokIs (Sym ";")) pVas)
         <* pSpc <* pEOI
-  <|>  Bisimilarity <$> pVar <* pSpc <* pTokIs (Sym "=") <* pSpc
-         <*> pVar <* pSpc <* pEOI
+  <|>  Bisimilarity <$> pName <* pSpc <* pTokIs (Sym "=") <* pSpc
+         <*> pName <* pSpc <* pEOI
   )
 
-pSupp :: Par [String]
-pSupp = pBrk Square  (SEEKING "costing components") (pSep (pTokIs (Sym ",")) pVar)
+pSupp :: Par [Name]
+pSupp = pBrk Square  (SEEKING "costing components") (pSep (pTokIs (Sym ",")) pName)
   <|> pure []
 
 pMem :: Par [Va]

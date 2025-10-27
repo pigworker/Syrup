@@ -279,7 +279,7 @@ decisionToDNF (Inspect x dxF dxT)
   =     (neg x &&& decisionToDNF dxF)
         ||| (pos x &&& decisionToDNF dxT)
 
-ttToDef :: CoEnv -> String -> [String] -> [Bool] -> Maybe TypedDef
+ttToDef :: CoEnv -> Name -> [String] -> [Bool] -> Maybe TypedDef
 ttToDef env f xs bs = do
   dnf <- decisionToDNF <$> ttToDecision xs bs
   let bit = Bit Unit

@@ -9,9 +9,26 @@
 
 module Language.Syrup.Syn.Base where
 
-import Data.Forget (Forget)
-import Data.Void (Void)
 import Control.Monad (ap, guard)
+
+import Data.Forget (Forget)
+import Data.String (IsString(..))
+import Data.Void (Void)
+
+import Language.Syrup.BigArray (Set)
+
+------------------------------------------------------------------------------
+-- Names
+
+newtype TyName = TyName { getTyName :: String } deriving (Show, Eq, Ord)
+
+newtype Name = Name { getName :: String } deriving (Show, Eq, Ord)
+instance IsString Name where
+  fromString = Name
+
+
+type Names = Set Name
+
 
 ------------------------------------------------------------------------------
 -- Values
@@ -46,7 +63,7 @@ circuitConfig isLHS (CircuitConfig mems vals) = concat $
 
 data Ty t x
   = Meta x
-  | TVar String (Ty t Void) -- type aliases are closed
+  | TVar TyName (Ty t Void) -- type aliases are closed
   | Bit t
   | Cable [Ty t x]
   deriving (Eq, Functor, Foldable, Traversable)

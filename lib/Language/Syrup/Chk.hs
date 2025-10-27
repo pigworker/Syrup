@@ -6,6 +6,7 @@
 
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 
 module Language.Syrup.Chk where
@@ -64,7 +65,7 @@ checkRemarkable cmp
          _ -> Nothing
 checkRemarkable _ = Nothing
 
-maybeRemarkable :: String -> Maybe Remarkable -> [Feedback]
+maybeRemarkable :: Name -> Maybe Remarkable -> [Feedback]
 maybeRemarkable str Nothing = []
 maybeRemarkable str (Just g) = [] -- [str ++ " is a remarkable gate (" ++ enunciate g ++ ")."]
   where enunciate = \case
@@ -347,7 +348,7 @@ stage (Cable ts) = do
 ------------------------------------------------------------------------------
 
 data Dec
-  = Dec (String, [Ty1]) [Ty2]
+  = Dec (Name, [Ty1]) [Ty2]
 
 cookDec :: DEC -> Dec
 cookDec (DEC (f, is) os) =
@@ -381,14 +382,14 @@ typeErrorReport (cz, e) = concat
     problem BitCable   = ["I found a cable connected to a bit wire."]
     problem CableLoop  = ["I couldn't fit a cable inside itself."]
     problem (DecDef c f) = [ concat
-      [ "I found a declaration for ", c
-      , " but its definition was for ", f, "."] ]
+      [ "I found a declaration for ", getName c
+      , " but its definition was for ", getName f, "."] ]
     problem (Stubbed msg) = map (punctuate "\n" . render) msg
     problem (DuplicateWire x) = [ concat
       ["I found more than one signal called ", x, "."] ]
     problem LongPats  = ["I found fewer signals than I needed."]
     problem ShortPats = ["I found more signals than I needed."]
-    problem (Don'tKnow f) = ["I didn't know what " ++ f ++ " was."]
+    problem (Don'tKnow f) = ["I didn't know what " ++ getName f ++ " was."]
     problem (Stage0 xs) = case foldMapSet human xs of
       [] -> [ "There were some signals I couldn't compute from memories."]
       xs -> [ "I couldn't compute the following just from memories:"
@@ -440,7 +441,7 @@ typeErrorReport (cz, e) = concat
       , "at the time."
       ]
     context' (_ :< TyAPP c es) =
-      [ "I was trying to use " ++ monick c ++ " which wants input types"
+      [ "I was trying to use " ++ getName (monick c) ++ " which wants input types"
       , "  " ++ csepShow (getInputType <$> inpTys c)
       , "but feeding in these expressions"
       , "  " ++ csepShow es

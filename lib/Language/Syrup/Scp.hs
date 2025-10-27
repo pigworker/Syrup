@@ -84,11 +84,12 @@ instance KnownLevel 'Global where
 hints :: Names -> Name -> Names
 hints ga nm = foldMapSet keep ga where
 
-  check = toLower <$> nm
+  check = toLower <$> getName nm
 
   keep :: Name -> Names
-  keep cnd | map toLower cnd == check = singleton cnd
-           | otherwise                = emptyArr
+  keep cnd
+    | map toLower (getName cnd) == check = singleton cnd
+    | otherwise    = emptyArr
 
 isLocalVar :: Scope -> Name -> ScopeM ()
 isLocalVar ga nm = do
@@ -134,12 +135,12 @@ instance Scoped a => Scoped (Maybe a)
 
 instance Scoped Pat where
   scopecheck ga = \case
-    PVar _ x  -> declareVar ga x
+    PVar _ x  -> declareVar ga (Name x)
     PCab _ ps -> scopecheck ga ps
 
 instance Scoped Exp where
   scopecheck ga = \case
-    Var _ s  -> emptyExtension <$ isLocalVar ga s
+    Var _ s  -> emptyExtension <$ isLocalVar ga (Name s)
     Hol _ s  -> pure emptyExtension
     App _ f es -> do
       isGlobalVar ga f
@@ -214,7 +215,7 @@ instance Scoped EXPT where
       pure emptyExtension
 
 instance Scoped InputName where
-  scopecheck ga (InputName x) = declareVar ga x
+  scopecheck ga (InputName x) = declareVar ga (Name x)
 
 instance Scoped (Source' a b) where
   scopecheck ga = \case
