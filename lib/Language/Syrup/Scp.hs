@@ -17,7 +17,7 @@ import Control.Monad (foldM, unless, when, void)
 
 import Data.Bifunctor ()
 import Data.Char (toLower)
-import Data.Foldable (traverse_, toList)
+import Data.Foldable (traverse_)
 import Data.Kind (Type)
 import Data.Monoid ()
 

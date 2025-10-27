@@ -68,7 +68,8 @@ checkRemarkable _ = Nothing
 maybeRemarkable :: Name -> Maybe Remarkable -> [Feedback]
 maybeRemarkable str Nothing = []
 maybeRemarkable str (Just g) = [] -- [str ++ " is a remarkable gate (" ++ enunciate g ++ ")."]
-  where enunciate = \case
+  where enunciate :: Remarkable -> String
+        enunciate = \case
           IsZeroGate -> "zero"
           IsOneGate -> "one"
           IsNotGate -> "not"
