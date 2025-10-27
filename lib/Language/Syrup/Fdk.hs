@@ -11,7 +11,6 @@
 module Language.Syrup.Fdk where
 
 import Prelude hiding (div, id)
-import qualified Prelude
 
 import Control.Monad.State (MonadState, get, put, evalState)
 import Control.Monad.Writer (MonadWriter, tell)
@@ -23,7 +22,7 @@ import qualified Data.Sequence as Seq
 import Data.String (IsString)
 import Data.Void (Void, absurd)
 
-import Language.Syrup.BigArray (Set, isEmptyArr, foldMapSet)
+import Language.Syrup.BigArray (isEmptyArr, foldMapSet)
 import Language.Syrup.Opt (Options(..), quiet)
 import Language.Syrup.Syn.Base
 
@@ -150,9 +149,6 @@ toCSSClass st = toValue $ ("syrup-" ++) $ case st of
 ------------------------------------------------------------------------------
 -- Scope errors
 
-type Name  = String
-type Names = Set Name
-
 data ScopeLevel = Local | Global
   deriving (Eq)
 
@@ -163,8 +159,10 @@ levelMsg = \case
 
 data ScopeError
   = OutOfScope ScopeLevel Name Names
+    -- TODO?: replace with (l :: ScopeLevel) (VarType l) (Set (VarType l))
     -- name that cannot be resolved & suggestions
   | Shadowing  ScopeLevel Names
+    -- TODO?: replace with (l :: ScopeLevel) (Set (VarType l))
     -- shadowing an existing variable
 
 instance Categorise ScopeError where
@@ -197,13 +195,13 @@ metaRender f e = fold $ case e of
       ]
 
 instance Render ScopeError where
-  render = pure . metaRender Prelude.id
+  render = pure . metaRender getName
   renderHtml = pure . metaRender identifier
 
 instance Render (Ty t Void) where
   render = \case
     Meta v -> absurd v
-    TVar s _ -> [angles s]
+    TVar s _ -> [angles (getTyName s)]
     Bit{} -> pure "<Bit>"
     Cable ts -> [squares $ punctuate ", " $ foldMap render ts]
 
@@ -211,49 +209,49 @@ instance Render (Ty t Void) where
 
 data Feedback
   -- internal errors
-  = ACouldntFindCircuitDiagram String
+  = ACouldntFindCircuitDiagram Name
   | AnImpossibleError String
 
   -- error
-  | ACannotDisplayStub String
+  | ACannotDisplayStub Name
   | ANoExecutable String
   | AScopeError ScopeError
   | ASyntaxError [String]
   | ATypeError [String]
-  | AnAmbiguousDefinition String [[String]]
-  | AnInvalidTruthTableOutput String
-  | AnUndeclaredCircuit String
-  | AnUndefinedCircuit String
-  | AnUndefinedType String
-  | AnUnknownIdentifier String
-  | AnIllTypedInputs String [Ty Unit Void] [Va]
-  | AnIllTypedMemory String [Ty Unit Void] [Va]
-  | AnIllTypedOutputs String [Ty Ti Void] [Va]
+  | AnAmbiguousDefinition Name [[String]]
+  | AnInvalidTruthTableOutput Name
+  | AnUndeclaredCircuit Name
+  | AnUndefinedCircuit Name
+  | AnUndefinedType TyName
+  | AnUnknownIdentifier Name
+  | AnIllTypedInputs Name [Ty Unit Void] [Va]
+  | AnIllTypedMemory Name [Ty Unit Void] [Va]
+  | AnIllTypedOutputs Name [Ty Ti Void] [Va]
   | AWrongFinalMemory [Va] [Va]
   | AWrongOutputSignals [Va] [Va]
 
   -- warnings
-  | AFoundHoles String [String]
+  | AFoundHoles Name [String]
   | ALint [String]
-  | AMissingImplementation String
-  | AStubbedOut String
-  | AnUnreasonablyLargeExperiment Int Int String
+  | AMissingImplementation Name
+  | AStubbedOut Name
+  | AnUnreasonablyLargeExperiment Int Int Name
 
   -- comments
-  | ACircuitDefined [String] -- non empty list
-  | ATypeDefined [String] -- non empty list
+  | ACircuitDefined [Name] -- non empty list
+  | ATypeDefined [TyName] -- non empty list
 
   -- successes
-  | ADotGraph [String] String [String]
-  | ARawCode String String [String]
-  | ATruthTable String [String]
-  | AnExperiment String [String] [String]
-  | AnSVGGraph [String] String [String]
+  | ADotGraph [Name] Name [String]
+  | ARawCode String Name [String]
+  | ATruthTable Name [String]
+  | AnExperiment String [Name] [String]
+  | AnSVGGraph [Name] Name [String]
   | ASuccessfulUnitTest
 
   -- contextual
-  | WhenDisplaying String [Feedback]
-  | WhenUnitTesting String CircuitConfig CircuitConfig [Feedback]
+  | WhenDisplaying Name [Feedback]
+  | WhenUnitTesting Name CircuitConfig CircuitConfig [Feedback]
 
 instance Categorise Feedback where
   categorise = \case
@@ -302,7 +300,7 @@ instance Categorise Feedback where
     WhenDisplaying _ fdks -> foldMap categorise fdks
     WhenUnitTesting _ _ _ fdks -> foldMap categorise fdks
 
-anExperiment :: MonadWriter (Seq Feedback) m => String -> [String] -> [String] -> m ()
+anExperiment :: MonadWriter (Seq Feedback) m => String -> [Name] -> [String] -> m ()
 anExperiment str xs ls = tell $ Seq.singleton $ AnExperiment str xs ls
 
 keep :: Options -> Feedback -> Bool
@@ -318,8 +316,11 @@ fresh = do
   put sn
   pure sn
 
-identifier :: String -> Html
-identifier = code . toHtml
+identifier :: Name -> Html
+identifier = code . toHtml . getName
+
+tyIdentifier :: TyName -> Html
+tyIdentifier = code . angles . toHtml . getTyName
 
 groupFeedback :: [Feedback] -> [Feedback]
 groupFeedback (ACircuitDefined cs : ACircuitDefined es : rest) =
@@ -344,61 +345,61 @@ instance Render Feedback where
 
     go = \case
       AnImpossibleError str -> ["The IMPOSSIBLE has happened: " ++ str ++ "."]
-      ACouldntFindCircuitDiagram nm -> ["Could not find the diagram for the circuit " ++ nm ++ "."]
-      ACannotDisplayStub nm ->  ["Cannot display a diagram for the stubbed out circuit " ++ nm ++ "."]
+      ACouldntFindCircuitDiagram nm -> ["Could not find the diagram for the circuit " ++ getName nm ++ "."]
+      ACannotDisplayStub nm ->  ["Cannot display a diagram for the stubbed out circuit " ++ getName nm ++ "."]
       ACircuitDefined cs -> pure $ unwords
         [ plural cs "Circuit" "s"
-        , oxfordList cs
+        , oxfordList (map getName cs)
         , case cs of { (_:_:_) -> "are"; _ -> "is" }
         , "defined."
         ]
       ATypeDefined ts -> pure $ unwords
         [ plural ts "Type" "s"
-        , oxfordList (map angles ts)
+        , oxfordList (map (angles . getTyName) ts)
         , case ts of { (_:_:_) -> "are"; _ -> "is" }
         , "defined."
         ]
-      ADotGraph xs x ls -> ("Displaying " ++ x ++ extra ++ ":") : ls
+      ADotGraph xs x ls -> ("Displaying " ++ getName x ++ extra ++ ":") : ls
         where extra = case xs of
                 [] -> ""
-                _ -> concat [" (with ", intercalate ", " xs, " unfolded)"]
-      AFoundHoles f ls -> ("Found holes in circuit " ++ f ++ ":") : ls
+                _ -> concat [" (with ", intercalate ", " (map getName xs), " unfolded)"]
+      AFoundHoles f ls -> ("Found holes in circuit " ++ getName f ++ ":") : ls
       ALint ls -> ls
-      AMissingImplementation x -> ["I don't have an implementation for " ++ x ++ "."]
+      AMissingImplementation x -> ["I don't have an implementation for " ++ getName x ++ "."]
       ANoExecutable exe -> ["Could not find the " ++ exe ++ " executable :("]
-      ARawCode str x ls -> (str ++ " " ++ x ++ ":") : ls
+      ARawCode str x ls -> (str ++ " " ++ getName x ++ ":") : ls
       AScopeError ls -> render ls
-      AStubbedOut nm -> ["Circuit " ++ nm ++ " has been stubbed out."]
+      AStubbedOut nm -> ["Circuit " ++ getName nm ++ " has been stubbed out."]
       AnUnreasonablyLargeExperiment lim size x ->
-        ["Gave up on experimenting on " ++ x ++ " due to its size (" ++ show size
+        ["Gave up on experimenting on " ++ getName x ++ " due to its size (" ++ show size
            ++ " but the limit is " ++ show lim ++ ")."]
       ASyntaxError ls -> ls
-      ATruthTable x ls -> ("Truth table for " ++ x ++ ":") : ls
+      ATruthTable x ls -> ("Truth table for " ++ getName x ++ ":") : ls
       ATypeError ls -> ls
       AnAmbiguousDefinition f zs ->
-        ["I don't know which of the following is your preferred " ++ f ++ ":"]
+        ["I don't know which of the following is your preferred " ++ getName f ++ ":"]
         ++ intercalate [""] zs
-      AnExperiment str xs ls -> (str ++ " " ++ intercalate ", " xs ++ ":") : ls
-      AnSVGGraph xs x ls ->  ("Displaying " ++ x ++ extra ++ ":") : ls
+      AnExperiment str xs ls -> (str ++ " " ++ intercalate ", " (map getName xs) ++ ":") : ls
+      AnSVGGraph xs x ls ->  ("Displaying " ++ getName x ++ extra ++ ":") : ls
         where extra = case xs of
                 [] -> ""
-                _ -> concat [" (with ", intercalate ", " xs, " unfolded)"]
+                _ -> concat [" (with ", intercalate ", " (map getName xs), " unfolded)"]
       ASuccessfulUnitTest -> [ "Success!" ]
-      AnUndeclaredCircuit f -> ["You haven't declared the circuit " ++ f ++ " just now."]
-      AnUndefinedCircuit f -> ["You haven't defined the circuit " ++ f ++ " just now."]
-      AnUndefinedType x -> ["You haven't defined the type alias " ++ x ++ " just now."]
-      AnUnknownIdentifier x -> ["I don't know what " ++ x ++ " is."]
-      AnInvalidTruthTableOutput f -> ["Invalid truth table output for " ++ f ++ "."]
+      AnUndeclaredCircuit f -> ["You haven't declared the circuit " ++ getName f ++ " just now."]
+      AnUndefinedCircuit f -> ["You haven't defined the circuit " ++ getName f ++ " just now."]
+      AnUndefinedType x -> ["You haven't defined the type alias " ++ getTyName x ++ " just now."]
+      AnUnknownIdentifier x -> ["I don't know what " ++ getName x ++ " is."]
+      AnInvalidTruthTableOutput f -> ["Invalid truth table output for " ++ getName f ++ "."]
       AnIllTypedInputs x iTys is ->
-        [ concat ["Inputs for ", x, " are typed (", intercalate ", " (foldMap render iTys), ")."]
+        [ concat ["Inputs for ", getName x, " are typed (", intercalate ", " (foldMap render iTys), ")."]
         , concat ["That can't accept (", foldMap show is, ")."]
         ]
       AnIllTypedMemory x mTys m0 ->
-        [ concat ["Memory for ", x, " has type {", intercalate ", " (foldMap render mTys), "}."]
+        [ concat ["Memory for ", getName x, " has type {", intercalate ", " (foldMap render mTys), "}."]
         , concat ["That can't store {", foldMap show m0, "}."]
         ]
       AnIllTypedOutputs x oTys os ->
-        [ concat ["Outputs for ", x, " are typed ", intercalate ", " (foldMap render oTys), "."]
+        [ concat ["Outputs for ", getName x, " are typed ", intercalate ", " (foldMap render oTys), "."]
         , concat ["That can't accept ", foldMap show os, "."]
         ]
       AWrongFinalMemory mo mo' -> pure $ concat
@@ -408,9 +409,11 @@ instance Render Feedback where
 
 
       WhenUnitTesting x is os fdks ->
-        concat [ "When unit testing ", x, circuitConfig True is, " = ", circuitConfig False os, ":" ]
+        concat [ "When unit testing ", getName x, circuitConfig True is, " = ", circuitConfig False os, ":" ]
         : concatMap (map (indent 2) . render) fdks
-      WhenDisplaying f fdks -> ("When displaying " ++ f ++ ":") : concatMap (map (indent 2) . render) fdks
+      WhenDisplaying f fdks ->
+        ("When displaying " ++ getName f ++ ":")
+        : concatMap (map (indent 2) . render) fdks
 
 
   renderHtml e = do
@@ -465,7 +468,7 @@ instance Render Feedback where
         ]
       ALint ls -> pure $$ fmap toHtml ls
       ANoExecutable exe -> pure $$
-        [ "Could not find the ", identifier exe, " executable :(" ]
+        [ "Could not find the ", code (toHtml exe), " executable :(" ]
       AnSVGGraph xs x ls -> pure $$
         [ fold ["Displaying ", identifier x, extra, ":"]
         , br
@@ -494,13 +497,13 @@ instance Render Feedback where
       AScopeError ls -> renderHtml ls
       ACircuitDefined cs -> pure $ punctuate " "
         [ plural cs "Circuit" "s"
-        , oxfordList (map (code . toHtml) cs)
+        , oxfordList (map identifier cs)
         , case cs of { (_:_:_) -> "are"; _ -> "is" }
         , "defined."
         ]
       ATypeDefined ts -> pure $ punctuate " "
         [ plural ts "Type" "s"
-        , oxfordList (map (code . angles . toHtml) ts)
+        , oxfordList (map tyIdentifier ts)
         , case ts of { (_:_:_) -> "are"; _ -> "is" }
         , "defined."
         ]
@@ -521,7 +524,7 @@ instance Render Feedback where
       AnUndeclaredCircuit f -> pure $$
         [ "You haven't declared the circuit ", identifier f, " just now." ]
       AnUndefinedType x -> pure $$
-        [ "You haven't defined the type ", identifier x, " just now." ]
+        [ "You haven't defined the type ", tyIdentifier x, " just now." ]
       AnInvalidTruthTableOutput f -> pure $$
         [ "Invalid truth table output for ", identifier f, "." ]
       AnIllTypedInputs x iTys is -> do

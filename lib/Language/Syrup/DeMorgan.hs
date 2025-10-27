@@ -4,8 +4,9 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Language.Syrup.DeMorgan where
 
@@ -34,7 +35,7 @@ deMorgan env d = d
 
 data Polarity ty
   = Positive
-  | Negative String ty
+  | Negative Name ty
   -- ^ this is storing the names of:
   -- 1. the not gate
   -- 2. the Bit type
@@ -47,7 +48,7 @@ instance Show (Polarity ty) where
   show Positive = "+"
   show Negative{} = "-"
 
-inverse :: String -> ty -> Polarity ty -> Polarity ty
+inverse :: Name -> ty -> Polarity ty -> Polarity ty
 inverse nm ty Positive = Negative nm ty
 inverse _ _ (Negative _ _) = Positive
 
@@ -73,7 +74,7 @@ applyPolarity :: Polarity ty -> Exp' ty -> Exp' ty
 applyPolarity Positive e = e
 applyPolarity (Negative fn ty) e = App [ty] fn [e]
 
-mkIdempotent :: [ty] -> String -> Exp' ty -> Exp' ty -> Exp' ty
+mkIdempotent :: [ty] -> Name -> Exp' ty -> Exp' ty -> Exp' ty
 mkIdempotent tys fn e1 e2
   | (() <$ e1) == (() <$ e2) = e1
   | otherwise = App tys fn [e1, e2]

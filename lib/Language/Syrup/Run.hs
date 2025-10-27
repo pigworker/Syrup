@@ -40,7 +40,7 @@ import Language.Syrup.Utils
 import Utilities.Lens (Has, hasLens, (.=), use, (%=))
 import Utilities.Monad (whenJust)
 
-getDefsOf :: String
+getDefsOf :: Name
           -> [Either a (Source, String)]
           -> ([Either a (Source, String)], [(Def, String)])
 getDefsOf f xs = partitionEithers $ flip map xs $ \case

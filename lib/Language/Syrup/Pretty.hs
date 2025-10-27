@@ -105,6 +105,9 @@ class Pretty t where
 instance Pretty String where
   prettyPrec _ = pure . Doc
 
+instance Pretty Name where
+  prettyPrec _ = pretty . getName
+
 instance Pretty Integer where
   prettyPrec _ = pretty . show
 
@@ -137,11 +140,11 @@ instance Pretty Va where
 -- Pretty instances
 
 data FunctionCall a = FunctionCall
-  { functionName :: String
+  { functionName :: Name
   , functionArgs :: [a]
   }
 
-defaultApp :: (MonadPretty m, Pretty a) => String -> [a] -> m Doc
+defaultApp :: (MonadPretty m, Pretty a) => Name -> [a] -> m Doc
 defaultApp f es = do
   f <- pretty f
   args <- pretty (ATuple es)
@@ -150,18 +153,18 @@ defaultApp f es = do
 instance Pretty a => Pretty (FunctionCall a) where
   prettyPrec lvl = \case
     FunctionCall f [] -> isRemarkable f >>= \case
-      Just IsZeroGate | f == "zero" -> pure $ Doc "0"
-      Just IsOneGate | f == "one" -> pure $ Doc "1"
+      Just IsZeroGate | f == Name "zero" -> pure $ Doc "0"
+      Just IsOneGate | f == Name "one" -> pure $ Doc "1"
       _ -> defaultApp f ([] :: [Exp' ()])
     FunctionCall f [s] -> isRemarkable f >>= \case
-      Just IsNotGate | f == "not" -> (Doc "!" <>) <$> prettyPrec NegatedClause s
+      Just IsNotGate | f == Name "not" -> (Doc "!" <>) <$> prettyPrec NegatedClause s
       _ -> defaultApp f [s]
     FunctionCall f [s, t] -> isRemarkable f >>= \case
-      Just IsOrGate | f == "or" -> do
+      Just IsOrGate | f == Name "or" -> do
         s <- prettyPrec AndClause s
         t <- prettyPrec OrClause t
         pure $ parensIf (lvl > OrClause) $ unwords [s, Doc "|", t]
-      Just IsAndGate | f == "and" -> do
+      Just IsAndGate | f == Name "and" -> do
         s <- prettyPrec NegatedClause s
         t <- prettyPrec AndClause t
         pure $ parensIf (lvl > AndClause) $ unwords [s, Doc "&", t]
@@ -188,7 +191,7 @@ instance Pretty Ti where
 instance (Pretty t, Pretty x) => Pretty (Ty t x) where
   prettyPrec lvl = \case
     Meta x   -> between (Doc "<?") (Doc ">") <$> pretty x -- ugh...
-    TVar s _ -> between (Doc "<") (Doc ">") <$> pretty s
+    TVar s _ -> between (Doc "<") (Doc ">") <$> pretty (getTyName s) -- makes sure we don't unfold!
     Bit t    -> (<>) <$> pretty t <*> pretty "<Bit>"
     Cable ps -> pretty (AList ps)
 
