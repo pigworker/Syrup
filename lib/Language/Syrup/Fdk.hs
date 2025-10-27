@@ -159,8 +159,10 @@ levelMsg = \case
 
 data ScopeError
   = OutOfScope ScopeLevel Name Names
+    -- TODO?: replace with (l :: ScopeLevel) (VarType l) (Set (VarType l))
     -- name that cannot be resolved & suggestions
   | Shadowing  ScopeLevel Names
+    -- TODO?: replace with (l :: ScopeLevel) (Set (VarType l))
     -- shadowing an existing variable
 
 instance Categorise ScopeError where
