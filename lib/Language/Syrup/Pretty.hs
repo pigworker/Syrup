@@ -207,7 +207,7 @@ instance Pretty (Def' PrettyName Typ) where
       let rhsDef = csep $ map pretty rhs in
       let eqnDef = case meqns of
             Nothing -> []
-            Just eqns -> Doc "where"
+            Just eqns -> pure $ unlines $ Doc "where"
               : map (indent 2 . pretty) eqns
       in
       let defn = unwords (lhsDef : Doc "=" : rhsDef : eqnDef) in
