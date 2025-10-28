@@ -4,17 +4,19 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE OverloadedStrings #-}
+
 module Language.Syrup.Pretty where
 
 import Control.Monad.Reader (MonadReader, runReader)
 
 import Data.Foldable (fold)
 import Data.List (intercalate, intersperse)
-import Data.Void (Void, absurd)
 
 import Prelude hiding (unwords, unlines)
 
 import Language.Syrup.BigArray (emptyArr)
+import Language.Syrup.Doc
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Unelab
@@ -29,66 +31,13 @@ basicShow :: (Unelab s, Pretty (Unelabed s)) => s -> Doc
 basicShow = prettyShow emptyArr
 
 csepShow :: (Unelab s, Pretty (Unelabed s)) => [s] -> Doc
-csepShow = intercalate ", " . map basicShow
-
-------------------------------------------------------------------------
--- Pretty infrastructure
-
-data PrecedenceLevel
-  = OrClause
-  | AndClause
-  | NegatedClause
-  deriving (Eq, Ord, Enum, Bounded)
-
-newtype AList a = AList [a]
-newtype ATuple a = ATuple [a]
-newtype ASet a = ASet [a]
-
-instance Unelab a => Unelab (AList a) where
-  type Unelabed (AList a) = AList (Unelabed a)
-  unelab (AList a) = AList <$> unelab a
-
-class Pretty t where
-  pretty :: t -> Doc
-  pretty = prettyPrec minBound
-
-  prettyPrec :: PrecedenceLevel -> t -> Doc
-
-instance Pretty String where
-  prettyPrec _ = text
-
-instance Pretty Name where
-  prettyPrec _ = pretty . getName
-
-instance Pretty TyName where
-  prettyPrec _ = pretty . getTyName
-
-instance Pretty Integer where
-  prettyPrec _ = pretty . show
-
-instance Pretty Void where
-  prettyPrec _ = absurd
-
-instance Pretty () where
-  prettyPrec _ _ = "()"
-
-instance Pretty Unit where
-  prettyPrec _ _ = ""
-
-instance Pretty a => Pretty (AList a) where
-  prettyPrec _ (AList xs) = list $ map pretty xs
-
-instance Pretty a => Pretty (ATuple a) where
-  prettyPrec _ (ATuple xs) = tuple $ map pretty xs
-
-instance Pretty a => Pretty (ASet a) where
-  prettyPrec _ (ASet xs) = set $ map pretty xs
+csepShow = punctuate ", " . map basicShow
 
 instance Pretty Va where
   prettyPrec _ = \case
-    VQ    -> pure "?"
-    V0    -> pure "0"
-    V1    -> pure "1"
+    VQ    -> "?"
+    V0    -> "0"
+    V1    -> "1"
     VC vs -> pretty (AList vs)
 
 ------------------------------------------------------------------------
@@ -132,8 +81,8 @@ instance Pretty a => Pretty (Pat' ty a) where
     PCab _ ps -> pretty (AList ps)
 
 instance Pretty Ti where
-  prettyPrec lvl = pure . \case
-    T0 -> annotate Keyword "@"
+  prettyPrec lvl = \case
+    T0 -> "@"
     T1 -> ""
 
 instance (Pretty t, Pretty x) => Pretty (Ty t x) where
@@ -166,7 +115,7 @@ instance Pretty (Def' PrettyName Typ) where
       let eqnDef = case meqns of
             Nothing -> []
             Just eqns -> annotate AnnKeyword "where"
-              : map (indent 2 . pretty) eqns
+              : map (nest 2 . pretty) eqns
       in
       let defn = unwords (lhsDef : "=" : rhsDef : eqnDef) in
       -- Combining everything

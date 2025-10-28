@@ -21,10 +21,11 @@ import Data.String (IsString)
 import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray (isEmptyArr, foldMapSet)
-import Language.Syrup.Opt (Options(..), quiet)
 import Language.Syrup.Doc
+import Language.Syrup.Opt (Options(..), quiet)
 import Language.Syrup.Syn.Base
 
+{-
 import Text.Blaze.Html5
   (AttributeValue, Html, (!), br, code, div, pre, preEscapedString, toHtml, toValue)
 import qualified Text.Blaze.Html5 as Html
@@ -37,6 +38,7 @@ f $$ x = f (fold x)
 
 ($$$) :: (Html -> a) -> [Html] -> a
 f $$$ x = f $$ intersperse "\n" x
+-}
 
 oxfordList :: (Monoid a, IsString a) => [a] -> a
 oxfordList [] = ""
@@ -50,31 +52,32 @@ oxfordList xs = fold (go xs) where
     [x,y] -> [x, ", and ", y]
     (x:xs) -> x : ", " : go xs
 
+{-
 ------------------------------------------------------------------------------
 -- Feedback classes
 
 type MonadRenderHtml m =
   ( MonadState Int m
   )
+-}
 
 class Categorise t where
   categorise :: t -> FeedbackStatus
 
+{-
 class Render t where
   render :: t -> [String]
   renderHtml :: MonadRenderHtml m => t -> m Html
   renderHtml = pure . toHtml . concat . render
 
-instance Render Va where
-  render = pure . show
-  renderHtml = pure . toHtml . show
-
 indent :: Int -> String -> String
 indent n str = replicate n ' ' ++ str
+-}
 
 plural :: Monoid s => [a] -> s -> s -> s
 plural (_ : _ : _) str s = str <> s
 plural _ str _ = str
+
 
 ------------------------------------------------------------------------------
 -- Feedback status
@@ -110,15 +113,7 @@ instance Monoid FeedbackStatus where
   mempty = Success
   mappend = (<>)
 
-
-feedbackStatus :: FeedbackStatus -> String
-feedbackStatus = \case
-    Success -> ""
-    Comment -> ""
-    Warning -> "Warning"
-    Error -> "Error"
-    Internal -> "Internal error"
-
+{-
 toCSSClass :: FeedbackStatus -> AttributeValue
 toCSSClass st = toValue $ ("syrup-" ++) $ case st of
   Success -> "happy"
@@ -126,6 +121,7 @@ toCSSClass st = toValue $ ("syrup-" ++) $ case st of
   Warning -> "warning"
   Error -> "error"
   Internal -> "internal"
+-}
 
 
 ------------------------------------------------------------------------------
@@ -153,6 +149,7 @@ instance Categorise ScopeError where
     Shadowing Local _  -> Error
     Shadowing Global _ -> Warning
 
+{-
 metaRender :: (IsString a, Monoid a) => (Name -> a) -> ScopeError -> a
 metaRender f e = fold $ case e of
     OutOfScope l n ns ->
@@ -179,27 +176,19 @@ metaRender f e = fold $ case e of
 instance Render ScopeError where
   render = pure . metaRender getName
   renderHtml = pure . metaRender identifier
-
-instance Render (Ty t Void) where
-  render = \case
-    Meta v -> absurd v
-    TVar s _ -> [angles (getTyName s)]
-    Bit{} -> pure "<Bit>"
-    Cable ts -> [squares $ punctuate ", " $ foldMap render ts]
-
-  renderHtml = pure . toHtml . concat . render
+-}
 
 data Feedback
   -- internal errors
   = ACouldntFindCircuitDiagram Name
-  | AnImpossibleError String
+  | AnImpossibleError Doc
 
   -- error
   | ACannotDisplayStub Name
   | ANoExecutable String
   | AScopeError ScopeError
-  | ASyntaxError [String]
-  | ATypeError [String]
+  | ASyntaxError Doc
+  | ATypeError Doc
   | AnAmbiguousDefinition Name [[String]]
   | AnInvalidTruthTableOutput Name
   | AnUndeclaredCircuit Name
@@ -213,7 +202,7 @@ data Feedback
   | AWrongOutputSignals [Va] [Va]
 
   -- warnings
-  | AFoundHoles Name [String]
+  | AFoundHoles Name [Doc] -- non empty list
   | ALint Doc
   | AMissingImplementation Name
   | AStubbedOut Name
@@ -225,9 +214,9 @@ data Feedback
 
   -- successes
   | ADotGraph [Name] Name [String]
-  | ARawCode String Name [String]
+  | ARawCode String Name Doc
   | ATruthTable Name [String]
-  | AnExperiment String [Name] [String]
+  | AnExperiment Doc [Name] [String]
   | AnSVGGraph [Name] Name [String]
   | ASuccessfulUnitTest
 
@@ -282,7 +271,7 @@ instance Categorise Feedback where
     WhenDisplaying _ fdks -> foldMap categorise fdks
     WhenUnitTesting _ _ _ fdks -> foldMap categorise fdks
 
-anExperiment :: MonadWriter (Seq Feedback) m => String -> [Name] -> [String] -> m ()
+anExperiment :: MonadWriter (Seq Feedback) m => Doc -> [Name] -> [String] -> m ()
 anExperiment str xs ls = tell $ Seq.singleton $ AnExperiment str xs ls
 
 keep :: Options -> Feedback -> Bool
@@ -291,18 +280,20 @@ keep opts fdk
   || (categorise fdk /= Comment
   && case fdk of { AStubbedOut{} -> False; _ -> True })
 
+{-
 fresh :: MonadState Int m => m Int
 fresh = do
   n <- get
   let sn = n + 1
   put sn
   pure sn
+-}
 
-identifier :: Name -> Html
-identifier = code . toHtml . getName
+identifier :: Name -> Doc
+identifier = annotate AnnCodeBlock . pretty
 
-tyIdentifier :: TyName -> Html
-tyIdentifier = code . angles . toHtml . getTyName
+tyIdentifier :: TyName -> Doc
+tyIdentifier = annotate AnnCodeBlock . annotate AnnType . pretty
 
 groupFeedback :: [Feedback] -> [Feedback]
 groupFeedback (ACircuitDefined cs : ACircuitDefined es : rest) =
@@ -476,7 +467,7 @@ instance Render Feedback where
         , " due to its size (", toHtml (show size)
         , " but the limit is ", toHtml (show lim),")."
         ]
-      ASyntaxError ls -> pure $$ fmap toHtml ls
+      ASyntaxError ls -> pure $$$ fmap toHtml ls
       AScopeError ls -> renderHtml ls
       ACircuitDefined cs -> pure $ punctuate " "
         [ plural cs "Circuit" "s"
