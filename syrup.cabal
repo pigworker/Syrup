@@ -98,6 +98,7 @@ library
                     , Language.Syrup.Syn
                     , Language.Syrup.Syn.Base
                     , Language.Syrup.Ty
+                    , Language.Syrup.Unelab
                     , Language.Syrup.Utils
                     , Language.Syrup.Va
                     , Utilities.Bwd

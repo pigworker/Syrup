@@ -80,7 +80,8 @@ data OutputWire = OutputWire
   , getOutputType :: Ty2
   }
 
-data TypeDecl t x t' x' = TypeDecl Name [Ty t x] [Ty t' x']
+data TypeDecl' nm t x t' x' = TypeDecl nm [Ty t x] [Ty t' x']
+type TypeDecl = TypeDecl' Name
 
 isProperOPat :: OPat -> Maybe OPat
 isProperOPat op = do
