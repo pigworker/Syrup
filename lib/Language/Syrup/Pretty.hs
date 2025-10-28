@@ -94,6 +94,10 @@ newtype AList a = AList [a]
 newtype ATuple a = ATuple [a]
 newtype ASet a = ASet [a]
 
+instance Unelab a => Unelab (AList a) where
+  type Unelabed (AList a) = AList (Unelabed a)
+  unelab (AList a) = AList <$> unelab a
+
 class Pretty t where
   pretty :: t -> Doc
   pretty = prettyPrec minBound
@@ -219,3 +223,12 @@ instance (Pretty t, Pretty x, Pretty t', Pretty x') => Pretty (TypeDecl' PrettyN
     let lhsTy = pretty (FunctionCall fn is) in
     let rhsTy = csep $ map pretty os in
     unwords [lhsTy, Doc "->", rhsTy]
+
+prettyShow :: (Unelab s, Pretty (Unelabed s)) => CoEnv -> s -> String
+prettyShow env = runDoc . pretty . runUnelab env
+
+basicShow :: (Unelab s, Pretty (Unelabed s)) => s -> String
+basicShow = prettyShow emptyArr
+
+csepShow :: (Unelab s, Pretty (Unelabed s)) => [s] -> String
+csepShow = intercalate ", " . map basicShow

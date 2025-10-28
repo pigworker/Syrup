@@ -124,6 +124,7 @@ library
                       , MultiParamTypeClasses
                       , PatternGuards
                       , TupleSections
+                      , TypeFamilies
                       , TypeOperators
 
     -- Other library packages from which modules are imported.

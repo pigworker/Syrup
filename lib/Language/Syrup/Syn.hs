@@ -6,7 +6,6 @@
 
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies #-}
 
 module Language.Syrup.Syn
   ( module Language.Syrup.Syn.Base

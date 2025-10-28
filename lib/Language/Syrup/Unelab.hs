@@ -12,6 +12,7 @@ module Language.Syrup.Unelab where
 
 import Control.Monad.Reader (MonadReader, runReader)
 
+import Data.Kind (Type)
 import Data.Maybe (fromMaybe)
 import Data.Void (Void)
 
@@ -23,7 +24,7 @@ import Language.Syrup.Ty
 -- Main utility
 
 
-runUnelab :: Unelab s t => CoEnv -> s -> t
+runUnelab :: Unelab s => CoEnv -> s -> Unelabed s
 runUnelab env = flip runReader env . unelab
 
 
@@ -50,18 +51,20 @@ toName (RemarkableName r) = Name $ case r of
 type MonadUnelab m =
   (MonadReader CoEnv m)
 
-class Unelab s t where
-  unelab :: MonadUnelab m => s -> m t
+class Unelab s where
+  type Unelabed s :: Type
+  unelab :: MonadUnelab m => s -> m (Unelabed s)
 
   default unelab
-    :: (s ~ f s', t ~ f t', Traversable f, Unelab s' t', MonadUnelab m)
-    => s -> m t
+    :: (s ~ f s', Unelabed (f s') ~ f (Unelabed s'), Traversable f, Unelab s', MonadUnelab m)
+    => s -> m (Unelabed s)
   unelab = traverse unelab
 
 ------------------------------------------------------------------------
 -- Unelab instances
 
-instance Unelab Name PrettyName where
+instance Unelab Name where
+  type Unelabed Name = PrettyName
   unelab nm = isRemarkable nm >>= \ mrem ->
     pure $ fromMaybe (StandardName nm) $ do
       rem <- mrem
@@ -74,32 +77,49 @@ instance Unelab Name PrettyName where
         IsOrGate   | nm == Name "or"   -> success
         _ -> Nothing
 
-instance Unelab Integer Integer where
+instance Unelab Integer where
+  type Unelabed Integer = Integer
   unelab = pure
 
-instance Unelab Void Void where
+instance Unelab Void where
+  type Unelabed Void = Void
   unelab = pure
 
-instance Unelab () () where
+instance Unelab () where
+  type Unelabed () = ()
   unelab = pure
 
-instance Unelab s t => Unelab [s] [t] where
-instance Unelab s t => Unelab (Maybe s) (Maybe t) where
+instance Unelab s => Unelab [s] where
+  type Unelabed [s] = [Unelabed s]
+instance Unelab s => Unelab (Maybe s) where
+  type Unelabed (Maybe s) = Maybe (Unelabed s)
 
-instance Unelab (Exp' Name ty) (Exp' PrettyName ty) where
+instance Unelab (Exp' Name ty) where
+  type Unelabed (Exp' Name ty) = Exp' PrettyName ty
   unelab = \case
     Var ty x -> pure $ Var ty x
     Hol ty x -> pure $ Hol ty x
     Cab tys es -> Cab tys <$> unelab es
     App tys f es -> App tys <$> unelab f <*> unelab es
 
-instance Unelab (Eqn' Name ty) (Eqn' PrettyName ty) where
+instance Unelab (Pat' ty a) where
+  type Unelabed (Pat' ty a) = Pat' ty a
+  unelab = pure
+
+instance Unelab (Ty ty x) where
+  type Unelabed (Ty ty x) = Ty ty x
+  unelab = pure
+
+instance Unelab (Eqn' Name ty) where
+  type Unelabed (Eqn' Name ty) = Eqn' PrettyName ty
   unelab (ps :=: es) = (ps :=:) <$> unelab es
 
-instance Unelab (Def' Name ty) (Def' PrettyName ty) where
+instance Unelab (Def' Name ty) where
+  type Unelabed (Def' Name ty) = Def' PrettyName ty
   unelab = \case
     Stub nm fdk -> Stub <$> unelab nm <*> pure fdk
     Def (nm, lhs) rhs meqn -> Def . (, lhs) <$> unelab nm <*> unelab rhs <*> unelab meqn
 
-instance Unelab (TypeDecl' Name t x t' x') (TypeDecl' PrettyName t x t' x') where
+instance Unelab (TypeDecl' Name t x t' x') where
+  type Unelabed (TypeDecl' Name t x t' x') = TypeDecl' PrettyName t x t' x'
   unelab (TypeDecl fn is os) = TypeDecl <$> unelab fn <*> pure is <*> pure os
