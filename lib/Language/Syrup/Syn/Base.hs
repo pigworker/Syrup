@@ -5,7 +5,6 @@
 ------------------------------------------------------------------------------
 
 {-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE TypeFamilies      #-}
 
 module Language.Syrup.Syn.Base where
 

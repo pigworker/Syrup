@@ -4,9 +4,6 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE TypeFamilies      #-}
-
 module Language.Syrup.Syn
   ( module Language.Syrup.Syn.Base
   , module Language.Syrup.Syn
@@ -31,15 +28,15 @@ data Source' a b
 type SourceC = Source' TyName False
 type Source  = Source' Void   True
 
-type Exp = Exp' ()
-data Exp' ty
+type Exp = Exp' Name ()
+data Exp' nm ty
   = Var ty String
   | Hol ty String
-  | App [ty] Name [Exp' ty]
-  | Cab ty [Exp' ty]
+  | App [ty] nm [Exp' nm ty]
+  | Cab ty [Exp' nm ty]
   deriving (Eq, Functor, Foldable, Traversable)
 
-expTys :: Exp' ty -> [ty]
+expTys :: Exp' nm ty -> [ty]
 expTys = \case
   Var ty _ -> [ty]
   Hol ty _ -> [ty]
@@ -57,26 +54,26 @@ patTy = \case
   PVar ty a -> ty
   PCab ty _ -> ty
 
-exPat :: Exp' ty -> Maybe (Pat' ty String)
+exPat :: Exp' nm ty -> Maybe (Pat' ty String)
 exPat (Var ty x)  = return (PVar ty x)
 exPat (Hol ty x)  = Nothing -- for now?
 exPat (Cab ty es) = PCab ty <$> traverse exPat es
 exPat _           = Nothing
 
-patToExp :: Pat' ty String -> Exp' ty
+patToExp :: Pat' ty String -> Exp' nm ty
 patToExp = \case
   PVar ty x  -> Var ty x
   PCab ty ps -> Cab ty $ map patToExp ps
 
-type Eqn = Eqn' ()
-data Eqn' ty = [Pat' ty String] :=: [Exp' ty]
-type Def = Def' ()
-data Def' ty
-  = Stub Name [Feedback]
+type Eqn = Eqn' Name ()
+data Eqn' nm ty = [Pat' ty String] :=: [Exp' nm ty]
+type Def = Def' Name ()
+data Def' nm ty
+  = Stub nm [Feedback]
   -- stubbed out definition together with error msg
-  | Def (Name, [Pat' ty String]) [Exp' ty] (Maybe [Eqn' ty])
+  | Def (nm, [Pat' ty String]) [Exp' nm ty] (Maybe [Eqn' nm ty])
 
-defName :: Def' ty -> Name
+defName :: Def' nm ty -> nm
 defName (Stub f _) = f
 defName (Def (f, _) _ _) = f
 
@@ -156,8 +153,8 @@ instance a ~ String => IsCircuit (Pat' ty a) where
   allGates _ = emptyArr
   allHoles _ = emptyArr
 
-instance IsCircuit (Def' ty) where
-  type VarTy (Def' ty) = ty
+instance IsCircuit (Def' Name ty) where
+  type VarTy (Def' Name ty) = ty
   allVars = \case
     Stub{} -> emptyArr
     Def (fn,ps) es meqns -> allVars ps <> allVars es <> allVars meqns
@@ -168,8 +165,8 @@ instance IsCircuit (Def' ty) where
     Stub{} -> emptyArr
     Def (fn,ps) es meqns -> allHoles es <> allHoles meqns
 
-instance IsCircuit (Exp' ty) where
-  type VarTy (Exp' ty) = ty
+instance IsCircuit (Exp' Name ty) where
+  type VarTy (Exp' Name ty) = ty
   allVars = \case
     Var ty x -> single (x, (First (Just ty), Sum 1))
     Hol ty x -> emptyArr
@@ -186,8 +183,8 @@ instance IsCircuit (Exp' ty) where
     App _ fn es -> allHoles es
     Cab _ es -> allHoles es
 
-instance IsCircuit (Eqn' ty) where
-  type VarTy (Eqn' ty) = ty
+instance IsCircuit (Eqn' Name ty) where
+  type VarTy (Eqn' Name ty) = ty
   allVars (ps :=: es) = allVars ps <> allVars es
   allGates (ps :=: es) = allGates es
   allHoles (ps :=: es) = allHoles es
