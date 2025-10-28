@@ -42,9 +42,9 @@ type Ty2 = Ty Ti Void
 type Typ = Ty Unit TyNom
 
 type TypedPat = Pat' Typ String
-type TypedExp = Exp' Typ
-type TypedEqn = Eqn' Typ
-type TypedDef = Def' Typ
+type TypedExp = Exp' Name Typ
+type TypedEqn = Eqn' Name Typ
+type TypedDef = Def' Name Typ
 
 sizeBits :: Ty a Void -> Int
 sizeBits = \case
@@ -405,13 +405,13 @@ actOnTypedPat f = \case
  PVar ty a  -> PVar <$> f ty <*> pure a
  PCab ty ps -> PCab <$> f ty <*> traverse (actOnTypedPat f) ps
 
-actOnTypedEqn :: Applicative f => (ty -> f ty') -> Eqn' ty -> f (Eqn' ty')
+actOnTypedEqn :: Applicative f => (ty -> f ty') -> Eqn' nm ty -> f (Eqn' nm ty')
 actOnTypedEqn f (ps :=: es)
   = (:=:)
   <$> traverse (actOnTypedPat f) ps
   <*> traverse (traverse f) es
 
-actOnTypedDef :: Applicative f => (ty -> f ty') -> Def' ty -> f (Def' ty')
+actOnTypedDef :: Applicative f => (ty -> f ty') -> Def' nm ty -> f (Def' nm ty')
 actOnTypedDef f (Def (fn, ps) es meqns)
   = Def . (fn,)
   <$> traverse (actOnTypedPat f) ps

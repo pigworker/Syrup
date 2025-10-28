@@ -26,60 +26,60 @@ import Language.Syrup.Utils (partitionWith)
 -- Trying to be clever about circuit depth
 ------------------------------------------------------------------------
 
-deMorgan :: CoEnv -> Def' ty -> Def' ty
+deMorgan :: CoEnv -> Def' Name ty -> Def' Name ty
 deMorgan env (Def lhs rhs meqns) =
   let simpl = simplify Positive rhs in
   let (rhs', eqns') = runReader (runStateT simpl (fromMaybe [] meqns)) env in
   cleanup $ Def lhs rhs' (eqns' <$ guard (not (null eqns')))
 deMorgan env d = d
 
-data Polarity ty
+data Polarity nm ty
   = Positive
-  | Negative Name ty
+  | Negative nm ty
   -- ^ this is storing the names of:
   -- 1. the not gate
   -- 2. the Bit type
 
-isPositive :: Polarity ty -> Bool
+isPositive :: Polarity nm ty -> Bool
 isPositive Positive = True
 isPositive _ = False
 
-instance Show (Polarity ty) where
+instance Show (Polarity nm ty) where
   show Positive = "+"
   show Negative{} = "-"
 
-inverse :: Name -> ty -> Polarity ty -> Polarity ty
+inverse :: nm -> ty -> Polarity nm ty -> Polarity nm ty
 inverse nm ty Positive = Negative nm ty
 inverse _ _ (Negative _ _) = Positive
 
-type DeMorganM ty = StateT [Eqn' ty] (Reader CoEnv)
+type DeMorganM ty = StateT [Eqn' Name ty] (Reader CoEnv)
 
 class DeMorgan ty t where
-  simplify :: Polarity ty -> t -> DeMorganM ty t
+  simplify :: Polarity Name ty -> t -> DeMorganM ty t
 
-isAssignment :: String -> Eqn' ty -> Either (Exp' ty) (Eqn' ty)
+isAssignment :: String -> Eqn' nm ty -> Either (Exp' nm ty) (Eqn' nm ty)
 isAssignment x eqn@([PVar _ y] :=: [e])
   | x == y = Left e
   | otherwise = Right eqn
 isAssignment x eqn = Right eqn
 
-isDefined :: String -> DeMorganM ty (Maybe (Exp' ty))
+isDefined :: String -> DeMorganM ty (Maybe (Exp' Name ty))
 isDefined x = do
   eqns <- get
   case partitionWith (isAssignment x) eqns of
     ([e], es) -> Just e <$ put es
     _ -> pure Nothing
 
-applyPolarity :: Polarity ty -> Exp' ty -> Exp' ty
+applyPolarity :: Polarity nm ty -> Exp' nm ty -> Exp' nm ty
 applyPolarity Positive e = e
 applyPolarity (Negative fn ty) e = App [ty] fn [e]
 
-mkIdempotent :: [ty] -> Name -> Exp' ty -> Exp' ty -> Exp' ty
+mkIdempotent :: Eq nm => [ty] -> nm -> Exp' nm ty -> Exp' nm ty -> Exp' nm ty
 mkIdempotent tys fn e1 e2
   | (() <$ e1) == (() <$ e2) = e1
   | otherwise = App tys fn [e1, e2]
 
-instance DeMorgan ty (Exp' ty) where
+instance DeMorgan ty (Exp' Name ty) where
   simplify pol (App [ty] fn [e]) = isRemarkable fn >>= \case
     Just IsNotGate -> simplify (inverse fn ty pol) e
     _ -> do

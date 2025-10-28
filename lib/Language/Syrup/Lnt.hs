@@ -4,6 +4,8 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE FlexibleInstances #-}
+
 module Language.Syrup.Lnt where
 
 import Data.List (intercalate)
@@ -25,7 +27,7 @@ be :: [a] -> String
 be [_] = "is"
 be _ = "are"
 
-instance ty ~ () => Lint (Def' ty) where
+instance ty ~ () => Lint (Def' Name ty) where
   linters = [ emptyWhere
             , deadcode
             , needlessSplits

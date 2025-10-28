@@ -158,7 +158,7 @@ noIndependent x@(DNF e) = fixpoint False (Map.toList <$> Set.toList e)
       | Just a <- p x = pure (a, xs)
       | otherwise = fmap (x:) <$> findJust p xs
 
-fromDNF :: forall ty. AllRemarkables ty -> DNF -> Exp' ty
+fromDNF :: forall ty. AllRemarkables ty -> DNF -> Exp' Name ty
 fromDNF d
   = orClauses
   . map andClauses
@@ -170,16 +170,16 @@ fromDNF d
     ty :: ty
     ty = bitTypeName d
 
-    orClauses :: [Exp' ty] -> Exp' ty
+    orClauses :: [Exp' Name ty] -> Exp' Name ty
     orClauses [] = App [ty] (zeroGateName d) []
     orClauses [e] = e
     orClauses (e:es) = App [ty] (orGateName d) [e, orClauses es]
 
-    notGate :: Occurrence -> Exp' ty -> Exp' ty
+    notGate :: Occurrence -> Exp' Name ty -> Exp' Name ty
     notGate Asserted e = e
     notGate Negated e = App [ty] (notGateName d) [e]
 
-    andClauses :: [(String, Occurrence)] -> Exp' ty
+    andClauses :: [(String, Occurrence)] -> Exp' Name ty
     andClauses [] = App [ty] (notGateName d) [App [ty] (zeroGateName d) []]
     andClauses [(k, occ)] = notGate occ (Var ty k)
     andClauses ((k, occ) : es)
@@ -200,7 +200,7 @@ test = flip eval (nae (pos "X" &&& neg "Y" ||| pos "Z")) $ \case
   "Z" -> pure (nae (pos "A" &&& neg "B"))
   _ -> Nothing
 
-dnf :: CoEnv -> Def' ty -> Def' ty
+dnf :: CoEnv -> Def' Name ty -> Def' Name ty
 dnf env d@(Def lhs rhs meqns) = fromMaybe d $ do
   (ty : _, rhs') <- fmap unzip $ sequence $ runReader (traverse toDNF rhs) env
   let sub' = maybe id eval $ toAssignment env =<< meqns
@@ -209,14 +209,14 @@ dnf env d@(Def lhs rhs meqns) = fromMaybe d $ do
   pure (Def lhs rhs'' Nothing)
 dnf env d = d
 
-toAssignment :: CoEnv -> [Eqn' ty] -> Maybe (String -> Maybe DNF)
+toAssignment :: CoEnv -> [Eqn' Name ty] -> Maybe (String -> Maybe DNF)
 toAssignment env eqns = do
   kvs <- flip traverse eqns $ \case
     ([PVar _ x] :=: [b]) -> pure (x, fmap snd $ runReader (toDNF b) env)
     _ -> Nothing
   pure (join . flip lookup kvs)
 
-toDNF :: MonadReader CoEnv m => Exp' ty -> m (Maybe (ty, DNF))
+toDNF :: MonadReader CoEnv m => Exp' Name ty -> m (Maybe (ty, DNF))
 toDNF (Var ty x) = pure (Just (ty, pos x))
 toDNF Cab{} = pure Nothing
 toDNF Hol{} = pure Nothing

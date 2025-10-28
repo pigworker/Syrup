@@ -155,7 +155,7 @@ instance Pretty a => Pretty (FunctionCall a) where
     FunctionCall f [] -> isRemarkable f >>= \case
       Just IsZeroGate | f == Name "zero" -> pure $ Doc "0"
       Just IsOneGate | f == Name "one" -> pure $ Doc "1"
-      _ -> defaultApp f ([] :: [Exp' ()])
+      _ -> defaultApp f ([] :: [Exp' Name ()])
     FunctionCall f [s] -> isRemarkable f >>= \case
       Just IsNotGate | f == Name "not" -> (Doc "!" <>) <$> prettyPrec NegatedClause s
       _ -> defaultApp f [s]
@@ -171,7 +171,7 @@ instance Pretty a => Pretty (FunctionCall a) where
       _ -> defaultApp f [s, t]
     FunctionCall f es -> defaultApp f es
 
-instance Pretty (Exp' ty) where
+instance Pretty (Exp' Name ty) where
   prettyPrec lvl = \case
     Var _ x -> pretty x
     Hol _ x -> (questionMark <>) <$> pretty x
@@ -195,7 +195,7 @@ instance (Pretty t, Pretty x) => Pretty (Ty t x) where
     Bit t    -> (<>) <$> pretty t <*> pretty "<Bit>"
     Cable ps -> pretty (AList ps)
 
-instance Pretty (Eqn' ty) where
+instance Pretty (Eqn' Name ty) where
   prettyPrec _ (ps :=: es) = do
     ps <- csep <$> traverse pretty ps
     es <- csep <$> traverse pretty es
