@@ -4,10 +4,6 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-
 module Language.Syrup.Pretty where
 
 import Control.Monad.Reader (MonadReader, runReader)

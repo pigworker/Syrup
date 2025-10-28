@@ -4,8 +4,6 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE FlexibleInstances #-}
-
 module Language.Syrup.Sub where
 
 import Data.IMaybe (IMaybe(IJust))

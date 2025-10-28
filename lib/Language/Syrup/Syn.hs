@@ -4,9 +4,6 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE FlexibleInstances #-}
-
 module Language.Syrup.Syn
   ( module Language.Syrup.Syn.Base
   , module Language.Syrup.Syn

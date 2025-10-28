@@ -4,8 +4,6 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE FlexibleInstances #-}
-
 module Language.Syrup.Lnt where
 
 import Data.List (intercalate)

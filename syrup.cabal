@@ -114,9 +114,12 @@ library
     -- LANGUAGE extensions used by modules in this package.
     default-extensions: ConstraintKinds
                       , DataKinds
+                      , DefaultSignatures
                       , DeriveFoldable
                       , DeriveFunctor
                       , DeriveTraversable
+                      , FlexibleContexts
+                      , FlexibleInstances
                       , GADTs
                       , GeneralisedNewtypeDeriving
                       , KindSignatures
