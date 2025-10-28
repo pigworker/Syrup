@@ -20,7 +20,16 @@ import Language.Syrup.Ty
 import Language.Syrup.Unelab
 
 ------------------------------------------------------------------------
--- Doc type and basic combinators
+-- Resulting functions
+
+prettyShow :: (Unelab s, Pretty (Unelabed s)) => CoEnv -> s -> Doc
+prettyShow env = pretty . runUnelab env
+
+basicShow :: (Unelab s, Pretty (Unelabed s)) => s -> Doc
+basicShow = prettyShow emptyArr
+
+csepShow :: (Unelab s, Pretty (Unelabed s)) => [s] -> Doc
+csepShow = intercalate ", " . map basicShow
 
 ------------------------------------------------------------------------
 -- Pretty infrastructure
@@ -107,7 +116,7 @@ instance Pretty a => Pretty (FunctionCall a) where
         , "&"
         , prettyPrec AndClause t
         ]
-    FunctionCall f es -> fold [pretty  (toName f), pretty (ATuple es)]
+    FunctionCall f es -> fold [annotate AnnFunction (pretty  (toName f)), pretty (ATuple es)]
 
 
 instance Pretty (Exp' PrettyName ty) where
@@ -129,9 +138,9 @@ instance Pretty Ti where
 
 instance (Pretty t, Pretty x) => Pretty (Ty t x) where
   prettyPrec lvl = \case
-    Meta x   -> annotate Type $ between "<?" ">" $ pretty x -- ugh...
-    TVar s _ -> annotate Type $ between "<"  ">" $ pretty s
-    Bit t    -> annotate Type $  pretty t <> text "<Bit>"
+    Meta x   -> annotate AnnType $ between "<?" ">" $ pretty x -- ugh...
+    TVar s _ -> annotate AnnType $ between "<"  ">" $ pretty s
+    Bit t    -> annotate AnnType $  pretty t <> text "<Bit>"
     Cable ps -> pretty (AList ps)
 
 instance Pretty (Eqn' PrettyName ty) where
@@ -156,7 +165,7 @@ instance Pretty (Def' PrettyName Typ) where
       let rhsDef = csep $ map pretty rhs in
       let eqnDef = case meqns of
             Nothing -> []
-            Just eqns -> "where"
+            Just eqns -> annotate AnnKeyword "where"
               : map (indent 2 . pretty) eqns
       in
       let defn = unwords (lhsDef : "=" : rhsDef : eqnDef) in
@@ -168,12 +177,3 @@ instance (Pretty t, Pretty x, Pretty t', Pretty x') => Pretty (TypeDecl' PrettyN
     let lhsTy = pretty (FunctionCall fn is) in
     let rhsTy = csep $ map pretty os in
     unwords [lhsTy, "->", rhsTy]
-
-prettyShow :: (Unelab s, Pretty (Unelabed s)) => CoEnv -> s -> Doc
-prettyShow env = pretty . runUnelab env
-
-basicShow :: (Unelab s, Pretty (Unelabed s)) => s -> Doc
-basicShow = prettyShow emptyArr
-
-csepShow :: (Unelab s, Pretty (Unelabed s)) => [s] -> Doc
-csepShow = intercalate ", " . map basicShow
