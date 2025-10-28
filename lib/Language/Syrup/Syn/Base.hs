@@ -10,7 +10,7 @@ module Language.Syrup.Syn.Base where
 
 import Control.Monad (ap, guard)
 
-import Data.Forget (Forget)
+import Data.Forget (Forget, forget)
 import Data.String (IsString(..))
 import Data.Void (Void)
 
@@ -65,7 +65,16 @@ data Ty t x
   | TVar TyName (Ty t Void) -- type aliases are closed
   | Bit t
   | Cable [Ty t x]
-  deriving (Eq, Functor, Foldable, Traversable)
+  deriving (Functor, Foldable, Traversable)
+
+instance (Eq t, Eq x) => Eq (Ty t x) where
+  Meta x == Meta y = x == y
+  TVar nm t == TVar nm' t' = nm == nm' || t == t'
+  TVar nm t == t' = forget t == t'
+  t == TVar nm t' = t == forget t'
+  Bit t == Bit t' = t == t'
+  Cable ts == Cable ts' = ts == ts'
+  _ == _ = False
 
 instance Forget b c => Forget (Ty a b) (Ty a c) where
 
