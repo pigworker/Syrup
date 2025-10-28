@@ -209,7 +209,7 @@ jobs:
           $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --write-ghc-environment-files=always
       - name: tests
         run: |
-          cabal run syrup:golden-tests
+          $CABAL run syrup:golden-tests
       - name: unconstrained build
         run: |
           rm -f cabal.project.local
