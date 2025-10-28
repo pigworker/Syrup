@@ -23,9 +23,8 @@ import Language.Syrup.Ty
 -- Main utility
 
 
-
-unelaborate :: Unelab s t => CoEnv -> s -> t
-unelaborate env = flip runReader env . unelab
+runUnelab :: Unelab s t => CoEnv -> s -> t
+runUnelab env = flip runReader env . unelab
 
 
 ------------------------------------------------------------------------
@@ -34,6 +33,16 @@ unelaborate env = flip runReader env . unelab
 data PrettyName
   = StandardName Name          -- printed e.g. f(X,Y,Z)
   | RemarkableName Remarkable  -- printed e.g. X & Y
+
+toName :: PrettyName -> Name
+toName (StandardName nm) = nm
+toName (RemarkableName r) = Name $ case r of
+  IsZeroGate -> "zero"
+  IsOneGate -> "one"
+  IsNotGate -> "not"
+  IsAndGate -> "and"
+  IsOrGate -> "or"
+  IsNandGate -> "nand"
 
 ------------------------------------------------------------------------
 -- Unelab monad and class
