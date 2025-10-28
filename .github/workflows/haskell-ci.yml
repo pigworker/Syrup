@@ -210,6 +210,7 @@ jobs:
       - name: tests
         run: |
           $CABAL v2-test $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --test-show-details=streaming
+          cat /__w/Syrup/Syrup/dist-newstyle/build/x86_64-linux/ghc-*/syrup-0.1.0.0/t/golden-tests/test/syrup-0.1.0.0-golden-tests.log
       - name: unconstrained build
         run: |
           rm -f cabal.project.local
