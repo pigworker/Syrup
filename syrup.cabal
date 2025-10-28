@@ -99,6 +99,7 @@ library
                     , Language.Syrup.Syn
                     , Language.Syrup.Syn.Base
                     , Language.Syrup.Ty
+                    , Language.Syrup.Unelab
                     , Language.Syrup.Utils
                     , Language.Syrup.Va
                     , Utilities.Bwd
@@ -114,9 +115,12 @@ library
     -- LANGUAGE extensions used by modules in this package.
     default-extensions: ConstraintKinds
                       , DataKinds
+                      , DefaultSignatures
                       , DeriveFoldable
                       , DeriveFunctor
                       , DeriveTraversable
+                      , FlexibleContexts
+                      , FlexibleInstances
                       , GADTs
                       , GeneralisedNewtypeDeriving
                       , KindSignatures
@@ -124,6 +128,7 @@ library
                       , MultiParamTypeClasses
                       , PatternGuards
                       , TupleSections
+                      , TypeFamilies
                       , TypeOperators
 
     -- Other library packages from which modules are imported.
