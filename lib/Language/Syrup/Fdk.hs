@@ -29,53 +29,31 @@ import Language.Syrup.Opt (Options(..), quiet)
 import Language.Syrup.Pretty
 import Language.Syrup.Syn.Base
 
-import Language.Syrup.Utils (be, plural, oxfordList)
+import Language.Syrup.Utils (($$), be, plural, oxfordList)
 
-{-
-import Text.Blaze.Html5
-  (AttributeValue, Html, (!), br, code, div, pre, preEscapedString, toHtml, toValue)
-import qualified Text.Blaze.Html5 as Html
-import Text.Blaze.Html5.Attributes
-  (class_, id, style, type_)
--}
-
-($$) :: Monoid m => (m -> a) -> [m] -> a
-f $$ x = f (fold x)
-
-{-
-($$$) :: (Html -> a) -> [Html] -> a
-f $$$ x = f $$ intersperse "\n" x
--}
-
-
-{-
-metaRender :: (IsString a, Monoid a) => (Name -> a) -> ScopeError -> a
-metaRender f e = fold $ case e of
+instance Pretty ScopeError where
+  type PrettyDoc ScopeError = Doc
+  prettyPrec _ e = case e of
     OutOfScope l n ns ->
-      let names = foldMapSet (pure . f) ns in
-      "You tried to use "
-      : f n
-      : " but it is not in scope."
-      : if isEmptyArr ns then [] else
-        [ "\n"
-        , plural names "Did you mean" " one of these"
+      let names = foldMapSet pure ns in
+      aLine $$
+        [ "You tried to use ", pretty n
+        , " but it is not in scope." ]
+      <> if isEmptyArr ns then mempty else aLine $$
+        [ plural names "Did you mean" " one of these"
         , ": "
-        , punctuate ", " names
+        , csep $ map pretty names
         , "?"
         ]
     Shadowing l ns ->
-      let names = foldMapSet (pure . f) ns in
-      [ "You are redefining the "
-      , levelMsg l
-      , " ", plural names "variable" "s"
-      , " ", punctuate ", " names
-      , "."
-      ]
-
-instance Render ScopeError where
-  render = pure . metaRender getName
-  renderHtml = pure . metaRender identifier
--}
+      let names = foldMapSet pure ns in
+      aLine $$
+        [ "You are redefining the "
+        , pretty (levelMsg l)
+        , " ", plural names "variable" "s"
+        , " ", csep $ map pretty names
+        , "."
+        ]
 
 anExperiment :: MonadWriter (Seq Feedback) m => LineDoc -> [Name] -> Doc -> m ()
 anExperiment str xs ls = tell $ Seq.singleton $ AnExperiment str xs ls
@@ -163,16 +141,12 @@ instance Pretty Feedback where
 
       ANoExecutable exe -> aLine $$
         [ "Could not find the ", isCode (pretty exe), " executable." ]
-{-
-      AnSVGGraph xs x ls -> pure $$
-        [ fold ["Displaying ", identifier x, extra, ":"]
-        , br
-        , div ! style "padding-left: 1em" $ foldMap toHtml ls
-        ]
+      AnSVGGraph xs x ls ->
+        aLine $$ ["Displaying ", identifier x, extra, ":"]
+        <> nest 2 (foldMap prettyBlock ls)
         where extra = case xs of
                 [] -> ""
-                _ -> fold [" (with ", punctuate ", " (map identifier xs), " unfolded)"]
--}
+                _ -> fold [" (with ", csep (map identifier xs), " unfolded)"]
       ASuccessfulUnitTest -> aLine "Success!"
       ARawCode str x ls ->
         aLine $$ [ str, " ", identifier x, ":" ]
@@ -185,10 +159,8 @@ instance Pretty Feedback where
         , " due to its size (", pretty size
         , " but the limit is ", pretty lim,")."
         ]
-{-
-      ASyntaxError ls -> pure $$$ fmap toHtml ls
-      AScopeError ls -> renderHtml ls
--}
+      ASyntaxError ls -> ls
+      AScopeError ls -> pretty ls
       ACircuitDefined cs -> aLine $ punctuate " "
         [ plural cs "Circuit" "s"
         , oxfordList (map identifier cs)
@@ -203,9 +175,7 @@ instance Pretty Feedback where
         ]
       AStubbedOut nm -> aLine $$
         [ "Circuit ", identifier nm, " has been stubbed out." ]
-{-
-      ATypeError ls -> pure $$ fmap toHtml ls
--}
+      ATypeError ls -> ls
       AnUnknownIdentifier x -> aLine $$
         [ "I don't know what ", identifier x, " is." ]
       AMissingImplementation x -> aLine $$

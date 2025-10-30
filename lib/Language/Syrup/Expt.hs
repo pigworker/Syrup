@@ -4,6 +4,7 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
@@ -30,12 +31,14 @@ import Language.Syrup.BigArray
 import Language.Syrup.Cst
 import Language.Syrup.DeMorgan (deMorgan)
 import Language.Syrup.DNF (dnf, ttToDef)
+import Language.Syrup.Doc hiding (AList, unwords)
 import Language.Syrup.Dot
 import Language.Syrup.Fdk
 import Language.Syrup.Opt
-import Language.Syrup.Pretty (basicShow, prettyShow)
+import Language.Syrup.Pretty
 import Language.Syrup.Syn
 import Language.Syrup.Ty
+import Language.Syrup.Unelab
 import Language.Syrup.Utils
 
 import Utilities.Lens
@@ -97,14 +100,17 @@ experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc ->
   anExperiment "Bisimulation between" [l, r] $ report (getName l, getName r) (bisimReport lc rc)
 experiment (Print x) = withImplem x $ \ i -> do
   g <- use hasLens
-  let txt = prettyShow g i
-  tell $ Seq.singleton $ ARawCode "Printing" x $ lines txt
+  tell $ Seq.singleton
+    $ ARawCode "Printing" x
+    $ pretty (runUnelab g i)
 experiment (Typing x) = withCompo x $ \ c -> do
   g <- use hasLens
-  let txt = prettyShow g $ TypeDecl x
-              (getInputType <$> inpTys c)
-              (getOutputType <$> oupTys c)
-  anExperiment "Typing for" [x] $ lines txt
+  anExperiment "Typing for" [x] $
+    prettyBlock
+      $ runUnelab g
+      $ TypeDecl x
+          (getInputType <$> inpTys c)
+          (getOutputType <$> oupTys c)
 experiment (Display xs x) = withImplem x $ \ i -> do
   st <- use hasLens
   let (fdk, circuit) = whiteBoxDef st (map getName xs) i
@@ -120,16 +126,14 @@ experiment (Display xs x) = withImplem x $ \ i -> do
             Just{} -> AnSVGGraph xs x . lines <$> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
 experiment (Dnf x) = withImplem x $ \ i -> do
   env <- use hasLens
-  let txt = prettyShow env (dnf env i)
   tell $ Seq.singleton
     $ ARawCode "Disjunctive Normal Form of" x
-    $ lines txt
+    $ pretty (runUnelab env $ dnf env i)
 experiment (Anf x) = withImplem x $ \ i -> do
   env <- use hasLens
-  let txt = prettyShow env (toANF i)
   tell $ Seq.singleton
     $ ARawCode "A Normal Form of" x
-    $ lines txt
+    $ pretty (runUnelab env $ toANF i)
 experiment (Costing nms x) = do
   g <- use hasLens
   let support = foldMap singleton nms
@@ -137,22 +141,20 @@ experiment (Costing nms x) = do
   anExperiment "Cost for" [x] $
     flip foldMapArr cost (\ (x, Sum k) ->
       let copies = "cop" ++ if k > 1 then "ies" else "y" in
-      ["  " ++ show k ++ " " ++ copies ++ " of " ++ getName x])
+      aLine $$ ["  ", pretty k, " ", pretty copies, " of ", pretty x])
 experiment (Simplify x) = withImplem x $ \ i -> do
   g <- use hasLens
-  let txt = prettyShow g (deMorgan g i)
   tell $ Seq.singleton
     $ ARawCode "Simplification of" x
-    $ lines txt
+    $ pretty (runUnelab g (deMorgan g i))
 experiment (FromOutputs f xs bs) = do
   g <- use hasLens
   case ttToDef g f (map getInputName xs) bs of
     Nothing -> tell $ Seq.singleton (AnInvalidTruthTableOutput f)
     Just def -> do
-      let txt = prettyShow g def
       tell $ Seq.singleton
         $ ARawCode "DNF circuit for" f
-        $ lines txt
+        $ pretty (runUnelab g def)
 
 ------------------------------------------------------------------------------
 -- running tine sequences
@@ -170,18 +172,18 @@ data TimeStep = TimeStep
   , currentOutputs :: [Va]
   }
 
-instance Render (Simulation n (Int, [Va]) TimeStep) where
-  renderHtml = pure . toHtml . concat . render
-  render (Simulation (z, mo) steps) = foldMap (pure . row) steps ++ [lastrow]
-      where
-        w = length (show z)
-        showtime t = reverse . take w  $ reverse (show t) ++ repeat ' '
-        row (TimeStep t mt is os) = concat
-          [ showtime t, " {", foldMap show  mt, "} "
-          , foldMap show is, " -> ", foldMap show os
-          ]
-        lastrow = concat
-          [ showtime z, " {", foldMap show mo, "}" ]
+instance Pretty (Simulation n (Int, [Va]) TimeStep) where
+  type PrettyDoc (Simulation n (Int, [Va]) TimeStep) = Doc
+  prettyPrec _ (Simulation (z, mo) steps) = foldMap row steps <> lastrow
+    where
+      w = length (show z)
+      prettyTime t = pretty $ reverse . take w  $ reverse (show t) ++ repeat ' '
+      row (TimeStep t mt is os) = aLine $$
+        [ prettyTime t, " ", braces (foldMap pretty mt)
+        , " "
+        , foldMap pretty is, " -> ", foldMap pretty os
+        ]
+      lastrow = aLine $$ [ prettyTime z, " ", braces (foldMap pretty mo) ]
 
 simulate :: Compo -> Simulation n [Va] [Va]
          -> Simulation n (Int, [Va]) TimeStep
@@ -239,12 +241,12 @@ unitTest c (CircuitConfig mi is) (CircuitConfig mo os) = do
       | os /= currentOutputs step -> Left (AWrongOutputSignals os (currentOutputs step))
       | otherwise -> pure ()
 
-runCompo :: Compo -> [Va] -> [[Va]] -> Either Feedback [String]
+runCompo :: Compo -> [Va] -> [[Va]] -> Either Feedback Doc
 runCompo c m0 iss = case fromList iss of
   AList xs -> do
     checkMemory c m0
     checkInputs c iss
-    pure $ render $ simulate c (Simulation m0 xs)
+    pure $ pretty $ simulate c (Simulation m0 xs)
 
 
 tyVaChks :: [Ty t Void] -> [Va] -> Bool

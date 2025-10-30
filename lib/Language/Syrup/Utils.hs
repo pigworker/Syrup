@@ -81,3 +81,6 @@ oxfordList xs = fold (go xs) where
 be :: IsString d => [a] -> d
 be [_] = "is"
 be _ = "are"
+
+($$) :: Monoid m => (m -> a) -> [m] -> a
+f $$ x = f (fold x)
