@@ -289,12 +289,6 @@ fresh = do
   pure sn
 -}
 
-identifier :: Name -> Doc
-identifier = annotate AnnCodeBlock . pretty
-
-tyIdentifier :: TyName -> Doc
-tyIdentifier = annotate AnnCodeBlock . annotate AnnType . pretty
-
 groupFeedback :: [Feedback] -> [Feedback]
 groupFeedback (ACircuitDefined cs : ACircuitDefined es : rest) =
   groupFeedback (ACircuitDefined (cs ++ es) : rest)
