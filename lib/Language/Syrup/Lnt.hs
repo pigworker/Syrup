@@ -36,7 +36,7 @@ instance ty ~ () => Lint (Def' Name ty) where
             ] where
 
     emptyWhere = \case
-      Def (fun, _) _ (Just []) -> pure $ ALint $ vcat
+      Def (fun, _) _ (Just []) -> pure $ ALint $ foldMap pretty
         [ fold [ "Empty where clause in the definition of ", pretty fun, "." ]
         , "Did you forget to indent the block of local definitions using spaces?"
         ]
@@ -44,20 +44,21 @@ instance ty ~ () => Lint (Def' Name ty) where
 
     needlessSplits d = do
       let ps = abstractableCables d
-      if null ps then [] else pure $ ALint $ vcat
-        [ fold [ "the ", plural ps "cable" "s", " "
-               , punctuate ", " (basicShow . AList <$> ps)
-               , " ", be ps
-               , " taken apart only to be reconstructed or unused."
-               ]
-        , "Did you consider giving each cable a name without breaking it up?"
+      if null ps then [] else pure $ ALint $ fold
+        [ pretty $ fold
+            [ "the ", plural ps "cable" "s", " "
+            , csep (pretty . AList <$> ps)
+            , " ", be ps
+            , " taken apart only to be reconstructed or unused."
+            ]
+        , aLine "Did you consider giving each cable a name without breaking it up?"
         ]
 
     deadcode d = case filter (/= "_") $ foldMapSet pure (unused d) of
       [] -> []
-      ns -> pure $ ALint $ fold
+      ns -> pure $ ALint $ aLine $ fold
         [ "the ", plural ns "wire" "s", " "
-        , punctuate ", " (text <$> ns)
+        , punctuate ", " (pretty <$> ns)
         , " ", be ns
         , " defined but never used."
         ]

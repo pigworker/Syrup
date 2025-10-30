@@ -24,18 +24,24 @@ import Language.Syrup.Unelab
 ------------------------------------------------------------------------
 -- Resulting functions
 
-{-
-prettyShow :: (Unelab s, Pretty Doc (Unelabed s)) => CoEnv -> s -> Doc
-prettyShow env = pretty . runUnelab env
 
-basicShow :: (Unelab s, Pretty Doc (Unelabed s)) => s -> Doc
+prettyShow
+  :: (Unelab s, Pretty (Unelabed s), Render (PrettyDoc (Unelabed s)))
+  => CoEnv -> s -> String
+prettyShow env = renderToString . pretty . runUnelab env
+
+basicShow
+  :: (Unelab s, Pretty (Unelabed s), Render (PrettyDoc (Unelabed s)))
+  => s -> String
 basicShow = prettyShow emptyArr
 
+{-
 csepShow :: (Unelab s, Pretty LineDoc (Unelabed s)) => [s] -> Doc
 csepShow = punctuate ", " . map basicShow
 -}
 
-instance Pretty LineDoc Va where
+instance Pretty Va where
+  type PrettyDoc Va = LineDoc
   prettyPrec _ = \case
     VQ    -> "?"
     V0    -> "0"
@@ -50,7 +56,8 @@ data FunctionCall a = FunctionCall
   , functionArgs :: [a]
   }
 
-instance Pretty LineDoc a => Pretty LineDoc (FunctionCall a) where
+instance (Pretty a, PrettyDoc a ~ LineDoc) => Pretty (FunctionCall a) where
+  type PrettyDoc (FunctionCall a) = LineDoc
   prettyPrec lvl = \case
     FunctionCall (RemarkableName IsZeroGate) [] -> "0"
     FunctionCall (RemarkableName IsOneGate) [] -> "1"
@@ -70,38 +77,44 @@ instance Pretty LineDoc a => Pretty LineDoc (FunctionCall a) where
     FunctionCall f es -> fold [pretty  (toName f), pretty (ATuple es)]
 
 
-instance Pretty LineDoc (Exp' PrettyName ty) where
+instance Pretty (Exp' PrettyName ty) where
+  type PrettyDoc (Exp' PrettyName ty) = LineDoc
   prettyPrec lvl = \case
     Var _ x -> pretty x
     Hol _ x -> "?" <> pretty x
     Cab _ es -> pretty (AList es)
     App _ f es -> prettyPrec lvl (FunctionCall f es)
 
-instance Pretty LineDoc a => Pretty LineDoc (Pat' ty a) where
+instance (Pretty a, PrettyDoc a ~ LineDoc) => Pretty (Pat' ty a) where
+  type PrettyDoc (Pat' ty a) = LineDoc
   prettyPrec lvl = \case
     PVar _ a -> pretty a
     PCab _ ps -> pretty (AList ps)
 
-instance Pretty LineDoc Ti where
+instance Pretty Ti where
+  type PrettyDoc Ti = LineDoc
   prettyPrec lvl = \case
     T0 -> "@"
     T1 -> ""
 
-instance (Pretty LineDoc t, Show x) => Pretty LineDoc (Ty t x) where
+instance (Pretty t, PrettyDoc t ~ LineDoc, Show x) => Pretty (Ty t x) where
+  type PrettyDoc (Ty t x) = LineDoc
   prettyPrec lvl = \case
     Meta x   -> pretty (TyName ('?' : show x)) -- ugh...
     TVar s _ -> pretty s
     Bit t    -> pretty t <> pretty (TyName "Bit")
     Cable ps -> pretty (AList ps)
 
-instance Pretty LineDoc (Eqn' PrettyName ty) where
+instance Pretty (Eqn' PrettyName ty) where
+  type PrettyDoc (Eqn' PrettyName ty) = LineDoc
   prettyPrec _ (ps :=: es) =
     unwords
       [ csep $ map pretty ps
       , "="
       , csep $ map pretty es]
 
-instance Pretty Doc (Def' PrettyName Typ) where
+instance Pretty (Def' PrettyName Typ) where
+  type PrettyDoc (Def' PrettyName Typ) = Doc
   prettyPrec _ = \case
     Stub{} -> pretty ("Stubbed out definition" :: LineDoc)
     (Def (fn, ps) rhs meqns) ->
@@ -123,11 +136,14 @@ instance Pretty Doc (Def' PrettyName Typ) where
       in pretty decl <> defn
 
 instance
-  ( Pretty LineDoc t
+  ( Pretty t
+  , PrettyDoc t ~ LineDoc
   , Show x
-  , Pretty LineDoc t'
+  , Pretty t'
+  , PrettyDoc t' ~ LineDoc
   , Show x')
-  => Pretty LineDoc (TypeDecl' PrettyName t x t' x') where
+  => Pretty (TypeDecl' PrettyName t x t' x') where
+  type PrettyDoc (TypeDecl' PrettyName t x t' x') = LineDoc
   prettyPrec _ (TypeDecl fn is os) =
     let lhsTy = pretty (FunctionCall fn is) in
     let rhsTy = csep $ map pretty os in

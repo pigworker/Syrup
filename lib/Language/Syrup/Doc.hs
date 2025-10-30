@@ -5,15 +5,16 @@
 ------------------------------------------------------------------------------
 
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Language.Syrup.Doc
   -- Doc stuff
   ( LineDoc
   , Doc
-  , renderToString
-  , renderToHtml
+  , Render(..)
   , AnnHighlight(..)
   , AnnStructure(..)
+  , aLine
   , highlight
   , structure
   , between
@@ -40,7 +41,8 @@ module Language.Syrup.Doc
 import Prelude hiding (unwords)
 
 import Data.Foldable (fold)
-import Data.List (intersperse)
+import Data.Kind (Type)
+import Data.List (intercalate, intersperse)
 import Data.String (IsString, fromString)
 import Data.Void (Void, absurd)
 
@@ -74,6 +76,9 @@ highlight ann str = AString (Just ann) str
 structure :: AnnStructure -> Doc -> Doc
 structure ann d = [ABlock (Just ann) d]
 
+aLine :: LineDoc -> Doc
+aLine = pure . ALine
+
 instance Semigroup LineDoc where
   AString _ "" <> d = d
   d <> AString _ "" = d
@@ -98,57 +103,62 @@ type Doc = [BlockDoc]
 instance IsString LineDoc where
   fromString = AString Nothing
 
-renderToString :: Doc -> String
-renderToString = unlines . render where
+class Render d where
+  renderToString :: d -> String
+  renderToHtml :: d -> Html
 
-  render :: Doc -> [String]
-  render = foldMap renderBlock
+instance Render LineDoc where
 
-  renderLine :: LineDoc -> String
-  renderLine (AString _ str) = str
-  renderLine (AConcat ds) = foldMap renderLine ds
+  renderToString (AString _ str) = str
+  renderToString (AConcat ds) = foldMap renderToString ds
 
-  renderBlock :: BlockDoc -> [String]
-  renderBlock (ALine d) = [renderLine d]
-  renderBlock (ABlock ann ds) = maybe id applyStructure ann $ render ds
+  renderToHtml (AConcat ds) = foldMap renderToHtml ds
+  renderToHtml (AString ann str) = maybe id applyHighlight ann $ toHtml str
 
-  applyStructure :: AnnStructure -> [String] -> [String]
-  applyStructure (NestBlock i) | i > 0 = map (replicate i ' ' ++)
-  applyStructure _ = id
+    where
+      applyHighlight :: AnnHighlight -> Html -> Html
+      applyHighlight ann = Html.span ! class_ (asAttribute ann)
 
-renderToHtml :: Doc -> Html
-renderToHtml = vcat . render where
+      asAttribute :: AnnHighlight -> AttributeValue
+      asAttribute AFunction = "syrup-function"
+      asAttribute AKeyword = "syrup-keyword"
+      asAttribute AType = "syrup-type"
 
-  vcat :: [Html] -> Html
-  vcat = fold . intersperse (Html.br <> "\n")
+instance Render Doc where
 
-  render :: Doc -> [Html]
-  render = foldMap renderBlock
+  renderToString = intercalate "\n" . render where
 
-  renderLine :: LineDoc -> Html
-  renderLine (AString ann str) = maybe id applyHighlight ann $ toHtml str
-  renderLine (AConcat ds) = foldMap renderLine ds
+    render :: Doc -> [String]
+    render = foldMap renderBlock
 
-  applyHighlight :: AnnHighlight -> Html -> Html
-  applyHighlight ann html = Html.span ! class_ (asAttribute ann) $ html
+    renderBlock :: BlockDoc -> [String]
+    renderBlock (ALine d) = [renderToString d]
+    renderBlock (ABlock ann ds) = maybe id applyStructure ann $ render ds
 
-  asAttribute :: AnnHighlight -> AttributeValue
-  asAttribute AFunction = "syrup-function"
-  asAttribute AKeyword = "syrup-keyword"
-  asAttribute AType = "syrup-type"
+    applyStructure :: AnnStructure -> [String] -> [String]
+    applyStructure (NestBlock i) | i > 0 = map (replicate i ' ' ++)
+    applyStructure _ = id
 
-  renderBlock :: BlockDoc -> [Html]
-  renderBlock (ALine d) = [renderLine d]
-  renderBlock (ABlock Nothing ds) = render ds
-  renderBlock (ABlock (Just ann) ds) = case ann of
-    NestBlock i ->
-      if i < 0 then render ds else pure $
-      Html.div
-        ! style (toValue $ "padding-left: " ++ show i ++ "ch")
-        $ renderToHtml ds
-    CodeBlock -> pure $ Html.code $ renderToHtml ds
-    PreBlock -> pure $ Html.code $ renderToHtml ds
-    SVGBlock -> pure $ renderToHtml ds
+  renderToHtml = vcat . render where
+
+    vcat :: [Html] -> Html
+    vcat = fold . intersperse (Html.br <> "\n")
+
+    render :: Doc -> [Html]
+    render = foldMap renderBlock
+
+    renderBlock :: BlockDoc -> [Html]
+    renderBlock (ALine d) = [renderToHtml d]
+    renderBlock (ABlock Nothing ds) = render ds
+    renderBlock (ABlock (Just ann) ds) = case ann of
+      NestBlock i ->
+        if i < 0 then render ds else pure $
+        Html.div
+          ! style (toValue $ "padding-left: " ++ show i ++ "ch")
+          $ renderToHtml ds
+      CodeBlock -> pure $ Html.code $ renderToHtml ds
+      PreBlock -> pure $ Html.code $ renderToHtml ds
+      SVGBlock -> pure $ renderToHtml ds
 
 ------------------------------------------------------------------------
 -- Basic combinators
@@ -206,44 +216,56 @@ newtype AList a = AList [a]
 newtype ATuple a = ATuple [a]
 newtype ASet a = ASet [a]
 
-class Pretty d t where
-  pretty :: t -> d
+class Pretty t where
+  type PrettyDoc t :: Type
+  pretty :: t -> PrettyDoc t
   pretty = prettyPrec minBound
 
-  prettyPrec :: PrecedenceLevel -> t -> d
+  prettyPrec :: PrecedenceLevel -> t -> PrettyDoc t
 
-instance Pretty LineDoc String where
+instance Pretty String where
+  type PrettyDoc String = LineDoc
   prettyPrec _ = fromString
 
-instance Pretty LineDoc Name where
+instance Pretty Name where
+  type PrettyDoc Name = LineDoc
   prettyPrec _ = highlight AFunction . getName
 
-instance Pretty LineDoc TyName where
+instance Pretty TyName where
+  type PrettyDoc TyName = LineDoc
   prettyPrec _ = highlight AType . between "<" ">" . getTyName
 
-instance Pretty LineDoc Integer where
+instance Pretty Integer where
+  type PrettyDoc Integer = LineDoc
   prettyPrec _ = pretty . show
 
-instance Pretty LineDoc Void where
+instance Pretty Void where
+  type PrettyDoc Void = LineDoc
   prettyPrec _ = absurd
 
-instance Pretty LineDoc () where
+instance Pretty () where
+  type PrettyDoc () = LineDoc
   prettyPrec _ _ = "()"
 
-instance Pretty LineDoc Unit where
+instance Pretty Unit where
+  type PrettyDoc Unit = LineDoc
   prettyPrec _ _ = ""
 
-instance Pretty LineDoc a => Pretty LineDoc (AList a) where
+instance (Pretty a, PrettyDoc a ~ LineDoc) => Pretty (AList a) where
+  type PrettyDoc (AList a) = LineDoc
   prettyPrec _ (AList xs) = list $ map pretty xs
 
-instance Pretty LineDoc a => Pretty LineDoc (ATuple a) where
+instance (Pretty a, PrettyDoc a ~ LineDoc) => Pretty (ATuple a) where
+  type PrettyDoc (ATuple a) = LineDoc
   prettyPrec _ (ATuple xs) = tuple $ map pretty xs
 
-instance Pretty LineDoc a => Pretty LineDoc (ASet a) where
+instance (Pretty a, PrettyDoc a ~ LineDoc) => Pretty (ASet a) where
+  type PrettyDoc (ASet a) = LineDoc
   prettyPrec _ (ASet xs) = set $ map pretty xs
 
-instance Pretty Doc LineDoc where
+instance Pretty LineDoc where
+  type PrettyDoc LineDoc = Doc
   prettyPrec _ l = [ALine l]
 
-prettyBlock :: Pretty LineDoc a => a -> Doc
-prettyBlock a = [ALine (pretty a)]
+prettyBlock :: (Pretty a, PrettyDoc a ~ LineDoc) => a -> Doc
+prettyBlock = aLine . pretty

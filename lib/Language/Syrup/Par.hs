@@ -18,6 +18,7 @@ import Data.Monoid (Last(..))
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
+import Language.Syrup.Doc hiding (brackets)
 import Language.Syrup.Fdk (Feedback(ASyntaxError))
 import Language.Syrup.Lex
 import Language.Syrup.Syn
@@ -395,33 +396,45 @@ syrupKeywords = foldMap singleton
 -- syntax errors
 ------------------------------------------------------------------------------
 
-syntaxError :: ParErr -> [String]
+syntaxError :: ParErr -> Doc
 syntaxError Mystery =
-  ["Something is wrong but I can't quite put my finger on it."]
+  prettyBlock "Something is wrong but I can't quite put my finger on it."
 syntaxError (Explanation cz tzs y) = concat
-  [ preamble, [""]
-  , ["I got stuck here: "]
-  , ["  " ++ whereWasI cz (cur tzs " {HERE} ") ]
-  , seeking cz
-  , ["At that point, " ++ yelp y]
+  [ preamble
+  , prettyBlock "I got stuck here: "
+  , structure (NestBlock 2) $ prettyBlock $ whereWasI cz (cur tzs " {HERE} ")
+  , prettyBlock (seeking cz)
+  , prettyBlock ("At that point, " ++ yelp y)
   ]
   where
+    getSrc :: ParClue -> Last [String]
     getSrc (SOURCE src) = Last (Just (lines src))
     getSrc _ = Last Nothing
+
+    preamble :: Doc
     preamble = case foldMap getSrc cz of
       (Last (Just ls)) ->
-        "I was trying to make sense of the following code:" : "" : ls
-      _ ->
-        ["I can't remember what you wrote."]
+        prettyBlock "I was trying to make sense of the following code:"
+        <> structure (NestBlock 2) (foldMap prettyBlock ls)
+      _ -> prettyBlock "I can't remember what you wrote."
+
+
+    cur :: (Bwd Token, [Token]) -> String -> String
     cur (tz, ts) m = foldMap show tz ++ m ++ foldMap show ts
+
+    whereWasI :: Bwd ParClue -> String -> String
     whereWasI B0 w = w
     whereWasI _ w | length w >= 40 = "... " ++ w ++ " ..."
     whereWasI (cz :< BRACKET b tz ts) w =
       whereWasI cz (cur (tz, ts) (o ++ w ++ c)) where (o, c) = brackets b
     whereWasI (cz :< _) w = whereWasI cz w
-    seeking B0 = ["I wish I knew what I was looking for."]
-    seeking (cz :< SEEKING x) = ["I was looking for " ++ x ++ "."]
+
+    seeking :: Bwd ParClue -> String
+    seeking B0 = "I wish I knew what I was looking for."
+    seeking (cz :< SEEKING x) = "I was looking for " ++ x ++ "."
     seeking (cz :< _) = seeking cz
+
+    yelp :: ParYelp -> String
     yelp AARGH = "I didn't know where to begin."
     yelp UnexpectedEnd = "I ran out of input when I needed more."
     yelp ExpectedEnd =
