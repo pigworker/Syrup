@@ -18,6 +18,7 @@ import Data.Kind (Type)
 import Data.Monoid ()
 
 import Language.Syrup.BigArray
+import Language.Syrup.Doc
 import Language.Syrup.Fdk
 import Language.Syrup.Syn
 

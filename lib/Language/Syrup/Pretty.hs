@@ -35,10 +35,9 @@ basicShow
   => s -> String
 basicShow = prettyShow emptyArr
 
-{-
-csepShow :: (Unelab s, Pretty LineDoc (Unelabed s)) => [s] -> Doc
-csepShow = punctuate ", " . map basicShow
--}
+csepShow :: (Unelab s, Pretty (Unelabed s), Render (PrettyDoc (Unelabed s))) => [s] -> String
+csepShow = intercalate ", " . map basicShow
+
 
 instance Pretty Va where
   type PrettyDoc Va = LineDoc
@@ -105,7 +104,7 @@ instance
   ) => Pretty (Ty t x) where
   type PrettyDoc (Ty t x) = LineDoc
   prettyPrec lvl = \case
-    Meta x   -> highlight AType $ angles $ "?" <> pretty x
+    Meta x   -> highlight AType $ between "<" ">" $ "?" <> pretty x
     TVar s _ -> pretty s
     Bit t    -> pretty t <> pretty (TyName "Bit")
     Cable ps -> pretty (AList ps)

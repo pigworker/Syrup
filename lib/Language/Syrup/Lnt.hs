@@ -18,7 +18,7 @@ import Language.Syrup.Fdk
 import Language.Syrup.Pretty ()
 import Language.Syrup.Syn
 
-import Language.Syrup.Utils (be)
+import Language.Syrup.Utils (be, plural)
 
 class Lint t where
   linters :: [t -> [Feedback]]

@@ -6,7 +6,10 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module Language.Syrup.Fdk where
+module Language.Syrup.Fdk
+  ( module Language.Syrup.Fdk
+  , module Language.Syrup.Fdk.Base
+  ) where
 
 import Prelude hiding (div, id, unlines, unwords)
 
@@ -17,13 +20,13 @@ import Data.Foldable (fold)
 import Data.List (intercalate, intersperse)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
-import Data.String (IsString)
 import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray (isEmptyArr, foldMapSet)
 import Language.Syrup.Doc
-import Language.Syrup.Pretty
+import Language.Syrup.Fdk.Base
 import Language.Syrup.Opt (Options(..), quiet)
+import Language.Syrup.Pretty
 import Language.Syrup.Syn.Base
 
 import Language.Syrup.Utils (be, plural, oxfordList)
@@ -221,67 +224,59 @@ instance Pretty Feedback where
       AnIllTypedInputs x iTys is ->
         aLine $$
           [ "Inputs for ", identifier x, " are typed "
-          , isCode (csep $ map pretty iTys), "."
+          , isCode (pretty $ ATuple iTys), "."
           ]
         <> aLine $$
           [ "That can't accept ", isCode (parens $$ map pretty is), "."
           ]
-{-
-      AnIllTypedMemory x mTys m0 -> do
-        mTys <- traverse renderHtml mTys
-        m0 <- traverse renderHtml m0
-        pure $$
+      AnIllTypedMemory x mTys m0 ->
+        aLine $$
           [ "Memory for ", identifier x, " has type "
-          , code (braces $ punctuate ", " mTys), "."
-          , br
-          , "That can't store ", braces $$ m0 ,"."
+          , isCode (pretty $ ASet mTys), "."
           ]
-      AnIllTypedOutputs x oTys os -> do
-        oTys <- traverse renderHtml oTys
-        os <- traverse renderHtml os
-        pure $$
+        <> aLine $$
+          [ "That can't store ", braces $$ (map pretty m0) ,"."
+          ]
+      AnIllTypedOutputs x oTys os ->
+        aLine $$
           [ "Outputs for ", identifier x, " are typed "
-          , code (punctuate ", " oTys), "."
-          , br
-          , "That can't accept "
-          , code (punctuate ", " os), "."
+          , isCode (csep $ map pretty oTys), "."
           ]
-      AWrongFinalMemory mo mo' -> do
-        mo <- traverse renderHtml mo
-        mo' <- traverse renderHtml mo'
-        pure $$
+        <> aLine $$
+          [ "That can't accept "
+          , isCode (csep $ map pretty os), "."
+          ]
+      AWrongFinalMemory mo mo' ->
+        aLine $$
           [ "Wrong final memory: expected "
-          , code (braces $$ mo)
+          , isCode (braces $$ map pretty mo)
           , " but got "
-          , code (braces $$ mo')
+          , isCode (braces $$ map pretty mo')
           , "." ]
-      AWrongOutputSignals os os' -> do
-        os <- traverse renderHtml os
-        os' <- traverse renderHtml os'
-        pure $$
+      AWrongOutputSignals os os' ->
+        aLine $$
           [ "Wrong output signals: expected "
-          , code (parens $$ os)
+          , isCode (parens $$ map pretty os)
           , " but got "
-          , code (parens $$ os')
+          , isCode (parens $$ map pretty os')
           , "." ]
 
-      WhenUnitTesting x is os fdks -> do
-        fdks <- traverse renderHtml fdks
-        pure $$$
-          [ fold [ "When unit testing ", identifier x
-                 , toHtml (circuitConfig True is), " = "
-                 , toHtml (circuitConfig False os), ":"]
-          , br
-          , div ! style "padding-left: 1em" $ punctuate (br <> "\n") fdks
-          ]
-      WhenDisplaying f fdks -> do
-        fdks <- traverse renderHtml fdks
-        pure $$$
-          [ fold [ "When displaying ", identifier f, ":" ]
-          , br
-          , div ! style "padding-left: 1em" $ punctuate (br <> "\n") fdks
-          ]
+      WhenUnitTesting x is os fdks ->
+        aLine $$
+          [ "When unit testing "
+          , isCode $$
+              [ identifier x
+              , pretty (circuitConfig True is), " = "
+              , pretty (circuitConfig False os)]
+          , ":"]
+        <> nest 2 (foldMap go fdks)
+      WhenDisplaying f fdks ->
+        aLine $$
+          [ "When displaying ", identifier f, ":" ]
+        <> nest 2 (foldMap go fdks)
+      _ -> aLine "not implemented yet"
 
+{-
 feedbackText :: [Feedback] -> [String]
 feedbackText = render
 
