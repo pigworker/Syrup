@@ -4,7 +4,7 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE PatternGuards, MultiParamTypeClasses #-}
+{-# LANGUAGE PatternGuards #-}
 
 module Language.Syrup.Par where
 
@@ -415,7 +415,7 @@ syntaxError (Explanation cz tzs y) = concat
     preamble = case foldMap getSrc cz of
       (Last (Just ls)) ->
         prettyBlock "I was trying to make sense of the following code:"
-        <> structure (NestBlock 2) (foldMap prettyBlock ls)
+        <> nest 2 (structure PreBlock $ foldMap prettyBlock ls)
       _ -> prettyBlock "I can't remember what you wrote."
 
 

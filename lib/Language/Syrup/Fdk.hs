@@ -11,7 +11,7 @@ module Language.Syrup.Fdk
   , module Language.Syrup.Fdk.Base
   ) where
 
-import Prelude hiding (div, id, unlines, unwords)
+import Prelude hiding (div, id, unwords)
 
 import Control.Monad.State (MonadState, get, put, evalState)
 import Control.Monad.Writer (MonadWriter, tell)
@@ -30,6 +30,9 @@ import Language.Syrup.Pretty
 import Language.Syrup.Syn.Base
 
 import Language.Syrup.Utils (($$), be, plural, oxfordList)
+
+import Text.Blaze.Html5 (Html)
+import qualified Text.Blaze.Html5 as Html
 
 instance Pretty ScopeError where
   type PrettyDoc ScopeError = Doc
@@ -246,16 +249,15 @@ instance Pretty Feedback where
         <> nest 2 (foldMap go fdks)
       _ -> aLine "not implemented yet"
 
-{-
 feedbackText :: [Feedback] -> [String]
-feedbackText = render
+feedbackText = renderToString . pretty
 
 feedbackHtml :: [Feedback] -> Html
-feedbackHtml = (headerHtml <>) . flip evalState 0 . renderHtml
+feedbackHtml = (headerHtml <>) . renderToHtml . pretty
 
   where
     headerHtml :: Html
-    headerHtml = (<> "\n") $ Html.style $ toHtml $ unlines
+    headerHtml = (<> "\n") $ Html.style $ Html.toHtml $ unlines
       [ ""
       , "  .syrup-code {"
       , "    display: block;"
@@ -286,4 +288,3 @@ feedbackHtml = (headerHtml <>) . flip evalState 0 . renderHtml
       , "  }"
       , ""
       ]
--}

@@ -1,15 +1,15 @@
-Circuits not, and, or, and one are defined.
+Circuits `not`, `and`, `or`, and `one` are defined.
 
-DNF circuit for f:
-f(<Bit>, <Bit>, <Bit>) -> <Bit>
-f(X, Y, Z) = X & Y & Z | X & !Y & !Z
+DNF circuit for `f`:
+  f(<Bit>, <Bit>, <Bit>) -> <Bit>
+  f(X, Y, Z) = X & Y & Z | X & !Y & !Z
 
 Error: You are redefining the local variable X.
 
-Error: Invalid truth table output for h.
+Error: Invalid truth table output for `h`.
 
-Error: Invalid truth table output for i.
+Error: Invalid truth table output for `i`.
 
-DNF circuit for j:
-j() -> <Bit>
-j() = 0
+DNF circuit for `j`:
+  j() -> <Bit>
+  j() = 0

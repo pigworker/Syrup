@@ -172,14 +172,18 @@ instance IsString LineDoc where
   fromString = AString
 
 class Render d where
-  renderToString :: d -> String
+  renderToString :: d -> [String]
   renderToHtml :: d -> Html
 
 instance Render LineDoc where
 
-  renderToString (AString str) = str
-  renderToString (AnAnnot _ d) = renderToString d
-  renderToString (AConcat ds) = foldMap renderToString ds
+  renderToString = pure . go where
+
+    go :: LineDoc -> String
+    go (AString str) = str
+    go (AnAnnot IsCode d) = "`" ++ go d ++ "`"
+    go (AnAnnot (HasStyle _) d) = go d
+    go (AConcat ds) = foldMap go ds
 
   renderToHtml (AConcat ds) = foldMap renderToHtml ds
   renderToHtml (AString str) = toHtml str
@@ -197,14 +201,13 @@ instance Render LineDoc where
 
 instance Render Doc where
 
-  renderToString = intercalate "\n" . render where
-
-    render :: Doc -> [String]
-    render = foldMap renderBlock
+  renderToString = foldMap renderBlock where
 
     renderBlock :: BlockDoc -> [String]
-    renderBlock (ALine d) = [renderToString d]
-    renderBlock (ABlock ann ds) = maybe id applyStructure ann $ render ds
+    renderBlock (ALine d) = [concat $ renderToString d]
+    renderBlock (ABlock ann ds)
+      = maybe id applyStructure ann
+      $ foldMap renderBlock ds
 
     applyStructure :: AnnStructure -> [String] -> [String]
     applyStructure (NestBlock i) ls | i > 0 = map (replicate i ' ' ++) ls

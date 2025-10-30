@@ -25,10 +25,15 @@ import Language.Syrup.Unelab
 -- Resulting functions
 
 
+prettyUnelabed
+  :: (Unelab s, Pretty (Unelabed s))
+  => CoEnv -> s -> PrettyDoc (Unelabed s)
+prettyUnelabed env = pretty . runUnelab env
+
 prettyShow
   :: (Unelab s, Pretty (Unelabed s), Render (PrettyDoc (Unelabed s)))
   => CoEnv -> s -> String
-prettyShow env = renderToString . pretty . runUnelab env
+prettyShow env = concat . renderToString . prettyUnelabed env
 
 basicShow
   :: (Unelab s, Pretty (Unelabed s), Render (PrettyDoc (Unelabed s)))
@@ -47,8 +52,26 @@ instance Pretty Va where
     V1    -> "1"
     VC vs -> pretty (AList vs)
 
+circuitExec :: Name -> CircuitConfig -> CircuitConfig -> LineDoc
+circuitExec nm is os = fold
+  [ pretty nm
+  , let mems = memoryConfig is in
+    if null mems then mempty else braces (foldMap pretty mems)
+  , "("
+  , foldMap pretty (valuesConfig is)
+  , ") = "
+  , let mems = memoryConfig os in
+    if null mems then mempty else braces (foldMap pretty mems)
+  , foldMap pretty (valuesConfig os)
+  ]
+
+
 ------------------------------------------------------------------------
 -- Pretty instances
+
+instance Pretty PrettyName where
+  type PrettyDoc PrettyName = LineDoc
+  prettyPrec _ = pretty . toName
 
 data FunctionCall a = FunctionCall
   { functionName :: PrettyName
