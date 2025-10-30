@@ -15,8 +15,10 @@ import Language.Syrup.BigArray
 import Language.Syrup.Ded
 import Language.Syrup.Doc
 import Language.Syrup.Fdk
-import Language.Syrup.Pretty
+import Language.Syrup.Pretty ()
 import Language.Syrup.Syn
+
+import Language.Syrup.Utils (be)
 
 class Lint t where
   linters :: [t -> [Feedback]]
@@ -24,10 +26,6 @@ class Lint t where
 
 lint :: Lint t => t -> [Feedback]
 lint t = foldMap ($ t) linters
-
-be :: IsString d => [a] -> d
-be [_] = "is"
-be _ = "are"
 
 instance ty ~ () => Lint (Def' Name ty) where
   linters = [ emptyWhere

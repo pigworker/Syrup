@@ -22,7 +22,7 @@ import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
-import Language.Syrup.Fdk
+import Language.Syrup.Fdk.Base
 import Language.Syrup.Syn
 import Language.Syrup.Va
 

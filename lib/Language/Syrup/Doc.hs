@@ -14,15 +14,18 @@ module Language.Syrup.Doc
   , Render(..)
   , AnnHighlight(..)
   , AnnStructure(..)
+  , FeedbackStatus(..)
+  , isErroring
   , aLine
   , highlight
+  , isCode
   , structure
+  , nest
   , between
   , braces
   , brackets
   , csep
   , list
-  , nest
   , parens
   , parensIf
   , punctuate
@@ -51,6 +54,57 @@ import qualified Text.Blaze.Html5 as Html
 import Text.Blaze.Html5.Attributes (class_, style)
 
 import Language.Syrup.Syn.Base
+import Language.Syrup.Utils (plural)
+
+------------------------------------------------------------------------------
+-- Feedback status
+
+data FeedbackStatus
+  = Success
+  | Comment
+  | Warning
+  | Error
+  | Internal
+  deriving Eq
+
+isErroring :: FeedbackStatus -> Bool
+isErroring = \case
+  Success  -> False
+  Comment  -> False
+  Warning  -> False
+  Error    -> True
+  Internal -> True
+
+instance Semigroup FeedbackStatus where
+  Success <> f = f
+  e <> Success = e
+  Comment <> f = f
+  e <> Comment = e
+  Warning <> f = f
+  e <> Warning = e
+  Error <> f   = f
+  e <> Error   = e
+  _ <> _       = Internal
+
+instance Monoid FeedbackStatus where
+  mempty = Success
+  mappend = (<>)
+
+feedbackStatus :: FeedbackStatus -> String
+feedbackStatus = \case
+    Success -> ""
+    Comment -> ""
+    Warning -> "Warning"
+    Error -> "Error"
+    Internal -> "Internal error"
+
+toCSSClass :: FeedbackStatus -> AttributeValue
+toCSSClass st = toValue $ ("syrup-" ++) $ case st of
+  Success -> "happy"
+  Comment -> "comment"
+  Warning -> "warning"
+  Error -> "error"
+  Internal -> "internal"
 
 ------------------------------------------------------------------------
 -- Doc type and renderers
@@ -60,33 +114,47 @@ data AnnHighlight
   | AKeyword
   | AType
 
+data AnnLine
+  = IsCode
+  | HasStyle AnnHighlight
+
 data AnnStructure
   = NestBlock Int
   | CodeBlock
   | PreBlock
+  | RawCodeBlock
   | SVGBlock
+  | StatusBlock FeedbackStatus
 
 data LineDoc
-  = AString (Maybe AnnHighlight) String
+  = AString String
+  | AnAnnot AnnLine LineDoc
   | AConcat [LineDoc]
 
-highlight :: AnnHighlight -> String -> LineDoc
-highlight ann str = AString (Just ann) str
+highlight :: AnnHighlight -> LineDoc -> LineDoc
+highlight = AnAnnot . HasStyle
+
+isCode :: LineDoc -> LineDoc
+isCode = AnAnnot IsCode
 
 structure :: AnnStructure -> Doc -> Doc
 structure ann d = [ABlock (Just ann) d]
+
+nest :: Int -> Doc -> Doc
+nest i d | i <= 0 || null d = d
+nest i d = structure (NestBlock i) d
 
 aLine :: LineDoc -> Doc
 aLine = pure . ALine
 
 instance Semigroup LineDoc where
-  AString _ "" <> d = d
-  d <> AString _ "" = d
+  AString "" <> d = d
+  d <> AString "" = d
   d@(AString{}) <> AConcat ds = AConcat (d : ds)
   d1 <> d2 = AConcat [d1, d2]
 
 instance Monoid LineDoc where
-  mempty = AString Nothing ""
+  mempty = AString ""
 
 data BlockDoc
   = ALine LineDoc
@@ -101,7 +169,7 @@ instance Semigroup BlockDoc where
 type Doc = [BlockDoc]
 
 instance IsString LineDoc where
-  fromString = AString Nothing
+  fromString = AString
 
 class Render d where
   renderToString :: d -> String
@@ -109,15 +177,18 @@ class Render d where
 
 instance Render LineDoc where
 
-  renderToString (AString _ str) = str
+  renderToString (AString str) = str
+  renderToString (AnAnnot _ d) = renderToString d
   renderToString (AConcat ds) = foldMap renderToString ds
 
   renderToHtml (AConcat ds) = foldMap renderToHtml ds
-  renderToHtml (AString ann str) = maybe id applyHighlight ann $ toHtml str
+  renderToHtml (AString str) = toHtml str
+  renderToHtml (AnAnnot ann d) = applyHighlight ann (renderToHtml d)
 
     where
-      applyHighlight :: AnnHighlight -> Html -> Html
-      applyHighlight ann = Html.span ! class_ (asAttribute ann)
+      applyHighlight :: AnnLine -> Html -> Html
+      applyHighlight IsCode = Html.code
+      applyHighlight (HasStyle sty) = Html.span ! class_ (asAttribute sty)
 
       asAttribute :: AnnHighlight -> AttributeValue
       asAttribute AFunction = "syrup-function"
@@ -136,8 +207,12 @@ instance Render Doc where
     renderBlock (ABlock ann ds) = maybe id applyStructure ann $ render ds
 
     applyStructure :: AnnStructure -> [String] -> [String]
-    applyStructure (NestBlock i) | i > 0 = map (replicate i ' ' ++)
-    applyStructure _ = id
+    applyStructure (NestBlock i) ls | i > 0 = map (replicate i ' ' ++) ls
+    applyStructure (StatusBlock cat) [] = []
+    applyStructure (StatusBlock cat) (l : ls) =
+      let status = feedbackStatus cat in
+      (plural status status ": " <> l) : ls
+    applyStructure _ ls = ls
 
   renderToHtml = vcat . render where
 
@@ -157,8 +232,11 @@ instance Render Doc where
           ! style (toValue $ "padding-left: " ++ show i ++ "ch")
           $ renderToHtml ds
       CodeBlock -> pure $ Html.code $ renderToHtml ds
-      PreBlock -> pure $ Html.code $ renderToHtml ds
+      PreBlock -> pure $ Html.pre $ renderToHtml ds
+      RawCodeBlock -> pure $ Html.div ! class_ "syrup-code" $ renderToHtml ds
       SVGBlock -> pure $ renderToHtml ds
+      StatusBlock cat ->
+        pure $ Html.div ! class_ (toCSSClass cat) $ renderToHtml ds
 
 ------------------------------------------------------------------------
 -- Basic combinators
@@ -198,11 +276,6 @@ tuple = parens . csep
 set :: [LineDoc] -> LineDoc
 set = braces . csep
 
-nest :: Int -> Doc -> Doc
-nest 0 d = d
-nest i [] = []
-nest i d = [ABlock (Just (NestBlock i)) d]
-
 ------------------------------------------------------------------------
 -- Pretty infrastructure
 
@@ -229,14 +302,18 @@ instance Pretty String where
 
 instance Pretty Name where
   type PrettyDoc Name = LineDoc
-  prettyPrec _ = highlight AFunction . getName
+  prettyPrec _ = highlight AFunction . pretty . getName
 
 instance Pretty TyName where
   type PrettyDoc TyName = LineDoc
-  prettyPrec _ = highlight AType . between "<" ">" . getTyName
+  prettyPrec _ = highlight AType . pretty . between "<" ">" . getTyName
 
 instance Pretty Integer where
   type PrettyDoc Integer = LineDoc
+  prettyPrec _ = pretty . show
+
+instance Pretty Int where
+  type PrettyDoc Int = LineDoc
   prettyPrec _ = pretty . show
 
 instance Pretty Void where

@@ -4,11 +4,16 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE OverloadedStrings #-}
+
 module Language.Syrup.Utils where
 
-import Control.Arrow
-import Data.Bifunctor as Bi
-import Data.Maybe
+import Control.Arrow ((***))
+
+import qualified Data.Bifunctor as Bi
+import Data.Foldable (fold)
+import Data.Maybe (mapMaybe)
+import Data.String (IsString)
 
 isNothing :: Maybe a -> Bool
 isNothing = \case
@@ -56,3 +61,23 @@ partitionWith p [] = ([], [])
 partitionWith p (x : xs)
   = either (Bi.first . (:)) (Bi.second . (:)) (p x)
   $ partitionWith p xs
+
+plural :: Monoid s => [a] -> s -> s -> s
+plural (_ : _ : _) str s = str <> s
+plural _ str _ = str
+
+oxfordList :: (Monoid a, IsString a) => [a] -> a
+oxfordList [] = ""
+oxfordList [x] = x
+oxfordList [x,y] = fold [x, " and ", y]
+oxfordList xs = fold (go xs) where
+
+  go = \case
+    [] -> []
+    [x] -> [x]
+    [x,y] -> [x, ", and ", y]
+    (x:xs) -> x : ", " : go xs
+
+be :: IsString d => [a] -> d
+be [_] = "is"
+be _ = "are"

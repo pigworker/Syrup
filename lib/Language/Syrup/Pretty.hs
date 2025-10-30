@@ -97,10 +97,15 @@ instance Pretty Ti where
     T0 -> "@"
     T1 -> ""
 
-instance (Pretty t, PrettyDoc t ~ LineDoc, Show x) => Pretty (Ty t x) where
+instance
+  ( Pretty t
+  , PrettyDoc t ~ LineDoc
+  , Pretty x
+  , PrettyDoc x ~ LineDoc
+  ) => Pretty (Ty t x) where
   type PrettyDoc (Ty t x) = LineDoc
   prettyPrec lvl = \case
-    Meta x   -> pretty (TyName ('?' : show x)) -- ugh...
+    Meta x   -> highlight AType $ angles $ "?" <> pretty x
     TVar s _ -> pretty s
     Bit t    -> pretty t <> pretty (TyName "Bit")
     Cable ps -> pretty (AList ps)
@@ -138,11 +143,13 @@ instance Pretty (Def' PrettyName Typ) where
 instance
   ( Pretty t
   , PrettyDoc t ~ LineDoc
-  , Show x
+  , Pretty x
+  , PrettyDoc x ~ LineDoc
   , Pretty t'
   , PrettyDoc t' ~ LineDoc
-  , Show x')
-  => Pretty (TypeDecl' PrettyName t x t' x') where
+  , Pretty x'
+  , PrettyDoc x' ~ LineDoc
+  ) => Pretty (TypeDecl' PrettyName t x t' x') where
   type PrettyDoc (TypeDecl' PrettyName t x t' x') = LineDoc
   prettyPrec _ (TypeDecl fn is os) =
     let lhsTy = pretty (FunctionCall fn is) in

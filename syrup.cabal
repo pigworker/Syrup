@@ -84,6 +84,7 @@ library
                     , Language.Syrup.Dot
                     , Language.Syrup.Expt
                     , Language.Syrup.Fdk
+                    , Language.Syrup.Fdk.Base
                     , Language.Syrup.Fsh
                     , Language.Syrup.Gph
                     , Language.Syrup.HalfZip
