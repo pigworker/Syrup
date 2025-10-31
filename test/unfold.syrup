@@ -10,4 +10,4 @@ f(X) = Z
 
 display f
 
-display [g] not
+--display [g] not

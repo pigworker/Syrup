@@ -53,4 +53,4 @@ adc2par([X2,X1],[Y2,Y1],C1) = C4,[Z2,Z1] where
   C4=mux(C2,C41,C40)
   Z2=mux(C2,Z21,Z20)
 
-display adc2par
+--display adc2par

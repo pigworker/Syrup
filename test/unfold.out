@@ -79,5 +79,3 @@ Error: You tried to use Z but it is not in scope.
 Warning: Circuit `f` has been stubbed out.
 
 Warning: I don't have an implementation for `f`.
-
-Error: You tried to use g but it is not in scope.
