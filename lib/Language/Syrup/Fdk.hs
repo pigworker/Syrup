@@ -119,7 +119,7 @@ instance Pretty Feedback where
         [ "Could not find the ", isCode (pretty exe), " executable." ]
       AnSVGGraph xs x ls ->
         aLine $$ ["Displaying ", identifier x, extra, ":"]
-        <> nest 2 (foldMap prettyBlock ls)
+        <> foldMap prettyBlock ls
         where extra = case xs of
                 [] -> ""
                 _ -> fold [" (with ", csep (map identifier xs), " unfolded)"]
