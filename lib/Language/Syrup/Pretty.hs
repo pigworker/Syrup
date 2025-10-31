@@ -81,19 +81,20 @@ data FunctionCall a = FunctionCall
 instance (Pretty a, PrettyDoc a ~ LineDoc) => Pretty (FunctionCall a) where
   type PrettyDoc (FunctionCall a) = LineDoc
   prettyPrec lvl = \case
-    FunctionCall (RemarkableName IsZeroGate) [] -> "0"
-    FunctionCall (RemarkableName IsOneGate) [] -> "1"
-    FunctionCall (RemarkableName IsNotGate) [s] -> "!" <> prettyPrec NegatedClause s
+    FunctionCall (RemarkableName IsZeroGate) [] -> highlight AFunction "0"
+    FunctionCall (RemarkableName IsOneGate) [] -> highlight AFunction "1"
+    FunctionCall (RemarkableName IsNotGate) [s] ->
+      highlight AFunction "!" <> prettyPrec NegatedClause s
     FunctionCall (RemarkableName IsOrGate) [s, t] ->
       parensIf (lvl > OrClause) $ unwords
         [ prettyPrec AndClause s
-        , "|"
+        , highlight AFunction "|"
         , prettyPrec OrClause t
         ]
     FunctionCall (RemarkableName IsAndGate) [s, t] ->
       parensIf (lvl > AndClause) $ unwords
         [ prettyPrec NegatedClause s
-        , "&"
+        , highlight AFunction "&"
         , prettyPrec AndClause t
         ]
     FunctionCall f es -> fold [pretty  (toName f), pretty (ATuple es)]
@@ -102,7 +103,7 @@ instance (Pretty a, PrettyDoc a ~ LineDoc) => Pretty (FunctionCall a) where
 instance Pretty (Exp' PrettyName ty) where
   type PrettyDoc (Exp' PrettyName ty) = LineDoc
   prettyPrec lvl = \case
-    Var _ x -> pretty x
+    Var _ x -> highlight AVariable $ pretty x
     Hol _ x -> "?" <> pretty x
     Cab _ es -> pretty (AList es)
     App _ f es -> prettyPrec lvl (FunctionCall f es)
@@ -110,7 +111,7 @@ instance Pretty (Exp' PrettyName ty) where
 instance (Pretty a, PrettyDoc a ~ LineDoc) => Pretty (Pat' ty a) where
   type PrettyDoc (Pat' ty a) = LineDoc
   prettyPrec lvl = \case
-    PVar _ a -> pretty a
+    PVar _ a -> highlight AVariable $ pretty a
     PCab _ ps -> pretty (AList ps)
 
 instance Pretty Ti where

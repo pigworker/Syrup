@@ -70,11 +70,11 @@ Simulation for `adc2`:
 Circuits `xor1` and `xor2` are defined.
 
 Bisimulation between `xor1`, `xor2`:
-  xor1 behaves like xor2
+  `xor1` behaves like `xor2`
     {} ~ {}
 
 Bisimulation between `xor`, `or`:
-  xor has a behaviour that or does not match
+  `xor` has a behaviour that `or` does not match
   xor(11) = 0
    but or(11) = 1
 

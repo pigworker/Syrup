@@ -13,7 +13,6 @@ module Language.Syrup.Fdk
 
 import Prelude hiding (div, id, unwords)
 
-import Control.Monad.State (MonadState, get, put, evalState)
 import Control.Monad.Writer (MonadWriter, tell)
 
 import Data.Foldable (fold)
@@ -67,15 +66,6 @@ keep opts fdk
   || (categorise fdk /= Comment
   && case fdk of { AStubbedOut{} -> False; _ -> True })
 
-{-
-fresh :: MonadState Int m => m Int
-fresh = do
-  n <- get
-  let sn = n + 1
-  put sn
-  pure sn
--}
-
 groupFeedback :: [Feedback] -> [Feedback]
 groupFeedback (ACircuitDefined cs : ACircuitDefined es : rest) =
   groupFeedback (ACircuitDefined (cs ++ es) : rest)
@@ -86,7 +76,7 @@ groupFeedback [] = []
 
 instance Pretty [Feedback] where
   type PrettyDoc [Feedback] = Doc
-  prettyPrec _ = intercalate (aLine "") . map pretty . groupFeedback
+  prettyPrec _ = foldMap pretty . groupFeedback
 
 identifier :: Name -> LineDoc
 identifier = isCode . pretty
@@ -112,31 +102,14 @@ instance Pretty Feedback where
       AnExperiment d x ls ->
         aLine (fold [d, " ", punctuate ", " (identifier <$> x), ":"])
         <> nest 2 ls
-{-
-      ADotGraph xs x ls -> do
-        n <- show <$> fresh
-        pure $$$ let graphName = "GRAPH" ++ n in
-          [ fold ["Displaying ", identifier x, extra, ":"]
-          , br
-          , Html.script ! type_ "module" $$$
-              let dotName = "dot" <> toHtml n in
-              let svgName = "svg" <> toHtml n in
-              [ ""
-              , "  import { Graphviz } from \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js\";"
-              , "  if (Graphviz) {"
-              , "    const graphviz = await Graphviz.load();"
-              , "    const " <> dotName <> " = " <> preEscapedString (show (unlines ls)) <> ";"
-              , "    const " <> svgName <> " = graphviz.dot(" <> dotName <> ");"
-              , "    document.getElementById(\"" <> toHtml graphName <> "\").innerHTML = " <> svgName <> ";"
-              , "  }"
-              , ""
-              ]
-          , div ! style "padding-left: 1em" $ div ! id (toValue graphName) $ ""
-          ]
+
+      ADotGraph xs x ls ->
+        aLine $$ ["Displaying ", identifier x, extra, ":"]
+        <> structure (GraphBlock ls) []
         where extra = case xs of
                 [] -> ""
                 _ -> fold [" (with ", punctuate ", " (map identifier xs), " unfolded)"]
--}
+
       AFoundHoles f ls ->
         aLine $$ ["Found holes in circuit ", identifier f, ":"]
         <> nest 2 (foldMap pretty ls)
@@ -247,10 +220,14 @@ instance Pretty Feedback where
         aLine $$
           [ "When displaying ", identifier f, ":" ]
         <> nest 2 (foldMap go fdks)
-      _ -> aLine "not implemented yet"
 
 feedbackText :: [Feedback] -> [String]
-feedbackText = renderToString . pretty
+feedbackText
+  = renderToString
+  . fold
+  . intersperse (aLine "")
+  . map pretty
+  . groupFeedback
 
 feedbackHtml :: [Feedback] -> Html
 feedbackHtml = (headerHtml <>) . renderToHtml . pretty
@@ -287,10 +264,13 @@ feedbackHtml = (headerHtml <>) . renderToHtml . pretty
       , "    padding: 0 6px 0 0;"
       , "  }"
       , "  .syrup-function {"
-      , "    color: blue;"
+      , "    color: light-dark(blue, #66d9ef);"
+      , "  }"
+      , "  .syrup-variable {"
+      , "    color: light-dark(purple, #fc929e);"
       , "  }"
       , "  .syrup-type {"
-      , "    color: green;"
+      , "    color: light-dark(green, #a6e22e);"
       , "  }"
       , "  .syrup-keyword {"
       , "    font-weight: bold;"

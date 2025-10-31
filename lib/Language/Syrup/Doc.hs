@@ -43,6 +43,8 @@ module Language.Syrup.Doc
 
 import Prelude hiding (unwords)
 
+import Control.Monad.State (MonadState, get, put, evalState)
+
 import Data.Foldable (fold)
 import Data.Kind (Type)
 import Data.List (intercalate, intersperse)
@@ -51,7 +53,8 @@ import Data.Void (Void, absurd)
 
 import Text.Blaze.Html5 (Html, AttributeValue, (!), toHtml, toValue)
 import qualified Text.Blaze.Html5 as Html
-import Text.Blaze.Html5.Attributes (class_, style)
+import Text.Blaze.Html5.Attributes (class_, style, type_)
+import qualified Text.Blaze.Html5.Attributes as Attr
 
 import Language.Syrup.Syn.Base
 import Language.Syrup.Utils (plural)
@@ -111,6 +114,7 @@ toCSSClass st = toValue $ ("syrup-" ++) $ case st of
 
 data AnnHighlight
   = AFunction
+  | AVariable
   | AKeyword
   | AType
 
@@ -120,10 +124,9 @@ data AnnLine
 
 data AnnStructure
   = NestBlock Int
-  | CodeBlock
   | PreBlock
   | RawCodeBlock
-  | SVGBlock
+  | GraphBlock [String]
   | StatusBlock FeedbackStatus
 
 data LineDoc
@@ -196,8 +199,10 @@ instance Render LineDoc where
 
       asAttribute :: AnnHighlight -> AttributeValue
       asAttribute AFunction = "syrup-function"
+      asAttribute AVariable = "syrup-variable"
       asAttribute AKeyword = "syrup-keyword"
       asAttribute AType = "syrup-type"
+
 
 instance Render Doc where
 
@@ -217,29 +222,63 @@ instance Render Doc where
       (plural status status ": " <> l) : ls
     applyStructure _ ls = ls
 
-  renderToHtml = vcat . render where
+  renderToHtml = flip evalState 0 . go False where
 
-    vcat :: [Html] -> Html
-    vcat = fold . intersperse (Html.br <> "\n")
+    -- The Bool is True if we are in pre mode, in which case we do:
+    -- 1. newlines as "\n" alone rather than (br <> "\n")
 
-    render :: Doc -> [Html]
-    render = foldMap renderBlock
+    newline :: Bool -> Html
+    newline b = (if b then id else (Html.br <>)) "\n"
 
-    renderBlock :: BlockDoc -> [Html]
-    renderBlock (ALine d) = [renderToHtml d]
-    renderBlock (ABlock Nothing ds) = render ds
-    renderBlock (ABlock (Just ann) ds) = case ann of
+    go :: MonadState Int m => Bool -> Doc -> m Html
+    go b = fmap (fold . intersperse (newline b))
+         . renderBlocks b
+
+    renderBlocks :: MonadState Int m => Bool -> Doc -> m [Html]
+    renderBlocks b = fmap fold . traverse (renderBlock b)
+
+    renderBlock :: MonadState Int m => Bool -> BlockDoc -> m [Html]
+    renderBlock b (ALine d) = pure [renderToHtml d]
+    renderBlock b (ABlock Nothing ds) = renderBlocks b ds
+    renderBlock b (ABlock (Just ann) ds) = case ann of
       NestBlock i ->
-        if i < 0 then render ds else pure $
-        Html.div
-          ! style (toValue $ "padding-left: " ++ show i ++ "ch")
-          $ renderToHtml ds
-      CodeBlock -> pure $ Html.code $ renderToHtml ds
-      PreBlock -> pure $ Html.pre $ renderToHtml ds
-      RawCodeBlock -> pure $ Html.div ! class_ "syrup-code" $ renderToHtml ds
-      SVGBlock -> pure $ renderToHtml ds
-      StatusBlock cat ->
-        pure $ Html.div ! class_ (toCSSClass cat) $ renderToHtml ds
+        if i <= 0 then renderBlocks b ds else do
+          html <- go b ds
+          pure $ pure $ Html.div
+            ! style (toValue $ "padding-left: " ++ show i ++ "ch")
+            $ html
+      PreBlock -> (pure . Html.pre) <$> go True ds
+      RawCodeBlock -> do
+        html <- go True ds
+        pure $ [Html.div ! class_ "syrup-code" $ html]
+      GraphBlock ls -> do
+        n <- show <$> fresh
+        pure $ let graphName = "GRAPH" ++ n in
+          [ Html.script ! type_ "module" $ fold $ intersperse "\n" $
+              let dotName = "dot" <> toHtml n in
+              let svgName = "svg" <> toHtml n in
+              [ ""
+              , "  import { Graphviz } from \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js\";"
+              , "  if (Graphviz) {"
+              , "    const graphviz = await Graphviz.load();"
+              , "    const " <> dotName <> " = " <> Html.preEscapedString (show (unlines ls)) <> ";"
+              , "    const " <> svgName <> " = graphviz.dot(" <> dotName <> ");"
+              , "    document.getElementById(\"" <> toHtml graphName <> "\").innerHTML = " <> svgName <> ";"
+              , "  }"
+              , ""
+              ]
+          , Html.div ! Attr.id (toValue graphName) $ ""
+          ]
+      StatusBlock cat -> do
+        html <- go False ds
+        pure [Html.div ! class_ (toCSSClass cat) $ html]
+
+fresh :: MonadState Int m => m Int
+fresh = do
+  n <- get
+  let sn = n + 1
+  put sn
+  pure sn
 
 ------------------------------------------------------------------------
 -- Basic combinators

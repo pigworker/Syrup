@@ -95,9 +95,8 @@ experiment (UnitTest x is os) = withCompo x $ \ c ->
   Left fdk -> [fdk]
   Right () -> [ASuccessfulUnitTest]
 experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc -> do
-  g <- use hasLens
   anExperiment "Bisimulation between" [l, r] $
-    report (runUnelab g l, runUnelab g r) (bisimReport lc rc)
+    report (l, r) (bisimReport lc rc)
 experiment (Print x) = withImplem x $ \ i -> do
   g <- use hasLens
   tell $ Seq.singleton
@@ -585,15 +584,15 @@ data Report' st st'
 data Report = forall st st'.
   (Ord st, Ord st', Show st, Show st') => Report (Report' st st')
 
-report :: (PrettyName, PrettyName) -> Report -> Doc
+report :: (Name, Name) -> Report -> Doc
 report (lnom, rnom) (Report (Incompatible (lis, los) (ris, ros))) =
   aLine $$
-    [ pretty lnom, " and ", pretty rnom, " are incompatible:"]
-  <> prettyBlock (TypeDecl lnom lis los)
-  <> prettyBlock (TypeDecl rnom ris ros)
+    [ identifier lnom, " and ", identifier rnom, " are incompatible:"]
+  <> prettyBlock (TypeDecl (StandardName lnom) lis los)
+  <> prettyBlock (TypeDecl (StandardName rnom) ris ros)
 report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
   aLine $$
-    [ pretty lnom, " has a behaviour that ", pretty rnom, " does not match"]
+    [ identifier lnom, " has a behaviour that ", identifier rnom, " does not match"]
   <> mem
   <> foldMapArr grot mr
   where
@@ -606,7 +605,7 @@ report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
     grot (r, (rvas, ross)) = (<> grump) $ case leftmostArr rvas of
       Just [] -> mempty
       _ -> aLine $$
-        [ "when ", pretty rnom, " has memory like"
+        [ "when ", identifier rnom, " has memory like"
         , pretty (ASet $ foldMapSet statesh rvas)
         ]
       where
@@ -617,13 +616,14 @@ report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
           ]
     screp :: ([Va], ([Va], [Va])) -> Doc
     screp (is, (los, ros)) =
-      aLine (circuitExec (toName lnom) (CircuitConfig [] is) (CircuitConfig [] los))
+      let inputs = CircuitConfig [] is in
+      aLine (circuitExec lnom inputs (CircuitConfig [] los))
       <> aLine $$
         [ " but "
-        , circuitExec (toName rnom) (CircuitConfig [] is) (CircuitConfig [] ros)
+        , circuitExec rnom inputs (CircuitConfig [] ros)
         ]
 report (lnom, rnom) (Report (InstantKarma ins ml [] (r : _) mr)) =
-  aLine $$ [ pretty rnom, " has a behaviour that ", pretty lnom, " does not match" ]
+  aLine $$ [ identifier rnom, " has a behaviour that ", identifier lnom, " does not match" ]
   <> mem
   <> foldMapArr grot ml
   where
@@ -634,7 +634,7 @@ report (lnom, rnom) (Report (InstantKarma ins ml [] (r : _) mr)) =
     grot (l, (lvas, loss)) = (<> grump) $ case leftmostArr lvas of
       Just [] -> mempty
       _ -> aLine $$
-             [ "when ", pretty lnom, " has memory like "
+             [ "when ", identifier lnom, " has memory like "
              , pretty (ASet $ foldMapSet statesh lvas)
              ]
       where
@@ -646,32 +646,32 @@ report (lnom, rnom) (Report (InstantKarma ins ml [] (r : _) mr)) =
 
     screp :: ([Va], ([Va], [Va])) -> Doc
     screp (is, (los, ros)) =
-      aLine (circuitExec (toName lnom) (CircuitConfig [] is) (CircuitConfig [] los))
+      aLine (circuitExec lnom (CircuitConfig [] is) (CircuitConfig [] los))
       <> aLine $$
         [ " but "
-        , circuitExec (toName rnom) (CircuitConfig [] is) (CircuitConfig [] ros)
+        , circuitExec rnom (CircuitConfig [] is) (CircuitConfig [] ros)
         ]
 report _ (Report (InstantKarma _ _ [] [] _)) =
   impossible "instant karma with no evidence"
 report (lnom, rnom) (Report (CounterModel ml (Left (l, rss)) mr)) =
   aLine $$
-    [ pretty lnom, " can be distinguished from all possible states of ", pretty rnom ]
+    [ identifier lnom, " can be distinguished from all possible states of ", identifier rnom ]
   <> aLine $$
-    [ "when ", pretty lnom, " has memory ", braces lmem ]
+    [ "when ", identifier lnom, " has memory ", braces lmem ]
   <> foldMapArr grump rss
   where
   lmem = case fromJust $ findArr l ml of
     (lvas, _) -> case fromJust $ leftmostArr lvas of
       lmem -> foldMap pretty lmem
   grump (r, vss) = aLine $$
-    [ "if ", pretty rnom
+    [ "if ", identifier rnom
     , " has memory like ", pretty (ASet $ foldMapSet statesh rs)
     , ", try inputs ", punctuate ";" (fmap (foldMap pretty) vss)
     ] where rs = fst $ fromJust $ findArr r mr
 report (lnom, rnom) (Report (CounterModel ml (Right (r, lss)) mr)) =
   aLine $$
-    [ pretty rnom, " can be distinguished from all possible states of ", pretty lnom
-    , "when ", pretty rnom, " has memory ", braces rmem
+    [ identifier rnom, " can be distinguished from all possible states of ", identifier lnom
+    , "when ", identifier rnom, " has memory ", braces rmem
     ]
   <> foldMapArr grump lss
   where
@@ -679,12 +679,12 @@ report (lnom, rnom) (Report (CounterModel ml (Right (r, lss)) mr)) =
     (rvas, _) -> case fromJust $ leftmostArr rvas of
       rmem -> foldMap pretty rmem
   grump (l, vss) = aLine $$
-    [ "if ", pretty lnom
+    [ "if ", identifier lnom
     , " has memory like ", pretty (ASet $ foldMapSet statesh ls)
     , ", try inputs ", punctuate ";" (fmap (foldMap pretty) vss)
     ] where ls = fst $ fromJust $ findArr l ml
 report (lnom, rnom) (Report (Bisimilar ml (Bisim l2r _) mr)) =
-  aLine $$ [ pretty lnom, " behaves like ", pretty rnom ]
+  aLine $$ [ identifier lnom, " behaves like ", identifier rnom ]
   <> foldMapArr simState l2r
   where
     simState (l, r) = case (findArr l ml, findArr r mr) of

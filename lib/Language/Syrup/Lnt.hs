@@ -56,7 +56,7 @@ instance ty ~ () => Lint (Def' Name ty) where
       [] -> []
       ns -> pure $ ALint $ aLine $ fold
         [ "the ", plural ns "wire" "s", " "
-        , punctuate ", " (pretty <$> ns)
+        , punctuate ", " (highlight AVariable . pretty <$> ns)
         , " ", be ns
         , " defined but never used."
         ]
