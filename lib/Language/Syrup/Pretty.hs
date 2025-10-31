@@ -24,7 +24,6 @@ import Language.Syrup.Unelab
 ------------------------------------------------------------------------
 -- Resulting functions
 
-
 prettyUnelabed
   :: (Unelab s, Pretty (Unelabed s))
   => CoEnv -> s -> PrettyDoc (Unelabed s)
@@ -39,10 +38,6 @@ basicShow
   :: (Unelab s, Pretty (Unelabed s), Render (PrettyDoc (Unelabed s)))
   => s -> String
 basicShow = prettyShow emptyArr
-
-csepShow :: (Unelab s, Pretty (Unelabed s), Render (PrettyDoc (Unelabed s))) => [s] -> String
-csepShow = intercalate ", " . map basicShow
-
 
 instance Pretty Va where
   type PrettyDoc Va = LineDoc
