@@ -402,7 +402,7 @@ syntaxError Mystery =
 syntaxError (Explanation cz tzs y) = concat
   [ preamble
   , prettyBlock "I got stuck here: "
-  , structure (NestBlock 2) $ prettyBlock $ whereWasI cz (cur tzs " {HERE} ")
+  , nest 2 $ prettyBlock $ whereWasI cz (cur tzs " {HERE} ")
   , prettyBlock (seeking cz)
   , prettyBlock ("At that point, " ++ yelp y)
   ]
