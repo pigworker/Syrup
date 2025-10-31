@@ -215,12 +215,17 @@ instance Render Doc where
       $ foldMap renderBlock ds
 
     applyStructure :: AnnStructure -> [String] -> [String]
-    applyStructure (NestBlock i) ls | i > 0 = map (replicate i ' ' ++) ls
+    applyStructure (NestBlock i) ls
+      | i > 0 = map (replicate i ' ' ++) ls
+      | otherwise = ls
     applyStructure (StatusBlock cat) [] = []
     applyStructure (StatusBlock cat) (l : ls) =
       let status = feedbackStatus cat in
       (plural status status ": " <> l) : ls
-    applyStructure _ ls = ls
+    applyStructure PreBlock ls = ls
+    applyStructure RawCodeBlock ls = ls
+    applyStructure (GraphBlock ls) _ = ls
+
 
   renderToHtml = flip evalState 0 . go False where
 
