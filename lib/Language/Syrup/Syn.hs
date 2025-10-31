@@ -15,8 +15,8 @@ import Data.Monoid (Sum(..), First(..))
 import Data.Void (Void)
 
 import Language.Syrup.BigArray
+import Language.Syrup.Fdk.Base
 import Language.Syrup.Syn.Base
-import Language.Syrup.Fdk
 
 data Source' a b
   = Declaration (DEC' b)

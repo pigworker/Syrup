@@ -12,9 +12,9 @@ import Data.Kind (Type)
 import Data.Maybe (fromMaybe)
 import Data.Void (Void)
 
+import Language.Syrup.Doc
 import Language.Syrup.Syn
 import Language.Syrup.Ty
-
 
 ------------------------------------------------------------------------
 -- Main utility
@@ -89,6 +89,10 @@ instance Unelab s => Unelab [s] where
   type Unelabed [s] = [Unelabed s]
 instance Unelab s => Unelab (Maybe s) where
   type Unelabed (Maybe s) = Maybe (Unelabed s)
+
+instance Unelab a => Unelab (AList a) where
+  type Unelabed (AList a) = AList (Unelabed a)
+  unelab (AList a) = AList <$> unelab a
 
 instance Unelab (Exp' Name ty) where
   type Unelabed (Exp' Name ty) = Exp' PrettyName ty

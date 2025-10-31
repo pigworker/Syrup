@@ -1,50 +1,50 @@
-Circuits not, and, or, xor, eq, one, mux, and xor2 are defined.
+Circuits `not`, `and`, `or`, `xor`, `eq`, `one`, `mux`, and `xor2` are defined.
 
-Cost for not:
-  1 copy of nand
+Cost for `not`:
+  1 copy of `nand`
 
-Cost for and:
-  2 copies of nand
+Cost for `and`:
+  2 copies of `nand`
 
-Cost for or:
-  3 copies of nand
+Cost for `or`:
+  3 copies of `nand`
 
-Cost for or:
-  1 copy of or
+Cost for `or`:
+  1 copy of `or`
 
-Cost for or:
-  1 copy of nand
-  2 copies of not
+Cost for `or`:
+  1 copy of `nand`
+  2 copies of `not`
 
-Cost for xor:
-  9 copies of nand
+Cost for `xor`:
+  9 copies of `nand`
 
-Cost for xor:
-  2 copies of and
-  2 copies of not
-  1 copy of or
+Cost for `xor`:
+  2 copies of `and`
+  2 copies of `not`
+  1 copy of `or`
 
-Cost for eq:
-  2 copies of and
-  3 copies of not
-  1 copy of or
+Cost for `eq`:
+  2 copies of `and`
+  3 copies of `not`
+  1 copy of `or`
 
-Cost for zero:
-  1 copy of zero
+Cost for `zero`:
+  1 copy of `zero`
 
-Cost for one:
-  1 copy of nand
-  1 copy of zero
+Cost for `one`:
+  1 copy of `nand`
+  1 copy of `zero`
 
-Cost for one:
-  1 copy of not
-  1 copy of zero
+Cost for `one`:
+  1 copy of `not`
+  1 copy of `zero`
 
-Cost for mux:
-  2 copies of and
-  1 copy of not
-  1 copy of or
+Cost for `mux`:
+  2 copies of `and`
+  1 copy of `not`
+  1 copy of `or`
 
-Cost for xor2:
-  1 copy of mux
-  1 copy of nand
+Cost for `xor2`:
+  1 copy of `mux`
+  1 copy of `nand`

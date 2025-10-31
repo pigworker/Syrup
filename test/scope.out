@@ -1,53 +1,47 @@
-Circuit not is defined.
+Circuit `not` is defined.
 
 Error: I was trying to make sense of the following code:
-
-not2(<Bit>) -> <Bit>
-not2(c) = !C
-
-
+  not2(<Bit>) -> <Bit>
+  not2(c) = !C
+  
 Error: You tried to use C but it is not in scope.
 Did you mean: c?
 
-Warning: Circuit not2 has been stubbed out.
+Warning: Circuit `not2` has been stubbed out.
 
 Error: You are redefining the top-level variable nand.
 
-Circuit nand is defined.
+Circuit `nand` is defined.
 
 Warning: the wire N is defined but never used.
 
 Error: I was trying to make sense of the following code:
-
-and(<Bit>,<Bit>) -> <Bit>
-and(X,Y) = !n where
-
-  N = nand(X,Y)
-
-
+  and(<Bit>,<Bit>) -> <Bit>
+  and(X,Y) = !n where
+  
+    N = nand(X,Y)
+  
 Error: You tried to use n but it is not in scope.
 Did you mean: N?
 
-Warning: Circuit and has been stubbed out.
+Warning: Circuit `and` has been stubbed out.
 
-Circuits or, xor, and h1 are defined.
+Circuits `or`, `xor`, and `h1` are defined.
 
 Warning: the wires CIN, CiN are defined but never used.
 
 Error: I was trying to make sense of the following code:
-
-f1(<Bit>,<Bit>) -> <Bit>,<Bit>
-f1(X,Y,CIN) = Cin,Z where
-
-  CIN   = xor(CiN, CIn)
-  CiN,Z = h1(D,CIn)
-  CIn,D = h1(X,Y)
-
-
+  f1(<Bit>,<Bit>) -> <Bit>,<Bit>
+  f1(X,Y,CIN) = Cin,Z where
+  
+    CIN   = xor(CiN, CIn)
+    CiN,Z = h1(D,CIn)
+    CIn,D = h1(X,Y)
+  
 Error: You are redefining the local variable CIN.
 Error: You tried to use Cin but it is not in scope.
 Did you mean one of these: CIN, CIn, CiN?
 
-Warning: Circuit f1 has been stubbed out.
+Warning: Circuit `f1` has been stubbed out.
 
-Circuit tff is defined.
+Circuit `tff` is defined.

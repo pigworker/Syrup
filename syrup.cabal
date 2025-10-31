@@ -89,9 +89,11 @@ library
                     , Language.Syrup.Ded
                     , Language.Syrup.DeMorgan
                     , Language.Syrup.DNF
+                    , Language.Syrup.Doc
                     , Language.Syrup.Dot
                     , Language.Syrup.Expt
                     , Language.Syrup.Fdk
+                    , Language.Syrup.Fdk.Base
                     , Language.Syrup.Fsh
                     , Language.Syrup.Gph
                     , Language.Syrup.HalfZip

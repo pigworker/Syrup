@@ -1,7 +1,7 @@
 Warning: the wires T, Y, Z are defined but never used.
 
-Circuit f is defined.
+Circuit `f` is defined.
 
-Simplification of f:
-f(<Bit>) -> <Bit>
-f(X) = X
+Simplification of `f`:
+  f(<Bit>) -> <Bit>
+  f(X) = X

@@ -4,15 +4,21 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE OverloadedStrings #-}
+
 module Language.Syrup.Lnt where
 
-import Data.List (intercalate)
+import Data.Foldable (fold)
+import Data.String (IsString)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Ded
+import Language.Syrup.Doc
 import Language.Syrup.Fdk
-import Language.Syrup.Pretty
+import Language.Syrup.Pretty ()
 import Language.Syrup.Syn
+
+import Language.Syrup.Utils (be, plural)
 
 class Lint t where
   linters :: [t -> [Feedback]]
@@ -21,10 +27,6 @@ class Lint t where
 lint :: Lint t => t -> [Feedback]
 lint t = foldMap ($ t) linters
 
-be :: [a] -> String
-be [_] = "is"
-be _ = "are"
-
 instance ty ~ () => Lint (Def' Name ty) where
   linters = [ emptyWhere
             , deadcode
@@ -32,29 +34,31 @@ instance ty ~ () => Lint (Def' Name ty) where
             ] where
 
     emptyWhere = \case
-      Def (fun, _) _ (Just []) -> pure $ ALint
-        [ "empty where clause in the definition of " ++ getName fun ++ "."
+      Def (fun, _) _ (Just []) -> pure $ ALint $ foldMap pretty
+        [ fold [ "Empty where clause in the definition of ", pretty fun, "." ]
         , "Did you forget to indent the block of local definitions using spaces?"
         ]
       _ -> []
 
     needlessSplits d = do
       let ps = abstractableCables d
-      if null ps then [] else pure $ ALint
-        [ "the " ++ plural ps "cable" "s" ++ " "
-          ++ intercalate ", " (basicShow . AList <$> ps)
-          ++ " " ++ be ps
-          ++ " taken apart only to be reconstructed or unused."
-        , "Did you consider giving each cable a name without breaking it up?"
+      if null ps then [] else pure $ ALint $ fold
+        [ pretty $ fold
+            [ "the ", plural ps "cable" "s", " "
+            , csep (pretty . AList <$> ps)
+            , " ", be ps
+            , " taken apart only to be reconstructed or unused."
+            ]
+        , aLine "Did you consider giving each cable a name without breaking it up?"
         ]
 
     deadcode d = case filter (/= "_") $ foldMapSet pure (unused d) of
       [] -> []
-      ns -> pure $ ALint
-        [ "the " ++ plural ns "wire" "s" ++ " "
-          ++ intercalate ", " ns
-          ++ " " ++ be ns
-          ++ " defined but never used."
+      ns -> pure $ ALint $ aLine $ fold
+        [ "the ", plural ns "wire" "s", " "
+        , punctuate ", " (highlight AVariable . pretty <$> ns)
+        , " ", be ns
+        , " defined but never used."
         ]
 
 

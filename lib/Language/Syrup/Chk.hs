@@ -29,11 +29,13 @@ import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
+import Language.Syrup.Doc
 import Language.Syrup.Expt
 import Language.Syrup.Fdk
-import Language.Syrup.Pretty (basicShow, csepShow)
+import Language.Syrup.Pretty
 import Language.Syrup.Syn
 import Language.Syrup.Ty
+import Language.Syrup.Utils (($$))
 import Language.Syrup.Va
 
 import Utilities.Lens (hasLens, use, (%=))
@@ -96,7 +98,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
              (tySt0 {coEnv = env}) of
         Left (TyFailure ctx e) -> do
           tell $ Seq.fromList
-            [ ATypeError $ typeErrorReport (ctx, e)
+            [ ATypeError $ typeErrorReport env (ctx, e)
             , AStubbedOut g
             ]
           hasLens %= insertArr (g, stubOut dec)
@@ -105,7 +107,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
           hasLens %= insertArr (g, stubOut dec)
           tell $ Seq.fromList
             [ AFoundHoles g $ flip foldMapArr (allHoles def) $ \ (k, v) ->
-                ["  ?" ++ k ++ " : " ++ maybe "?" basicShow (getFirst v)]
+                pure $ fold [ "?", pretty k, " : ", maybe "?" pretty (getFirst v) ]
             , AStubbedOut g
             ]
           pure (False, Nothing)
@@ -145,7 +147,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
                         _ -> Junk
                   hasLens %= insertArr (g, stubOut dec)
                   tell $ Seq.fromList
-                    [ ATypeError $ typeErrorReport (B0 :< TySOURCE decSrc defSrc, sin)
+                    [ ATypeError $ typeErrorReport env (B0 :< TySOURCE decSrc defSrc, sin)
                     , AStubbedOut g
                     ]
                   pure (False, Nothing)
@@ -363,99 +365,113 @@ cookTY t old (CABLE tys)  = Cable (fmap (cookTY t old) tys)
 -- error reporting
 ------------------------------------------------------------------------------
 
-typeErrorReport :: (Bwd TyClue, TyErr) -> [String]
-typeErrorReport (cz, e) = concat
-  [ preamble, [""]
-  , problem e
+instance Pretty TyErr where
+  type PrettyDoc TyErr = Doc
+  prettyPrec _ = \case
+    CableWidth -> aLine "I found a cable with the wrong width."
+    BitCable -> aLine "I found a cable connected to a bit wire."
+    CableLoop -> aLine "I couldn't fit a cable inside itself."
+    DecDef c f -> aLine $$
+      [ "I found a declaration for ", pretty c
+      , " but its definition was for ", pretty f, "."
+      ]
+    Stubbed msg -> foldMap pretty msg
+    DuplicateWire x -> aLine $$
+      ["I found more than one signal called ", pretty x, "."]
+    LongPats -> aLine "I found fewer signals than I needed."
+    ShortPats -> aLine "I found more signals than I needed."
+    Don'tKnow f -> aLine $$ ["I didn't know what ", pretty f, " was."]
+    Stage0 xs -> case foldMapSet human xs of
+      [] -> aLine "There were some signals I couldn't compute from memories."
+      xs -> aLine "I couldn't compute the following just from memories:"
+        <> nest 2 (aLine $ csep $ map pretty xs)
+        <> aLine "Check definitions!"
+    Stage1 xs -> case foldMapSet human xs of
+      [] -> aLine "There were some signals I couldn't compute from inputs."
+      xs -> aLine "I couldn't compute the following from inputs:"
+        <> nest 2 (aLine $ csep $ map pretty xs)
+        <> aLine "They're either stuck in a loop or missing entirely."
+    Junk -> aLine $$
+       [ "There's some extra junk in this circuit"
+       , "that I can't see how to compute!"
+       ]
+    BUGSolderMismatch -> aLine "I messed up my internal wiring: report me!"
+    ConflictingHoles x -> aLine $$ ["Conflicting uses for the hole name ?", pretty x, "."]
+
+
+typeErrorReport :: CoEnv -> (Bwd TyClue, TyErr) -> Doc
+typeErrorReport env (cz, e) = concat
+  [ preamble
+  , pretty e
   , context e cz
   ]
   where
+    getSrc :: TyClue -> Last [String]
     getSrc (TySOURCE dec def) = Last (Just (lines dec ++ lines def))
     getSrc _ = Last Nothing
+
+    preamble :: Doc
     preamble = case foldMap getSrc cz of
       (Last (Just ls)) ->
-        "I was trying to make sense of the following code:" : "" : ls
-      _ ->
-        ["I can't remember what you wrote."]
-    problem CableWidth = ["I found a cable with the wrong width."]
-    problem BitCable   = ["I found a cable connected to a bit wire."]
-    problem CableLoop  = ["I couldn't fit a cable inside itself."]
-    problem (DecDef c f) = [ concat
-      [ "I found a declaration for ", getName c
-      , " but its definition was for ", getName f, "."] ]
-    problem (Stubbed msg) = map (punctuate "\n" . render) msg
-    problem (DuplicateWire x) = [ concat
-      ["I found more than one signal called ", x, "."] ]
-    problem LongPats  = ["I found fewer signals than I needed."]
-    problem ShortPats = ["I found more signals than I needed."]
-    problem (Don'tKnow f) = ["I didn't know what " ++ getName f ++ " was."]
-    problem (Stage0 xs) = case foldMapSet human xs of
-      [] -> [ "There were some signals I couldn't compute from memories."]
-      xs -> [ "I couldn't compute the following just from memories:"
-            , "  " ++ intercalate ", " xs
-            , "Check definitions!"
-            ]
-    problem (Stage1 xs) = case foldMapSet human xs of
-      [] -> [ "There were some signals I couldn't compute from inputs."]
-      xs -> [ "I couldn't compute the following from inputs:"
-            , "  " ++ intercalate ", " xs
-            , "They're either stuck in a loop or missing entirely."
-            ]
-    problem Junk =
-      ["There's some extra junk in this circuit" ++
-       "that I can't see how to compute!"]
-    problem BUGSolderMismatch = ["I messed up my internal wiring: report me!"]
-    problem (ConflictingHoles x) = ["Conflicting uses for the hole name ?" ++ x ++ "."]
+        aLine "I was trying to make sense of the following code:"
+        <> nest 2 (structure PreBlock $ foldMap prettyBlock ls)
+      _ -> aLine "I can't remember what you wrote."
 
+    context :: TyErr -> Bwd TyClue -> Doc
     context (Stubbed _) = const []
-    context _ = ("" :) . context'
+    context _ = context'
+
+    context' :: Bwd TyClue -> Doc
     context' (_ :< TyEQN eq) =
-      ["At the time, I was checking this equation:", basicShow eq]
-    context' (_ :< TyOUTPUTS ts es) =
+      aLine $$
+        [ "At the time, I was checking this equation:"
+        , prettyUnelabed env eq
+        ]
+    context' (_ :< TyOUTPUTS ts es) = aLine $$
       [ "I was trying to get outputs"
-      , "  " ++ csepShow ts
+      , "  ", csep (map pretty ts)
       , "from expressions"
-      , "  " ++ csepShow es
+      , "  ", csep (map (prettyUnelabed env) es)
       , "at the time."
       ]
-    context' (_ :< TyINPUTS ts ps) =
+    context' (_ :< TyINPUTS ts ps) = aLine $$
       [ "I was trying to fit inputs"
-      , "  " ++ csepShow ts
+      , "  ", csep (map pretty ts)
       , "into the patterns"
-      , "  " ++ csepShow ps
+      , "  ", csep (map pretty ps)
       , "at the time."
       ]
-    context' (_ :< TyEXP e ts) =
+    context' (_ :< TyEXP e ts) = aLine $$
       [ "I was hoping to get the beginning of these"
-      , "  " ++ csepShow ts
+      , "  ", csep (map pretty ts)
       , "from the expression"
-      , "  " ++ basicShow e
+      , "  ", prettyUnelabed env e
       , "at the time."
       ]
-    context' (_ :< TyCAB es ts) =
+    context' (_ :< TyCAB es ts) = aLine $$
       [ "I was trying to make a cable of these"
-      , "  " ++ csepShow ts
+      , "  ", csep (map pretty ts)
       , "from the expressions"
-      , "  " ++ csepShow es
+      , "  ", csep (map (prettyUnelabed env) es)
       , "at the time."
       ]
-    context' (_ :< TyAPP c es) =
-      [ "I was trying to use " ++ getName (monick c) ++ " which wants input types"
-      , "  " ++ csepShow (getInputType <$> inpTys c)
+    context' (_ :< TyAPP c es) = aLine $$
+      [ "I was trying to use ", pretty (monick c), " which wants input types"
+      , "  ", pretty (ATuple $ getInputType <$> inpTys c)
       , "but feeding in these expressions"
-      , "  " ++ csepShow es
+      , "  ", csep (map (prettyUnelabed env) es)
       , "at the time."
       ]
-    context' (g :< TyWIRE x s t) =
-      [ "I was trying to connect " ++ ww x
-      , "but it carried a signal of type " ++ basicShow s
-      , "where a signal of type " ++ basicShow t
+    context' (g :< TyWIRE x s t) = aLine $$
+      [ "I was trying to connect ", ww x
+      , "but it carried a signal of type ", pretty s
+      , "where a signal of type ", pretty t
       , "was expected."
-      ] ++ context' g
+      ] <> context' g
       where
         ww (c : _) = "wire x"
         ww _       = "a wire"
-    context' _ = ["I can't remember any more about what I thought I was doing."]
+    context' _ = aLine "I can't remember any more about what I thought I was doing."
 
 human :: String -> [String]
 human s@(c : _) | isAlpha c = [s]

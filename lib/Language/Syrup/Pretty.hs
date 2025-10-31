@@ -4,227 +4,172 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE OverloadedStrings #-}
+
 module Language.Syrup.Pretty where
 
 import Control.Monad.Reader (MonadReader, runReader)
 
 import Data.Foldable (fold)
 import Data.List (intercalate, intersperse)
-import Data.Void (Void, absurd)
 
 import Prelude hiding (unwords, unlines)
 
 import Language.Syrup.BigArray (emptyArr)
+import Language.Syrup.Doc
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Unelab
 
 ------------------------------------------------------------------------
--- Doc type and basic combinators
+-- Resulting functions
 
-newtype Doc = Doc { runDoc :: String } -- for now
+prettyUnelabed
+  :: (Unelab s, Pretty (Unelabed s))
+  => CoEnv -> s -> PrettyDoc (Unelabed s)
+prettyUnelabed env = pretty . runUnelab env
 
-indent :: Int -> Doc -> Doc
-indent i d = Doc (replicate i ' ') <> d
+prettyShow
+  :: (Unelab s, Pretty (Unelabed s), Render (PrettyDoc (Unelabed s)))
+  => CoEnv -> s -> String
+prettyShow env = concat . renderToString . prettyUnelabed env
 
-(<+>) :: Doc -> Doc -> Doc
-d <+> e = d <> Doc " " <> e
-
-between :: Doc -> Doc -> (Doc -> Doc)
-between left right middle = fold [left, middle, right]
-
-curlies :: Doc -> Doc
-curlies = between (Doc "{") (Doc "}")
-
-square :: Doc -> Doc
-square = between (Doc "[") (Doc "]")
-
-parens :: Doc -> Doc
-parens = between (Doc "(") (Doc ")")
-
-parensIf :: Bool -> Doc -> Doc
-parensIf True  = parens
-parensIf False = id
-
-sepBy :: Doc -> [Doc] -> Doc
-sepBy d = fold . intersperse d
-
-unwords :: [Doc] -> Doc
-unwords = sepBy (Doc " ")
-
-unlines :: [Doc] -> Doc
-unlines = sepBy (Doc "\n")
-
-csep :: [Doc] -> Doc
-csep = sepBy (Doc ", ")
-
-list :: [Doc] -> Doc
-list = square . csep
-
-tuple :: [Doc] -> Doc
-tuple = parens . csep
-
-set :: [Doc] -> Doc
-set = curlies . csep
-
-questionMark :: Doc
-questionMark = Doc "?"
-
-instance Semigroup Doc where
-  Doc e <> Doc f = Doc (e <> f)
-
-instance Monoid Doc where
-  mempty = Doc ""
-  mappend = (<>)
-
-------------------------------------------------------------------------
--- Pretty infrastructure
-
-data PrecedenceLevel
-  = OrClause
-  | AndClause
-  | NegatedClause
-  deriving (Eq, Ord, Enum, Bounded)
-
-newtype AList a = AList [a]
-newtype ATuple a = ATuple [a]
-newtype ASet a = ASet [a]
-
-instance Unelab a => Unelab (AList a) where
-  type Unelabed (AList a) = AList (Unelabed a)
-  unelab (AList a) = AList <$> unelab a
-
-class Pretty t where
-  pretty :: t -> Doc
-  pretty = prettyPrec minBound
-
-  prettyPrec :: PrecedenceLevel -> t -> Doc
-
-instance Pretty String where
-  prettyPrec _ = Doc
-
-instance Pretty Name where
-  prettyPrec _ = pretty . getName
-
-instance Pretty Integer where
-  prettyPrec _ = pretty . show
-
-instance Pretty Void where
-  prettyPrec _ = absurd
-
-instance Pretty () where
-  prettyPrec _ _ = pretty "()"
-
-instance Pretty Unit where
-  prettyPrec _ _ = pretty ""
-
-instance Pretty a => Pretty (AList a) where
-  prettyPrec _ (AList xs) = list $ map pretty xs
-
-instance Pretty a => Pretty (ATuple a) where
-  prettyPrec _ (ATuple xs) = tuple $ map pretty xs
-
-instance Pretty a => Pretty (ASet a) where
-  prettyPrec _ (ASet xs) = set $ map pretty xs
+basicShow
+  :: (Unelab s, Pretty (Unelabed s), Render (PrettyDoc (Unelabed s)))
+  => s -> String
+basicShow = prettyShow emptyArr
 
 instance Pretty Va where
+  type PrettyDoc Va = LineDoc
   prettyPrec _ = \case
-    VQ    -> pretty "?"
-    V0    -> pretty "0"
-    V1    -> pretty "1"
+    VQ    -> "?"
+    V0    -> "0"
+    V1    -> "1"
     VC vs -> pretty (AList vs)
+
+circuitExec :: Name -> CircuitConfig -> CircuitConfig -> LineDoc
+circuitExec nm is os = fold
+  [ pretty nm
+  , let mems = memoryConfig is in
+    if null mems then mempty else braces (foldMap pretty mems)
+  , "("
+  , foldMap pretty (valuesConfig is)
+  , ") = "
+  , let mems = memoryConfig os in
+    if null mems then mempty else braces (foldMap pretty mems)
+  , foldMap pretty (valuesConfig os)
+  ]
+
 
 ------------------------------------------------------------------------
 -- Pretty instances
+
+instance Pretty PrettyName where
+  type PrettyDoc PrettyName = LineDoc
+  prettyPrec _ = pretty . toName
 
 data FunctionCall a = FunctionCall
   { functionName :: PrettyName
   , functionArgs :: [a]
   }
 
-instance Pretty a => Pretty (FunctionCall a) where
+instance (Pretty a, PrettyDoc a ~ LineDoc) => Pretty (FunctionCall a) where
+  type PrettyDoc (FunctionCall a) = LineDoc
   prettyPrec lvl = \case
-    FunctionCall (RemarkableName IsZeroGate) [] -> Doc "0"
-    FunctionCall (RemarkableName IsOneGate) [] -> Doc "1"
-    FunctionCall (RemarkableName IsNotGate) [s] -> Doc "!" <> prettyPrec NegatedClause s
+    FunctionCall (RemarkableName IsZeroGate) [] -> highlight AFunction "0"
+    FunctionCall (RemarkableName IsOneGate) [] -> highlight AFunction "1"
+    FunctionCall (RemarkableName IsNotGate) [s] ->
+      highlight AFunction "!" <> prettyPrec NegatedClause s
     FunctionCall (RemarkableName IsOrGate) [s, t] ->
       parensIf (lvl > OrClause) $ unwords
         [ prettyPrec AndClause s
-        , Doc "|"
+        , highlight AFunction "|"
         , prettyPrec OrClause t
         ]
     FunctionCall (RemarkableName IsAndGate) [s, t] ->
       parensIf (lvl > AndClause) $ unwords
         [ prettyPrec NegatedClause s
-        , Doc "&"
+        , highlight AFunction "&"
         , prettyPrec AndClause t
         ]
     FunctionCall f es -> fold [pretty  (toName f), pretty (ATuple es)]
 
+
 instance Pretty (Exp' PrettyName ty) where
+  type PrettyDoc (Exp' PrettyName ty) = LineDoc
   prettyPrec lvl = \case
-    Var _ x -> pretty x
-    Hol _ x -> questionMark <> pretty x
+    Var _ x -> highlight AVariable $ pretty x
+    Hol _ x -> "?" <> pretty x
     Cab _ es -> pretty (AList es)
     App _ f es -> prettyPrec lvl (FunctionCall f es)
 
-instance Pretty a => Pretty (Pat' ty a) where
+instance (Pretty a, PrettyDoc a ~ LineDoc) => Pretty (Pat' ty a) where
+  type PrettyDoc (Pat' ty a) = LineDoc
   prettyPrec lvl = \case
-    PVar _ a -> pretty a
+    PVar _ a -> highlight AVariable $ pretty a
     PCab _ ps -> pretty (AList ps)
 
 instance Pretty Ti where
-  prettyPrec lvl = prettyPrec lvl . \case
+  type PrettyDoc Ti = LineDoc
+  prettyPrec lvl = \case
     T0 -> "@"
     T1 -> ""
 
-instance (Pretty t, Pretty x) => Pretty (Ty t x) where
+instance
+  ( Pretty t
+  , PrettyDoc t ~ LineDoc
+  , Pretty x
+  , PrettyDoc x ~ LineDoc
+  ) => Pretty (Ty t x) where
+  type PrettyDoc (Ty t x) = LineDoc
   prettyPrec lvl = \case
-    Meta x   -> between (Doc "<?") (Doc ">") $ pretty x -- ugh...
-    TVar s _ -> between (Doc "<") (Doc ">") $ pretty (getTyName s) -- makes sure we don't unfold!
-    Bit t    -> pretty t <> pretty "<Bit>"
+    Meta x   -> highlight AType $ between "<" ">" $ "?" <> pretty x
+    TVar s _ -> pretty s
+    Bit t    -> pretty t <> pretty (TyName "Bit")
     Cable ps -> pretty (AList ps)
 
 instance Pretty (Eqn' PrettyName ty) where
+  type PrettyDoc (Eqn' PrettyName ty) = LineDoc
   prettyPrec _ (ps :=: es) =
     unwords
       [ csep $ map pretty ps
-      , Doc "="
+      , "="
       , csep $ map pretty es]
 
 instance Pretty (Def' PrettyName Typ) where
+  type PrettyDoc (Def' PrettyName Typ) = Doc
   prettyPrec _ = \case
-    Stub{} -> Doc "Stubbed out definition"
+    Stub{} -> aLine "Stubbed out definition"
     (Def (fn, ps) rhs meqns) ->
       -- Type declaration
       let pstys = map patTy ps in
       let lhsTy = pretty (FunctionCall fn pstys) in
       let rhstys = concatMap expTys rhs in
       let rhsTy = csep $ map pretty rhstys in
-      let decl = unwords [lhsTy, Doc "->", rhsTy] in
+      let decl = unwords [lhsTy, "->", rhsTy] in
       -- Circuit definition
       let lhsDef = pretty (FunctionCall fn ps) in
       let rhsDef = csep $ map pretty rhs in
-      let eqnDef = case meqns of
-            Nothing -> []
-            Just eqns -> pure $ unlines $ Doc "where"
-              : map (indent 2 . pretty) eqns
-      in
-      let defn = unwords (lhsDef : Doc "=" : rhsDef : eqnDef) in
+      let defn = case meqns of
+            Nothing -> pretty (unwords [lhsDef, "=", rhsDef])
+            Just eqns ->
+              pretty (unwords [lhsDef, "=", rhsDef, highlight AKeyword "where"])
+              <> nest 2 (foldMap prettyBlock eqns)
       -- Combining everything
-      unlines [decl, defn]
+      in pretty decl <> defn
 
-instance (Pretty t, Pretty x, Pretty t', Pretty x') => Pretty (TypeDecl' PrettyName t x t' x') where
+instance
+  ( Pretty t
+  , PrettyDoc t ~ LineDoc
+  , Pretty x
+  , PrettyDoc x ~ LineDoc
+  , Pretty t'
+  , PrettyDoc t' ~ LineDoc
+  , Pretty x'
+  , PrettyDoc x' ~ LineDoc
+  ) => Pretty (TypeDecl' PrettyName t x t' x') where
+  type PrettyDoc (TypeDecl' PrettyName t x t' x') = LineDoc
   prettyPrec _ (TypeDecl fn is os) =
     let lhsTy = pretty (FunctionCall fn is) in
     let rhsTy = csep $ map pretty os in
-    unwords [lhsTy, Doc "->", rhsTy]
-
-prettyShow :: (Unelab s, Pretty (Unelabed s)) => CoEnv -> s -> String
-prettyShow env = runDoc . pretty . runUnelab env
-
-basicShow :: (Unelab s, Pretty (Unelabed s)) => s -> String
-basicShow = prettyShow emptyArr
-
-csepShow :: (Unelab s, Pretty (Unelabed s)) => [s] -> String
-csepShow = intercalate ", " . map basicShow
+    unwords [lhsTy, "->", rhsTy]

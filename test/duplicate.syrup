@@ -3,4 +3,4 @@ duplicate(X) = Z, Z where
   Z = nand(X, X)
 
 anf duplicate
-display duplicate
+-- display duplicate

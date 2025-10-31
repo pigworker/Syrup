@@ -1,16 +1,16 @@
-Types <Two> and <Four> are defined.
+Types `<Two>` and `<Four>` are defined.
 
 Warning: the cables [X0, X1], [X2, X3] are taken apart only to be reconstructed or unused.
 Did you consider giving each cable a name without breaking it up?
 
-Circuit swap is defined.
+Circuit `swap` is defined.
 
 Warning: the cables [X0, X1], [X2, X3] are taken apart only to be reconstructed or unused.
 Did you consider giving each cable a name without breaking it up?
 
-Circuit fst is defined.
+Circuit `fst` is defined.
 
 Warning: the cable [Y2, Y3] is taken apart only to be reconstructed or unused.
 Did you consider giving each cable a name without breaking it up?
 
-Circuits snd and nowarn are defined.
+Circuits `snd` and `nowarn` are defined.
