@@ -40,37 +40,37 @@
   }
 
 </style>
-<div class="syrup-happy">When unit testing <code><code><span class="syrup-function">nand</span></code>(00) = 1</code>:
+<div class="syrup-happy">When unit testing <code><span class="syrup-function">nand</span>(00) = 1</code>:
 <br>
 <div style="padding-left: 2ch">Success!</div></div>
 <br>
-<div class="syrup-happy">When unit testing <code><code><span class="syrup-function">nand</span></code>(11) = 0</code>:
+<div class="syrup-happy">When unit testing <code><span class="syrup-function">nand</span>(11) = 0</code>:
 <br>
 <div style="padding-left: 2ch">Success!</div></div>
 <br>
-<div class="syrup-happy">When unit testing <code><code><span class="syrup-function">dff</span></code>{0}(1) = {1}0</code>:
+<div class="syrup-happy">When unit testing <code><span class="syrup-function">dff</span>{0}(1) = {1}0</code>:
 <br>
 <div style="padding-left: 2ch">Success!</div></div>
 <br>
-<div class="syrup-error">When unit testing <code><code><span class="syrup-function">nand</span></code>{0}(00) = 1</code>:
+<div class="syrup-error">When unit testing <code><span class="syrup-function">nand</span>{0}(00) = 1</code>:
 <br>
 <div style="padding-left: 2ch">Memory for <code><span class="syrup-function">nand</span></code> has type <code>{}</code>.
 <br>
 That can&#39;t store {0}.</div></div>
 <br>
-<div class="syrup-error">When unit testing <code><code><span class="syrup-function">nand</span></code>() = 1</code>:
+<div class="syrup-error">When unit testing <code><span class="syrup-function">nand</span>() = 1</code>:
 <br>
 <div style="padding-left: 2ch">Inputs for <code><span class="syrup-function">nand</span></code> are typed <code>(<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>)</code>.
 <br>
 That can&#39;t accept <code>()</code>.</div></div>
 <br>
-<div class="syrup-error">When unit testing <code><code><span class="syrup-function">nand</span></code>(00) = {1}0</code>:
+<div class="syrup-error">When unit testing <code><span class="syrup-function">nand</span>(00) = {1}0</code>:
 <br>
 <div style="padding-left: 2ch">Memory for <code><span class="syrup-function">nand</span></code> has type <code>{}</code>.
 <br>
 That can&#39;t store {1}.</div></div>
 <br>
-<div class="syrup-error">When unit testing <code><code><span class="syrup-function">nand</span></code>(00) = 00</code>:
+<div class="syrup-error">When unit testing <code><span class="syrup-function">nand</span>(00) = 00</code>:
 <br>
 <div style="padding-left: 2ch">Outputs for <code><span class="syrup-function">nand</span></code> are typed <code><span class="syrup-type">&lt;Bit&gt;</span></code>.
 <br>
@@ -78,6 +78,6 @@ That can&#39;t accept <code>0, 0</code>.</div></div>
 <br>
 <div class="syrup-comment">Circuit <code><span class="syrup-function">alternator</span></code> is defined.</div>
 <br>
-<div class="syrup-happy">When unit testing <code><code><span class="syrup-function">alternator</span></code>{0}() = {1}0</code>:
+<div class="syrup-happy">When unit testing <code><span class="syrup-function">alternator</span>{0}() = {1}0</code>:
 <br>
 <div style="padding-left: 2ch">Success!</div></div>

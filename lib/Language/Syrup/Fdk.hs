@@ -211,7 +211,7 @@ instance Pretty Feedback where
         aLine $$
           [ "When unit testing "
           , isCode $$
-              [ identifier x
+              [ pretty x
               , pretty (circuitConfig True is), " = "
               , pretty (circuitConfig False os)]
           , ":"]
