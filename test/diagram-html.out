@@ -40,8 +40,10 @@
   }
 
 </style>
-<div class="syrup-comment">Circuit <code><span class="syrup-function">not</span></code> is defined.</div><br>
-<div class="syrup-happy">Displaying <code><span class="syrup-function">not</span></code>:<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">not</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Displaying <code><span class="syrup-function">not</span></code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -50,5 +52,6 @@
     const svg1 = graphviz.dot(dot1);
     document.getElementById("GRAPH1").innerHTML = svg1;
   }
-</script><br>
+</script>
+<br>
 <div id="GRAPH1"></div></div>

@@ -228,7 +228,7 @@ instance Render Doc where
     -- 1. newlines as "\n" alone rather than (br <> "\n")
 
     newline :: Bool -> Html
-    newline b = (if b then id else (Html.br <>)) "\n"
+    newline b = (if b then id else (("\n" <> Html.br) <>)) "\n"
 
     go :: MonadState Int m => Bool -> Doc -> m Html
     go b = fmap (fold . intersperse (newline b))

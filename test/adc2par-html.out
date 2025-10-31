@@ -40,14 +40,20 @@
   }
 
 </style>
-<div class="syrup-error">You haven&#39;t defined the circuit <code><span class="syrup-function">undefined</span></code> just now.</div><br>
-<div class="syrup-warning">Circuit <code><span class="syrup-function">undefined</span></code> has been stubbed out.</div><br>
-<div class="syrup-comment">Circuit <code><span class="syrup-function">not</span></code> is defined.</div><br>
-<div class="syrup-happy">Printing <code><span class="syrup-function">not</span></code>:<br>
+<div class="syrup-error">You haven&#39;t defined the circuit <code><span class="syrup-function">undefined</span></code> just now.</div>
+<br>
+<div class="syrup-warning">Circuit <code><span class="syrup-function">undefined</span></code> has been stubbed out.</div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">not</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Printing <code><span class="syrup-function">not</span></code>:
+<br>
 <div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">!</span><span class="syrup-type">&lt;Bit&gt;</span> -&gt; <span class="syrup-type">&lt;Bit&gt;</span>
 <span class="syrup-function">!</span><span class="syrup-variable">X</span> = <span class="syrup-variable">Z</span> <span class="syrup-keyword">where</span>
-<div style="padding-left: 2ch"><span class="syrup-variable">Z</span> = <span class="syrup-function">nand</span>(<span class="syrup-variable">X</span>, <span class="syrup-variable">X</span>)</div></div></div></div><br>
-<div class="syrup-happy">Displaying <code><span class="syrup-function">not</span></code>:<br>
+<div style="padding-left: 2ch"><span class="syrup-variable">Z</span> = <span class="syrup-function">nand</span>(<span class="syrup-variable">X</span>, <span class="syrup-variable">X</span>)</div></div></div></div>
+<br>
+<div class="syrup-happy">Displaying <code><span class="syrup-function">not</span></code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -56,15 +62,21 @@
     const svg1 = graphviz.dot(dot1);
     document.getElementById("GRAPH1").innerHTML = svg1;
   }
-</script><br>
-<div id="GRAPH1"></div></div><br>
-<div class="syrup-comment">Circuit <code><span class="syrup-function">and</span></code> is defined.</div><br>
-<div class="syrup-happy">Printing <code><span class="syrup-function">and</span></code>:<br>
+</script>
+<br>
+<div id="GRAPH1"></div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">and</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Printing <code><span class="syrup-function">and</span></code>:
+<br>
 <div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-type">&lt;Bit&gt;</span> <span class="syrup-function">&amp;</span> <span class="syrup-type">&lt;Bit&gt;</span> -&gt; <span class="syrup-type">&lt;Bit&gt;</span>
 <span class="syrup-variable">X</span> <span class="syrup-function">&amp;</span> <span class="syrup-variable">Y</span> = <span class="syrup-variable">Z</span> <span class="syrup-keyword">where</span>
 <div style="padding-left: 2ch"><span class="syrup-variable">A</span> = <span class="syrup-function">nand</span>(<span class="syrup-variable">X</span>, <span class="syrup-variable">Y</span>)
-<span class="syrup-variable">Z</span> = <span class="syrup-function">!</span><span class="syrup-variable">A</span></div></div></div></div><br>
-<div class="syrup-happy">Displaying <code><span class="syrup-function">and</span></code>:<br>
+<span class="syrup-variable">Z</span> = <span class="syrup-function">!</span><span class="syrup-variable">A</span></div></div></div></div>
+<br>
+<div class="syrup-happy">Displaying <code><span class="syrup-function">and</span></code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -73,15 +85,21 @@
     const svg2 = graphviz.dot(dot2);
     document.getElementById("GRAPH2").innerHTML = svg2;
   }
-</script><br>
-<div id="GRAPH2"></div></div><br>
-<div class="syrup-comment">Circuit <code><span class="syrup-function">or</span></code> is defined.</div><br>
-<div class="syrup-happy">Printing <code><span class="syrup-function">or</span></code>:<br>
+</script>
+<br>
+<div id="GRAPH2"></div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">or</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Printing <code><span class="syrup-function">or</span></code>:
+<br>
 <div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-type">&lt;Bit&gt;</span> <span class="syrup-function">|</span> <span class="syrup-type">&lt;Bit&gt;</span> -&gt; <span class="syrup-type">&lt;Bit&gt;</span>
 <span class="syrup-variable">X</span> <span class="syrup-function">|</span> <span class="syrup-variable">Y</span> = <span class="syrup-variable">Z</span> <span class="syrup-keyword">where</span>
 <div style="padding-left: 2ch"><span class="syrup-variable">A</span>, <span class="syrup-variable">B</span> = <span class="syrup-function">!</span><span class="syrup-variable">X</span>, <span class="syrup-function">!</span><span class="syrup-variable">Y</span>
-<span class="syrup-variable">Z</span> = <span class="syrup-function">nand</span>(<span class="syrup-variable">A</span>, <span class="syrup-variable">B</span>)</div></div></div></div><br>
-<div class="syrup-happy">Displaying <code><span class="syrup-function">or</span></code>:<br>
+<span class="syrup-variable">Z</span> = <span class="syrup-function">nand</span>(<span class="syrup-variable">A</span>, <span class="syrup-variable">B</span>)</div></div></div></div>
+<br>
+<div class="syrup-happy">Displaying <code><span class="syrup-function">or</span></code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -90,13 +108,19 @@
     const svg3 = graphviz.dot(dot3);
     document.getElementById("GRAPH3").innerHTML = svg3;
   }
-</script><br>
-<div id="GRAPH3"></div></div><br>
-<div class="syrup-comment">Circuit <code><span class="syrup-function">nor</span></code> is defined.</div><br>
-<div class="syrup-happy">Printing <code><span class="syrup-function">nor</span></code>:<br>
+</script>
+<br>
+<div id="GRAPH3"></div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">nor</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Printing <code><span class="syrup-function">nor</span></code>:
+<br>
 <div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">nor</span>(<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>) -&gt; <span class="syrup-type">&lt;Bit&gt;</span>
-<span class="syrup-function">nor</span>(<span class="syrup-variable">X</span>, <span class="syrup-variable">Y</span>) = <span class="syrup-function">!</span>(<span class="syrup-variable">X</span> <span class="syrup-function">|</span> <span class="syrup-variable">Y</span>)</div></div></div><br>
-<div class="syrup-happy">Displaying <code><span class="syrup-function">nor</span></code>:<br>
+<span class="syrup-function">nor</span>(<span class="syrup-variable">X</span>, <span class="syrup-variable">Y</span>) = <span class="syrup-function">!</span>(<span class="syrup-variable">X</span> <span class="syrup-function">|</span> <span class="syrup-variable">Y</span>)</div></div></div>
+<br>
+<div class="syrup-happy">Displaying <code><span class="syrup-function">nor</span></code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -105,16 +129,22 @@
     const svg4 = graphviz.dot(dot4);
     document.getElementById("GRAPH4").innerHTML = svg4;
   }
-</script><br>
-<div id="GRAPH4"></div></div><br>
-<div class="syrup-comment">Circuit <code><span class="syrup-function">xor</span></code> is defined.</div><br>
-<div class="syrup-happy">Printing <code><span class="syrup-function">xor</span></code>:<br>
+</script>
+<br>
+<div id="GRAPH4"></div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">xor</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Printing <code><span class="syrup-function">xor</span></code>:
+<br>
 <div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">xor</span>(<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>) -&gt; <span class="syrup-type">&lt;Bit&gt;</span>
 <span class="syrup-function">xor</span>(<span class="syrup-variable">X</span>, <span class="syrup-variable">Y</span>) = <span class="syrup-variable">Z</span> <span class="syrup-keyword">where</span>
 <div style="padding-left: 2ch"><span class="syrup-variable">A</span>, <span class="syrup-variable">B</span> = <span class="syrup-variable">X</span> <span class="syrup-function">|</span> <span class="syrup-variable">Y</span>, <span class="syrup-variable">X</span> <span class="syrup-function">&amp;</span> <span class="syrup-variable">Y</span>
 <span class="syrup-variable">C</span> = <span class="syrup-function">!</span><span class="syrup-variable">B</span>
-<span class="syrup-variable">Z</span> = <span class="syrup-variable">A</span> <span class="syrup-function">&amp;</span> <span class="syrup-variable">C</span></div></div></div></div><br>
-<div class="syrup-happy">Displaying <code><span class="syrup-function">xor</span></code>:<br>
+<span class="syrup-variable">Z</span> = <span class="syrup-variable">A</span> <span class="syrup-function">&amp;</span> <span class="syrup-variable">C</span></div></div></div></div>
+<br>
+<div class="syrup-happy">Displaying <code><span class="syrup-function">xor</span></code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -123,15 +153,21 @@
     const svg5 = graphviz.dot(dot5);
     document.getElementById("GRAPH5").innerHTML = svg5;
   }
-</script><br>
-<div id="GRAPH5"></div></div><br>
-<div class="syrup-comment">Circuit <code><span class="syrup-function">hadd</span></code> is defined.</div><br>
-<div class="syrup-happy">Printing <code><span class="syrup-function">hadd</span></code>:<br>
+</script>
+<br>
+<div id="GRAPH5"></div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">hadd</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Printing <code><span class="syrup-function">hadd</span></code>:
+<br>
 <div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">hadd</span>(<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>) -&gt; <span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>
 <span class="syrup-function">hadd</span>(<span class="syrup-variable">X1</span>, <span class="syrup-variable">Y1</span>) = <span class="syrup-variable">C2</span>, <span class="syrup-variable">S1</span> <span class="syrup-keyword">where</span>
 <div style="padding-left: 2ch"><span class="syrup-variable">C2</span> = <span class="syrup-variable">X1</span> <span class="syrup-function">&amp;</span> <span class="syrup-variable">Y1</span>
-<span class="syrup-variable">S1</span> = <span class="syrup-function">xor</span>(<span class="syrup-variable">X1</span>, <span class="syrup-variable">Y1</span>)</div></div></div></div><br>
-<div class="syrup-happy">Displaying <code><span class="syrup-function">hadd</span></code>:<br>
+<span class="syrup-variable">S1</span> = <span class="syrup-function">xor</span>(<span class="syrup-variable">X1</span>, <span class="syrup-variable">Y1</span>)</div></div></div></div>
+<br>
+<div class="syrup-happy">Displaying <code><span class="syrup-function">hadd</span></code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -140,16 +176,22 @@
     const svg6 = graphviz.dot(dot6);
     document.getElementById("GRAPH6").innerHTML = svg6;
   }
-</script><br>
-<div id="GRAPH6"></div></div><br>
-<div class="syrup-comment">Circuit <code><span class="syrup-function">fadd</span></code> is defined.</div><br>
-<div class="syrup-happy">Printing <code><span class="syrup-function">fadd</span></code>:<br>
+</script>
+<br>
+<div id="GRAPH6"></div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">fadd</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Printing <code><span class="syrup-function">fadd</span></code>:
+<br>
 <div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">fadd</span>(<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>) -&gt; <span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>
 <span class="syrup-function">fadd</span>(<span class="syrup-variable">X1</span>, <span class="syrup-variable">Y1</span>, <span class="syrup-variable">C1</span>) = <span class="syrup-variable">C2</span>, <span class="syrup-variable">Z1</span> <span class="syrup-keyword">where</span>
 <div style="padding-left: 2ch"><span class="syrup-variable">D2</span>, <span class="syrup-variable">D1</span> = <span class="syrup-function">hadd</span>(<span class="syrup-variable">X1</span>, <span class="syrup-variable">Y1</span>)
 <span class="syrup-variable">E2</span>, <span class="syrup-variable">Z1</span> = <span class="syrup-function">hadd</span>(<span class="syrup-variable">D1</span>, <span class="syrup-variable">C1</span>)
-<span class="syrup-variable">C2</span> = <span class="syrup-function">xor</span>(<span class="syrup-variable">D2</span>, <span class="syrup-variable">E2</span>)</div></div></div></div><br>
-<div class="syrup-happy">Displaying <code><span class="syrup-function">fadd</span></code>:<br>
+<span class="syrup-variable">C2</span> = <span class="syrup-function">xor</span>(<span class="syrup-variable">D2</span>, <span class="syrup-variable">E2</span>)</div></div></div></div>
+<br>
+<div class="syrup-happy">Displaying <code><span class="syrup-function">fadd</span></code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -158,9 +200,12 @@
     const svg7 = graphviz.dot(dot7);
     document.getElementById("GRAPH7").innerHTML = svg7;
   }
-</script><br>
-<div id="GRAPH7"></div></div><br>
-<div class="syrup-happy">Truth table for <code><span class="syrup-function">fadd</span></code>:<br>
+</script>
+<br>
+<div id="GRAPH7"></div></div>
+<br>
+<div class="syrup-happy">Truth table for <code><span class="syrup-function">fadd</span></code>:
+<br>
 <div style="padding-left: 2ch"><pre>X1 Y1 C1 | C2 Z1
 ---------|------
 0  0  0  | 0  0 
@@ -170,15 +215,21 @@
 1  0  0  | 0  1 
 1  0  1  | 1  0 
 1  1  0  | 1  0 
-1  1  1  | 1  1 </pre></div></div><br>
-<div class="syrup-comment">Type <code><span class="syrup-type">&lt;Bit2&gt;</span></code> is defined.</div><br>
-<div class="syrup-comment">Circuit <code><span class="syrup-function">adc2</span></code> is defined.</div><br>
-<div class="syrup-happy">Printing <code><span class="syrup-function">adc2</span></code>:<br>
+1  1  1  | 1  1 </pre></div></div>
+<br>
+<div class="syrup-comment">Type <code><span class="syrup-type">&lt;Bit2&gt;</span></code> is defined.</div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">adc2</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Printing <code><span class="syrup-function">adc2</span></code>:
+<br>
 <div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">adc2</span>([<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>], [<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>], <span class="syrup-type">&lt;Bit&gt;</span>) -&gt; <span class="syrup-type">&lt;Bit&gt;</span>, [<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>]
 <span class="syrup-function">adc2</span>([<span class="syrup-variable">X2</span>, <span class="syrup-variable">X1</span>], [<span class="syrup-variable">Y2</span>, <span class="syrup-variable">Y1</span>], <span class="syrup-variable">C1</span>) = <span class="syrup-variable">C4</span>, [<span class="syrup-variable">Z2</span>, <span class="syrup-variable">Z1</span>] <span class="syrup-keyword">where</span>
 <div style="padding-left: 2ch"><span class="syrup-variable">C2</span>, <span class="syrup-variable">Z1</span> = <span class="syrup-function">fadd</span>(<span class="syrup-variable">X1</span>, <span class="syrup-variable">Y1</span>, <span class="syrup-variable">C1</span>)
-<span class="syrup-variable">C4</span>, <span class="syrup-variable">Z2</span> = <span class="syrup-function">fadd</span>(<span class="syrup-variable">X2</span>, <span class="syrup-variable">Y2</span>, <span class="syrup-variable">C2</span>)</div></div></div></div><br>
-<div class="syrup-happy">Displaying <code><span class="syrup-function">adc2</span></code>:<br>
+<span class="syrup-variable">C4</span>, <span class="syrup-variable">Z2</span> = <span class="syrup-function">fadd</span>(<span class="syrup-variable">X2</span>, <span class="syrup-variable">Y2</span>, <span class="syrup-variable">C2</span>)</div></div></div></div>
+<br>
+<div class="syrup-happy">Displaying <code><span class="syrup-function">adc2</span></code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -187,13 +238,19 @@
     const svg8 = graphviz.dot(dot8);
     document.getElementById("GRAPH8").innerHTML = svg8;
   }
-</script><br>
-<div id="GRAPH8"></div></div><br>
-<div class="syrup-comment">Circuit <code><span class="syrup-function">one</span></code> is defined.</div><br>
-<div class="syrup-happy">Printing <code><span class="syrup-function">one</span></code>:<br>
+</script>
+<br>
+<div id="GRAPH8"></div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">one</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Printing <code><span class="syrup-function">one</span></code>:
+<br>
 <div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">1</span> -&gt; <span class="syrup-type">&lt;Bit&gt;</span>
-<span class="syrup-function">1</span> = <span class="syrup-function">!</span><span class="syrup-function">0</span></div></div></div><br>
-<div class="syrup-happy">Displaying <code><span class="syrup-function">one</span></code>:<br>
+<span class="syrup-function">1</span> = <span class="syrup-function">!</span><span class="syrup-function">0</span></div></div></div>
+<br>
+<div class="syrup-happy">Displaying <code><span class="syrup-function">one</span></code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -202,13 +259,19 @@
     const svg9 = graphviz.dot(dot9);
     document.getElementById("GRAPH9").innerHTML = svg9;
   }
-</script><br>
-<div id="GRAPH9"></div></div><br>
-<div class="syrup-comment">Circuit <code><span class="syrup-function">mux</span></code> is defined.</div><br>
-<div class="syrup-happy">Printing <code><span class="syrup-function">mux</span></code>:<br>
+</script>
+<br>
+<div id="GRAPH9"></div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">mux</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Printing <code><span class="syrup-function">mux</span></code>:
+<br>
 <div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">mux</span>(<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>) -&gt; <span class="syrup-type">&lt;Bit&gt;</span>
-<span class="syrup-function">mux</span>(<span class="syrup-variable">C</span>, <span class="syrup-variable">X</span>, <span class="syrup-variable">Y</span>) = <span class="syrup-variable">C</span> <span class="syrup-function">&amp;</span> <span class="syrup-variable">X</span> <span class="syrup-function">|</span> <span class="syrup-function">!</span><span class="syrup-variable">C</span> <span class="syrup-function">&amp;</span> <span class="syrup-variable">Y</span></div></div></div><br>
-<div class="syrup-happy">Displaying <code><span class="syrup-function">mux</span></code>:<br>
+<span class="syrup-function">mux</span>(<span class="syrup-variable">C</span>, <span class="syrup-variable">X</span>, <span class="syrup-variable">Y</span>) = <span class="syrup-variable">C</span> <span class="syrup-function">&amp;</span> <span class="syrup-variable">X</span> <span class="syrup-function">|</span> <span class="syrup-function">!</span><span class="syrup-variable">C</span> <span class="syrup-function">&amp;</span> <span class="syrup-variable">Y</span></div></div></div>
+<br>
+<div class="syrup-happy">Displaying <code><span class="syrup-function">mux</span></code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -217,18 +280,24 @@
     const svg10 = graphviz.dot(dot10);
     document.getElementById("GRAPH10").innerHTML = svg10;
   }
-</script><br>
-<div id="GRAPH10"></div></div><br>
-<div class="syrup-comment">Circuit <code><span class="syrup-function">adc2par</span></code> is defined.</div><br>
-<div class="syrup-happy">Printing <code><span class="syrup-function">adc2par</span></code>:<br>
+</script>
+<br>
+<div id="GRAPH10"></div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">adc2par</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Printing <code><span class="syrup-function">adc2par</span></code>:
+<br>
 <div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">adc2par</span>([<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>], [<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>], <span class="syrup-type">&lt;Bit&gt;</span>) -&gt; <span class="syrup-type">&lt;Bit&gt;</span>, [<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>]
 <span class="syrup-function">adc2par</span>([<span class="syrup-variable">X2</span>, <span class="syrup-variable">X1</span>], [<span class="syrup-variable">Y2</span>, <span class="syrup-variable">Y1</span>], <span class="syrup-variable">C1</span>) = <span class="syrup-variable">C4</span>, [<span class="syrup-variable">Z2</span>, <span class="syrup-variable">Z1</span>] <span class="syrup-keyword">where</span>
 <div style="padding-left: 2ch"><span class="syrup-variable">C2</span>, <span class="syrup-variable">Z1</span> = <span class="syrup-function">fadd</span>(<span class="syrup-variable">X1</span>, <span class="syrup-variable">Y1</span>, <span class="syrup-variable">C1</span>)
 <span class="syrup-variable">C40</span>, <span class="syrup-variable">Z20</span> = <span class="syrup-function">fadd</span>(<span class="syrup-variable">X2</span>, <span class="syrup-variable">Y2</span>, <span class="syrup-function">0</span>)
 <span class="syrup-variable">C41</span>, <span class="syrup-variable">Z21</span> = <span class="syrup-function">fadd</span>(<span class="syrup-variable">X2</span>, <span class="syrup-variable">Y2</span>, <span class="syrup-function">1</span>)
 <span class="syrup-variable">C4</span> = <span class="syrup-function">mux</span>(<span class="syrup-variable">C2</span>, <span class="syrup-variable">C41</span>, <span class="syrup-variable">C40</span>)
-<span class="syrup-variable">Z2</span> = <span class="syrup-function">mux</span>(<span class="syrup-variable">C2</span>, <span class="syrup-variable">Z21</span>, <span class="syrup-variable">Z20</span>)</div></div></div></div><br>
-<div class="syrup-happy">Displaying <code><span class="syrup-function">adc2par</span></code>:<br>
+<span class="syrup-variable">Z2</span> = <span class="syrup-function">mux</span>(<span class="syrup-variable">C2</span>, <span class="syrup-variable">Z21</span>, <span class="syrup-variable">Z20</span>)</div></div></div></div>
+<br>
+<div class="syrup-happy">Displaying <code><span class="syrup-function">adc2par</span></code>:
+<br>
 <script type="module">
   import { Graphviz } from "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.js";
   if (Graphviz) {
@@ -237,5 +306,6 @@
     const svg11 = graphviz.dot(dot11);
     document.getElementById("GRAPH11").innerHTML = svg11;
   }
-</script><br>
+</script>
+<br>
 <div id="GRAPH11"></div></div>
