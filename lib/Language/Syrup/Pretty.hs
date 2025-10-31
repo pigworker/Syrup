@@ -139,7 +139,7 @@ instance Pretty (Eqn' PrettyName ty) where
 instance Pretty (Def' PrettyName Typ) where
   type PrettyDoc (Def' PrettyName Typ) = Doc
   prettyPrec _ = \case
-    Stub{} -> pretty ("Stubbed out definition" :: LineDoc)
+    Stub{} -> aLine "Stubbed out definition"
     (Def (fn, ps) rhs meqns) ->
       -- Type declaration
       let pstys = map patTy ps in
