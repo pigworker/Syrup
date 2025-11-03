@@ -617,9 +617,9 @@ report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
     screp :: ([Va], ([Va], [Va])) -> Doc
     screp (is, (los, ros)) =
       let inputs = CircuitConfig [] is in
-      aLine (circuitExec lnom inputs (CircuitConfig [] los))
-      <> aLine $$
-        [ " but "
+      aLine $$
+        [ circuitExec lnom inputs (CircuitConfig [] los)
+        , " but "
         , circuitExec rnom inputs (CircuitConfig [] ros)
         ]
 report (lnom, rnom) (Report (InstantKarma ins ml [] (r : _) mr)) =
@@ -646,9 +646,9 @@ report (lnom, rnom) (Report (InstantKarma ins ml [] (r : _) mr)) =
 
     screp :: ([Va], ([Va], [Va])) -> Doc
     screp (is, (los, ros)) =
-      aLine (circuitExec lnom (CircuitConfig [] is) (CircuitConfig [] los))
-      <> aLine $$
-        [ " but "
+      aLine $$
+        [ circuitExec lnom (CircuitConfig [] is) (CircuitConfig [] los)
+        , " but "
         , circuitExec rnom (CircuitConfig [] is) (CircuitConfig [] ros)
         ]
 report _ (Report (InstantKarma _ _ [] [] _)) =
