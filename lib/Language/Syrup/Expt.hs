@@ -597,7 +597,7 @@ report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
   <> foldMapArr grot mr
   where
     (loss, mem) = case fromJust $ findArr l ml of
-      (lvas, loss) -> (,) loss $ case fromJust $ leftmostArr lvas of
+      (lvas, loss) -> (loss,) $ case fromJust $ leftmostArr lvas of
         [] -> mempty
         vs -> aLine $$ ["in memory state", braces (foldMap pretty vs)]
 

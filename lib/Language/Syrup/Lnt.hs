@@ -9,7 +9,6 @@
 module Language.Syrup.Lnt where
 
 import Data.Foldable (fold)
-import Data.String (IsString)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Ded

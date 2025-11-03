@@ -164,7 +164,6 @@ data BlockDoc
   | ABlock (Maybe AnnStructure) Doc
 
 instance Semigroup BlockDoc where
-  ABlock Nothing [] <> d = d
   d <> ABlock Nothing [] = d
   ABlock Nothing d1 <> ABlock Nothing d2 = ABlock Nothing (d1 ++ d2)
   d1 <> d2 = ABlock Nothing [d1, d2]
