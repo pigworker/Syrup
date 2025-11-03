@@ -1,0 +1,36 @@
+Truth table for `srff`:
+  S R { Q -> Q } Q
+  ----{--------}--
+  0 0 { 0 -> 0 } 0
+      { 1 -> 1 } 1
+  0 1 { 0 -> 0 } 0
+      { 1 -> 0 } 1
+  1 0 { 0 -> 1 } 0
+      { 1 -> 1 } 1
+  1 1 { 0 -> ? } 0
+      { 1 -> ? } 1
+
+Bisimulation between `srff`, `srff`:
+  `srff` behaves like `srff`
+    `{1}` ~ `{1}`
+    `{0}` ~ `{0}`
+
+Warning: I don't have an implementation for `srff`.
+
+Typing for `srff`:
+  srff(<Bit>, <Bit>) -> @<Bit>
+
+Circuits `not` and `dff2` are defined.
+
+Truth table for `dff2`:
+  D {   ->   }  
+  --{--------}--
+  0 { 0 -> 0 } 0
+    { 1 -> 0 } 1
+  1 { 0 -> 1 } 0
+    { 1 -> 1 } 1
+
+Bisimulation between `dff`, `dff2`:
+  `dff` behaves like `dff2`
+    `{1}` ~ `{1}`
+    `{0}` ~ `{0}`

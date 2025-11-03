@@ -522,6 +522,25 @@ dffCompo = Compo
       , stage1 = \ [_, d] -> [d]
       }
 
+srffCompo :: Compo
+srffCompo = Compo
+      { monick = "srff"
+      , rmk = Nothing
+      , defn = Nothing
+      , memTys = [MemoryCell (Just $ CellName "Q") (Bit Unit)]
+      , inpTys = [ InputWire  (Just (PVar () "S")) (Bit Unit)
+                 , InputWire  (Just (PVar () "R")) (Bit Unit)
+                 ]
+      , oupTys = [OutputWire (Just (PVar (Bit Unit) ("Q", True))) (Bit T0)]
+      , stage0 = \ [q] -> [q]
+      , stage1 = \case
+          [q, V0, V0] -> [q]
+          [q, V0, V1] -> [V0]
+          [q, V1, V0] -> [V1]
+          [q, V1, V1] -> [VQ]
+          _ -> [VQ]
+      }
+
 zeroCompo :: Compo
 zeroCompo = Compo
       { monick = "zero"
@@ -550,6 +569,7 @@ myCoEnv :: CoEnv
 myCoEnv = foldr insertArr emptyCoEnv
   [ ("nand", nandCompo)
   , ("dff", dffCompo)
+  , ("srff", srffCompo)
   , ("zero", zeroCompo)
   ]
 
