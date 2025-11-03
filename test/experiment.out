@@ -63,8 +63,8 @@ Truth table for `adc2`:
   [1  1 ] [1  1 ] 1  | 1  [1  1 ]
 
 Simulation for `adc2`:
-  0 {} [1, 0][0, 1]1 -> 1[0, 0]
-  1 {} [1, 1][1, 0]0 -> 1[0, 1]
+  0 {} [10][01]1 -> 1[00]
+  1 {} [11][10]0 -> 1[01]
   2 {}
 
 Circuits `xor1` and `xor2` are defined.

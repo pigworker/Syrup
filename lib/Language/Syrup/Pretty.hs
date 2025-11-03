@@ -20,6 +20,7 @@ import Language.Syrup.Doc
 import Language.Syrup.Syn
 import Language.Syrup.Ty
 import Language.Syrup.Unelab
+import Language.Syrup.Utils (($$))
 
 ------------------------------------------------------------------------
 -- Resulting functions
@@ -45,7 +46,7 @@ instance Pretty Va where
     VQ    -> "?"
     V0    -> "0"
     V1    -> "1"
-    VC vs -> pretty (AList vs)
+    VC vs -> brackets $$ map pretty vs
 
 circuitExec :: Name -> CircuitConfig -> CircuitConfig -> LineDoc
 circuitExec nm is os = fold
