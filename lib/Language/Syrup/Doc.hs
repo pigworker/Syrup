@@ -47,7 +47,7 @@ import Control.Monad.State (MonadState, get, put, evalState)
 
 import Data.Foldable (fold)
 import Data.Kind (Type)
-import Data.List (intercalate, intersperse)
+import Data.List (intersperse)
 import Data.String (IsString, fromString)
 import Data.Void (Void, absurd)
 
