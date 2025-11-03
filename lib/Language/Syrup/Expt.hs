@@ -588,8 +588,8 @@ report :: (Name, Name) -> Report -> Doc
 report (lnom, rnom) (Report (Incompatible (lis, los) (ris, ros))) =
   aLine $$
     [ identifier lnom, " and ", identifier rnom, " are incompatible:"]
-  <> prettyBlock (TypeDecl (StandardName lnom) lis los)
-  <> prettyBlock (TypeDecl (StandardName rnom) ris ros)
+  <> aLine (isCode $ pretty (TypeDecl (StandardName lnom) lis los))
+  <> aLine (isCode $ pretty (TypeDecl (StandardName rnom) ris ros))
 report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
   aLine $$
     [ identifier lnom, " has a behaviour that ", identifier rnom, " does not match"]
@@ -618,9 +618,9 @@ report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
     screp (is, (los, ros)) =
       let inputs = CircuitConfig [] is in
       aLine $$
-        [ circuitExec lnom inputs (CircuitConfig [] los)
+        [ isCode $ circuitExec lnom inputs (CircuitConfig [] los)
         , " but "
-        , circuitExec rnom inputs (CircuitConfig [] ros)
+        , isCode $ circuitExec rnom inputs (CircuitConfig [] ros)
         ]
 report (lnom, rnom) (Report (InstantKarma ins ml [] (r : _) mr)) =
   aLine $$ [ identifier rnom, " has a behaviour that ", identifier lnom, " does not match" ]
@@ -647,9 +647,9 @@ report (lnom, rnom) (Report (InstantKarma ins ml [] (r : _) mr)) =
     screp :: ([Va], ([Va], [Va])) -> Doc
     screp (is, (los, ros)) =
       aLine $$
-        [ circuitExec lnom (CircuitConfig [] is) (CircuitConfig [] los)
+        [ isCode $ circuitExec lnom (CircuitConfig [] is) (CircuitConfig [] los)
         , " but "
-        , circuitExec rnom (CircuitConfig [] is) (CircuitConfig [] ros)
+        , isCode $ circuitExec rnom (CircuitConfig [] is) (CircuitConfig [] ros)
         ]
 report _ (Report (InstantKarma _ _ [] [] _)) =
   impossible "instant karma with no evidence"
@@ -657,7 +657,7 @@ report (lnom, rnom) (Report (CounterModel ml (Left (l, rss)) mr)) =
   aLine $$
     [ identifier lnom, " can be distinguished from all possible states of ", identifier rnom ]
   <> aLine $$
-    [ "when ", identifier lnom, " has memory ", braces lmem ]
+    [ "when ", identifier lnom, " has memory ", isCode (braces lmem) ]
   <> foldMapArr grump rss
   where
   lmem = case fromJust $ findArr l ml of
@@ -665,13 +665,13 @@ report (lnom, rnom) (Report (CounterModel ml (Left (l, rss)) mr)) =
       lmem -> foldMap pretty lmem
   grump (r, vss) = aLine $$
     [ "if ", identifier rnom
-    , " has memory like ", pretty (ASet $ foldMapSet statesh rs)
-    , ", try inputs ", punctuate ";" (fmap (foldMap pretty) vss)
+    , " has memory like ", isCode $ braces $$ map pretty (foldMapSet statesh rs)
+    , ", try inputs ", isCode $ punctuate ";" (fmap (foldMap pretty) vss)
     ] where rs = fst $ fromJust $ findArr r mr
 report (lnom, rnom) (Report (CounterModel ml (Right (r, lss)) mr)) =
   aLine $$
     [ identifier rnom, " can be distinguished from all possible states of ", identifier lnom
-    , "when ", identifier rnom, " has memory ", braces rmem
+    , "when ", identifier rnom, " has memory ", isCode (braces rmem)
     ]
   <> foldMapArr grump lss
   where
@@ -680,8 +680,8 @@ report (lnom, rnom) (Report (CounterModel ml (Right (r, lss)) mr)) =
       rmem -> foldMap pretty rmem
   grump (l, vss) = aLine $$
     [ "if ", identifier lnom
-    , " has memory like ", pretty (ASet $ foldMapSet statesh ls)
-    , ", try inputs ", punctuate ";" (fmap (foldMap pretty) vss)
+    , " has memory like ", isCode $ braces $$ map pretty (foldMapSet statesh ls)
+    , ", try inputs ", isCode $ punctuate ";" (fmap (foldMap pretty) vss)
     ] where ls = fst $ fromJust $ findArr l ml
 report (lnom, rnom) (Report (Bisimilar ml (Bisim l2r _) mr)) =
   aLine $$ [ identifier lnom, " behaves like ", identifier rnom ]
@@ -689,9 +689,9 @@ report (lnom, rnom) (Report (Bisimilar ml (Bisim l2r _) mr)) =
   where
     simState (l, r) = case (findArr l ml, findArr r mr) of
       (Just (ls, _), Just (rs, _)) -> nest 2 $ aLine $$
-        [ pretty (ASet $ foldMapSet statesh ls)
+        [ isCode $ braces $$ fmap pretty (foldMapSet statesh ls)
         , " ~ "
-        , pretty (ASet $ foldMapSet statesh rs)
+        , isCode $ braces $$ fmap pretty (foldMapSet statesh rs)
         ]
       (_, _) -> aLine "The IMPOSSIBLE has happened: couldn't find states"
 

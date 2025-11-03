@@ -4,4 +4,4 @@ Circuit `nand2` is defined.
 
 Bisimulation between `nand`, `nand2`:
   `nand` behaves like `nand2`
-    {} ~ {}
+    `{}` ~ `{}`

@@ -53,9 +53,8 @@ circuitExec nm is os = fold
   [ pretty nm
   , let mems = memoryConfig is in
     if null mems then mempty else braces (foldMap pretty mems)
-  , "("
-  , foldMap pretty (valuesConfig is)
-  , ") = "
+  , parens (foldMap pretty $ valuesConfig is)
+  , " = "
   , let mems = memoryConfig os in
     if null mems then mempty else braces (foldMap pretty mems)
   , foldMap pretty (valuesConfig os)

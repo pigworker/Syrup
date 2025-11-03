@@ -21,12 +21,12 @@ Truth table for `two`:
     { 1 1 -> 0 0 } 1
 
 Bisimulation between `one`, `two`:
-  `two` can be distinguished from all possible states of `one`when `two` has memory {10}
-  if `one` has memory like {1}, try inputs 0;1;0
-  if `one` has memory like {0}, try inputs 0
+  `two` can be distinguished from all possible states of `one`when `two` has memory `{10}`
+  if `one` has memory like `{1}`, try inputs `0;1;0`
+  if `one` has memory like `{0}`, try inputs `0`
 
 Bisimulation between `two`, `one`:
   `two` can be distinguished from all possible states of `one`
-  when `two` has memory {10}
-  if `one` has memory like {1}, try inputs 0;1;0
-  if `one` has memory like {0}, try inputs 0
+  when `two` has memory `{10}`
+  if `one` has memory like `{1}`, try inputs `0;1;0`
+  if `one` has memory like `{0}`, try inputs `0`
