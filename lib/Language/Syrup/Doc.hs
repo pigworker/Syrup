@@ -128,6 +128,7 @@ data AnnStructure
   | RawCodeBlock
   | GraphBlock [String]
   | StatusBlock FeedbackStatus
+  | DetailsBlock LineDoc
 
 data LineDoc
   = AString String
@@ -224,6 +225,8 @@ instance Render Doc where
     applyStructure PreBlock ls = ls
     applyStructure RawCodeBlock ls = ls
     applyStructure (GraphBlock ls) _ = ls
+    applyStructure (DetailsBlock s) ls =
+      concat (renderToString s) : ls
 
 
   renderToHtml = flip evalState 0 . go False where
@@ -276,6 +279,11 @@ instance Render Doc where
       StatusBlock cat -> do
         html <- go False ds
         pure [Html.div ! class_ (toCSSClass cat) $ html]
+      DetailsBlock s -> do
+        html <- go b ds
+        pure $ pure $ Html.details $ do
+          Html.summary $ renderToHtml s
+          html
 
 fresh :: MonadState Int m => m Int
 fresh = do

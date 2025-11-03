@@ -591,15 +591,15 @@ report (lnom, rnom) (Report (Incompatible (lis, los) (ris, ros))) =
   <> aLine (isCode $ pretty (TypeDecl (StandardName lnom) lis los))
   <> aLine (isCode $ pretty (TypeDecl (StandardName rnom) ris ros))
 report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
-  aLine $$
-    [ identifier lnom, " has a behaviour that ", identifier rnom, " does not match"]
-  <> mem
-  <> foldMapArr grot mr
+  structure
+    (DetailsBlock $$ [ identifier lnom, " has a behaviour that "
+                     , identifier rnom, " does not match"])
+    $$ [mem, foldMapArr grot mr]
   where
     (loss, mem) = case fromJust $ findArr l ml of
       (lvas, loss) -> (loss,) $ case fromJust $ leftmostArr lvas of
         [] -> mempty
-        vs -> aLine $$ ["in memory state", braces (foldMap pretty vs)]
+        vs -> aLine $$ ["in memory state", isCode (braces $ foldMap pretty vs)]
 
     grot :: forall st. Ord st => (st, (Set [Va], [([Va], st)])) -> Doc
     grot (r, (rvas, ross)) = (<> grump) $ case leftmostArr rvas of
@@ -623,14 +623,15 @@ report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
         , isCode $ circuitExec rnom inputs (CircuitConfig [] ros)
         ]
 report (lnom, rnom) (Report (InstantKarma ins ml [] (r : _) mr)) =
-  aLine $$ [ identifier rnom, " has a behaviour that ", identifier lnom, " does not match" ]
-  <> mem
-  <> foldMapArr grot ml
+  structure
+    (DetailsBlock $$ [ identifier rnom, " has a behaviour that "
+                     , identifier lnom, " does not match"])
+    $$ [mem, foldMapArr grot ml]
   where
     (ross, mem) = case fromJust $ findArr r mr of
       (rvas, ross) -> (,) ross $ case fromJust $ leftmostArr rvas of
         [] -> mempty
-        vs -> aLine $$ ["in memory state ", braces (foldMap pretty vs)]
+        vs -> aLine $$ ["in memory state ", isCode (braces $ foldMap pretty vs)]
     grot (l, (lvas, loss)) = (<> grump) $ case leftmostArr lvas of
       Just [] -> mempty
       _ -> aLine $$
@@ -654,11 +655,12 @@ report (lnom, rnom) (Report (InstantKarma ins ml [] (r : _) mr)) =
 report _ (Report (InstantKarma _ _ [] [] _)) =
   impossible "instant karma with no evidence"
 report (lnom, rnom) (Report (CounterModel ml (Left (l, rss)) mr)) =
-  aLine $$
-    [ identifier lnom, " can be distinguished from all possible states of ", identifier rnom ]
-  <> aLine $$
-    [ "when ", identifier lnom, " has memory ", isCode (braces lmem) ]
-  <> foldMapArr grump rss
+  structure
+    (DetailsBlock $$ [ identifier lnom, " can be distinguished "
+                     , "from all possible states of ", identifier rnom ])
+    $$ [ aLine $$ [ "when ", identifier lnom, " has memory ", isCode (braces lmem) ]
+       , foldMapArr grump rss
+       ]
   where
   lmem = case fromJust $ findArr l ml of
     (lvas, _) -> case fromJust $ leftmostArr lvas of
