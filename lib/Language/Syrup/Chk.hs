@@ -429,43 +429,43 @@ typeErrorReport env (cz, e) = concat
         ]
     context' (_ :< TyOUTPUTS ts es) = aLine $$
       [ "I was trying to get outputs"
-      , "  ", csep (map pretty ts)
+      , "  ", csep (map pretty ts), " "
       , "from expressions"
-      , "  ", csep (map (prettyUnelabed env) es)
+      , "  ", csep (map (prettyUnelabed env) es), " "
       , "at the time."
       ]
     context' (_ :< TyINPUTS ts ps) = aLine $$
       [ "I was trying to fit inputs"
-      , "  ", csep (map pretty ts)
+      , "  ", csep (map pretty ts), " "
       , "into the patterns"
-      , "  ", csep (map pretty ps)
+      , "  ", csep (map pretty ps), " "
       , "at the time."
       ]
     context' (_ :< TyEXP e ts) = aLine $$
       [ "I was hoping to get the beginning of these"
-      , "  ", csep (map pretty ts)
+      , "  ", csep (map pretty ts), " "
       , "from the expression"
-      , "  ", prettyUnelabed env e
+      , "  ", prettyUnelabed env e, " "
       , "at the time."
       ]
     context' (_ :< TyCAB es ts) = aLine $$
       [ "I was trying to make a cable of these"
-      , "  ", csep (map pretty ts)
+      , "  ", csep (map pretty ts), " "
       , "from the expressions"
-      , "  ", csep (map (prettyUnelabed env) es)
+      , "  ", csep (map (prettyUnelabed env) es), " "
       , "at the time."
       ]
     context' (_ :< TyAPP c es) = aLine $$
       [ "I was trying to use ", pretty (monick c), " which wants input types"
-      , "  ", pretty (ATuple $ getInputType <$> inpTys c)
+      , "  ", pretty (ATuple $ getInputType <$> inpTys c), " "
       , "but feeding in these expressions"
-      , "  ", csep (map (prettyUnelabed env) es)
+      , "  ", csep (map (prettyUnelabed env) es), " "
       , "at the time."
       ]
     context' (g :< TyWIRE x s t) = aLine $$
-      [ "I was trying to connect ", ww x
-      , "but it carried a signal of type ", pretty s
-      , "where a signal of type ", pretty t
+      [ "I was trying to connect ", ww x, " "
+      , "but it carried a signal of type ", pretty s, " "
+      , "where a signal of type ", pretty t, " "
       , "was expected."
       ] <> context' g
       where
