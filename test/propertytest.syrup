@@ -20,3 +20,12 @@ experiment forall X -> X = !X
 
 experiment forall X -> X|!X = 1
 experiment forall X -> X&!X = 0
+
+diag(<Bit>) -> <Bit>, <Bit>
+diag(X) = X,X
+
+experiment forall X -> diag(X) = X
+
+experiment forall X, Y -> [!!X,Y] = [X,!!Y]
+
+experiment forall X -> X = !!!!X

@@ -492,14 +492,30 @@ checkTypes
 checkTypes mt e = case e of
   Var _ nm -> case mt of
     Just [t] -> gets (Map.lookup nm) >>= \case
-      Just t' -> do
-        unless (t == t') $ undefined -- TODO error
-        pure (Right mt)
+      Just t'
+        | t == t' -> pure (Right mt)
+        | otherwise -> do
+            tell $ Seq.singleton $ ATypeError $ aLine $$
+              [ "The variable "
+              , pretty nm
+              , " is used in places leading to conflicting types "
+              , pretty t
+              , " and "
+              , pretty t'
+              , "."
+              ]
+            pure (Left ())
       Nothing -> do
         modify (Map.insert nm t)
         pure (Right mt)
-    Just _ -> do
-      tell $ Seq.singleton undefined
+    Just ts -> do
+      tell $ Seq.singleton $ ATypeError $ aLine $$
+        [ "The variable "
+        , pretty nm
+        , " is checked against a list of types "
+        , pretty (AList ts)
+        , "."
+        ]
       pure (Left ())
     Nothing -> pure (Right Nothing)
   Hol{} -> pure (Right Nothing)
@@ -508,14 +524,62 @@ checkTypes mt e = case e of
       tell $ Seq.singleton (AnUnknownIdentifier f)
       pure (Left ())
     Just c -> case map (fmap absurd . getInputType) (inpTys c) of
-      tys | length tys /= length es -> pure (Left ())
+      tys | length tys /= length es -> do
+              tell $ Seq.singleton $ ATypeError $ aLine $$
+                [ "The function "
+                , identifier f
+                , " expects "
+                , pretty (length tys)
+                , " arguments but was given "
+                , pretty (length es)
+                , "."
+                ]
+              pure (Left ())
       tys -> do
         mets <- sequence $ zipWith (checkTypes . (Just . pure)) tys es
         case partitionEithers mets of
           ([], mts) -> pure (Right $ Just $ map (fogTy . getOutputType) (oupTys c))
-          _ -> undefined
+          _ -> pure (Left ())
+  Cab _ es -> case mt of
+    Just [ty@(Cable tys)]
+      | length tys /= length es -> do
+          tell $ Seq.singleton $ ATypeError $ aLine $$
+            [ "The cable "
+--            , pretty e
+            , " has size "
+            , pretty (length es)
+            , " but is checked against a cable type "
+            , pretty ty
+            , " of size "
+            , pretty (length tys)
+            , "."
+            ]
+          pure (Left ())
+      | otherwise -> do
+        mets <- sequence $ zipWith (checkTypes . (Just . pure)) tys es
+        case partitionEithers mets of
+          ([], mts) -> pure (Right mt)
+          _ -> pure (Left ())
+    Nothing -> do
+        mets <- traverse (checkTypes Nothing) es
+        case partitionEithers mets of
+          ([], mts) -> case sequence mts of
+            Nothing -> pure (Right Nothing)
+            Just tyss -> case traverse isSingleton tyss of
+              Nothing -> pure (Left ())
+              Just tys -> pure (Right (Just [Cable tys]))
+          _ -> pure (Left ())
 
-  Cab _ _ -> undefined
+    Just ts -> do
+      tell $ Seq.singleton $ ATypeError $ aLine $$
+        [ "The cable "
+--        , pretty e
+        , " is checked against a list of types "
+        , pretty (AList ts)
+        , "."
+        ]
+      pure (Left ())
+
 
 isSingleton :: [a] -> Maybe a
 isSingleton [x] = Just x
@@ -539,24 +603,39 @@ smartCheck lhs rhs
       (Left (), _) -> pure Nothing
       (Right mts1, ass) -> runStateT (checkTypes mts1 rhs) ass >>= \case
         (Left (), _) -> pure Nothing
-        (Right mts2, ass) -> pure ((,ass) <$> (mts1 <|> mts2))
+        (Right mts2, ass) -> do
+          mts <- case mts1 <|> mts2 of
+            Just ts -> pure (Just ts)
+            Nothing -> reconstruct ass lhs
+          pure ((,ass) <$> mts)
+
+-- assuming we have a type for every variable
+reconstruct :: MonadCompo s m => Map String Typ -> Exp -> m (Maybe [Ty Unit TyNom])
+reconstruct ass = \case
+  Var _ nm -> pure $ pure <$> Map.lookup nm ass
+  Hol{} -> pure Nothing
+  App _ f _ -> gets (findArr f . (^. hasLens)) >>= \case
+    Nothing -> pure Nothing
+    Just c -> pure (Just $ map (fogTy . getOutputType) (oupTys c))
+  Cab _ es -> do
+    mts <- traverse (reconstruct ass) es
+    pure $ (pure . Cable) <$> traverse (>>= isSingleton) mts
 
 checkExperiment :: MonadCompo s m
-                => EXPT' Exp -> m (EXPT' (Exp, Compo))
-checkExperiment (Anf nm) = pure (Anf nm)
-checkExperiment (Bisimilarity nm nm') = pure (Bisimilarity nm nm')
-checkExperiment (UnitTest nm vs vs') = pure (UnitTest nm vs vs')
+                => EXPT' Exp -> m (Maybe (EXPT' (Exp, Compo)))
+checkExperiment (Anf nm) = pure (Just $ Anf nm)
+checkExperiment (Bisimilarity nm nm') = pure (Just $ Bisimilarity nm nm')
+checkExperiment (UnitTest nm vs vs') = pure (Just $ UnitTest nm vs vs')
 checkExperiment (PropertyTest vars elhs erhs) = smartCheck elhs erhs >>= \case
-  Nothing -> pure undefined
+  Nothing -> pure Nothing
   Just (otys, ass) -> do
     -- Check that we have inferred the type of all the variables
     case Set.toList (Set.fromList vars Set.\\ Map.keysSet ass) of
       [] -> do
         let (ivars, itys) = unzip $ Map.toList ass
-        case (traverse tyToTY' itys, traverse tyToTY' otys) of
-          (Nothing, _) -> undefined
-          (_, Nothing) -> undefined
-          (Just itys, Just otys) -> do
+        case ((,) <$> traverse tyToTY' itys <*> traverse tyToTY' otys) of
+          Nothing -> pure Nothing
+          Just (itys, otys) -> do
             let fun nm e str = do
                   let funDec = DEC (nm, itys) otys
                   let funDef = Def (nm, map (PVar ()) vars) [e] Nothing
@@ -564,18 +643,18 @@ checkExperiment (PropertyTest vars elhs erhs) = smartCheck elhs erhs >>= \case
                   gets (findArr nm . (^. hasLens))
             lhs <- fun "#lhs" elhs "Elab LHS"
             rhs <- fun "#rhs" erhs "Elab RHS"
-            pure (PropertyTest vars (elhs, fromMaybe undefined lhs) (erhs, fromMaybe undefined rhs))
+            pure (Just $ PropertyTest vars (elhs, fromMaybe undefined lhs) (erhs, fromMaybe undefined rhs))
       _ -> undefined
 
-checkExperiment (Costing nms nm) = pure (Costing nms nm)
-checkExperiment (Display nms nm) = pure (Display nms nm)
-checkExperiment (Dnf nm) = pure (Dnf nm)
-checkExperiment (Print nm) = pure (Print nm)
-checkExperiment (Simplify nm) = pure (Simplify nm)
-checkExperiment (Simulate nm vs vss) = pure (Simulate nm vs vss)
-checkExperiment (Typing nm) = pure (Typing nm)
-checkExperiment (Tabulate nm) = pure (Tabulate nm)
-checkExperiment (FromOutputs nm is bs) = pure (FromOutputs nm is bs)
+checkExperiment (Costing nms nm) = pure (Just $ Costing nms nm)
+checkExperiment (Display nms nm) = pure (Just $ Display nms nm)
+checkExperiment (Dnf nm) = pure (Just $ Dnf nm)
+checkExperiment (Print nm) = pure (Just $ Print nm)
+checkExperiment (Simplify nm) = pure (Just $ Simplify nm)
+checkExperiment (Simulate nm vs vss) = pure (Just $ Simulate nm vs vss)
+checkExperiment (Typing nm) = pure (Just $ Typing nm)
+checkExperiment (Tabulate nm) = pure (Just $ Tabulate nm)
+checkExperiment (FromOutputs nm is bs) = pure (Just $ FromOutputs nm is bs)
 
 
 

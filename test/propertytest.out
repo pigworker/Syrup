@@ -46,3 +46,23 @@ When property testing `X & !X = 0`:
 Equivalence between `lhs`, `rhs`:
   `lhs` behaves like `rhs`
     `{}` ~ `{}`
+
+Circuit `diag` is defined.
+
+Error: The variable X is checked against a list of types [<Bit>, <Bit>].
+
+Circuits `#lhs` and `#rhs` are defined.
+
+When property testing `[!!X, Y] = [X, !!Y]`:
+
+Equivalence between `lhs`, `rhs`:
+  `lhs` behaves like `rhs`
+    `{}` ~ `{}`
+
+Circuits `#lhs` and `#rhs` are defined.
+
+When property testing `X = !!!!X`:
+
+Equivalence between `lhs`, `rhs`:
+  `lhs` behaves like `rhs`
+    `{}` ~ `{}`

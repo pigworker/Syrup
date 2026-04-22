@@ -65,8 +65,8 @@ grokSy (Right (Declaration dec@(DEC (f, _) _), s) : src) = do
   whenJust mtydef $ (hasLens %=) . flip addDef
   grokSy rest
 grokSy (Right (Experiment expt, _) : src) = do
-  expt' <- checkExperiment expt
-  experiment expt'
+  mexpt' <- checkExperiment expt
+  whenJust mexpt' $ experiment
   grokSy src
 grokSy (Right (Definition d, _) : src) = do
   tell $ Seq.singleton $ AnUndeclaredCircuit (defName d)
