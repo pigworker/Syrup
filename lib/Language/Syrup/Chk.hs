@@ -641,7 +641,7 @@ elabPropertyTest (vars, elhs, erhs) = smartCheck elhs erhs >>= \case
                   gets (findArr nm . (^. hasLens))
             lhs <- fun "#lhs" elhs "Elab LHS"
             rhs <- fun "#rhs" erhs "Elab RHS"
-            pure (Just (fromMaybe undefined lhs, fromMaybe undefined rhs))
+            pure ((,) <$> lhs <*> rhs)
       oops -> do
         tell $ Seq.singleton $ ATypeError $ aLine $$
           [ "Failed to infer the type of "
