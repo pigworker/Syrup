@@ -4,8 +4,7 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
@@ -32,12 +31,14 @@ import Language.Syrup.BigArray
 import Language.Syrup.Cst
 import Language.Syrup.DeMorgan (deMorgan)
 import Language.Syrup.DNF (dnf, ttToDef)
+import Language.Syrup.Doc hiding (AList, unwords)
 import Language.Syrup.Dot
 import Language.Syrup.Fdk
 import Language.Syrup.Opt
-import Language.Syrup.Pretty (basicShow, prettyShow)
+import Language.Syrup.Pretty
 import Language.Syrup.Syn
 import Language.Syrup.Ty
+import Language.Syrup.Unelab
 import Language.Syrup.Utils
 
 import Utilities.Lens
@@ -47,8 +48,6 @@ import Utilities.Vector
 import System.Directory (findExecutable)
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (readProcess)
-
-import Text.Blaze.Html5 (toHtml)
 
 ------------------------------------------------------------------------------
 -- experiments
@@ -64,13 +63,13 @@ type MonadExperiment s m =
   )
 
 withCompo :: MonadCompo s m
-          => String -> (Compo -> m ()) -> m ()
+          => Name -> (Compo -> m ()) -> m ()
 withCompo x k = gets (findArr x . (^. hasLens)) >>= \case
   Nothing -> tell $ Seq.singleton (AnUnknownIdentifier x)
   Just c -> k c
 
 withImplem :: MonadCompo s m
-           => String -> (TypedDef -> m ()) -> m ()
+           => Name -> (TypedDef -> m ()) -> m ()
 withImplem x k = withCompo x $ \ c -> case defn c of
   Nothing -> tell $ Seq.singleton (AMissingImplementation x)
   Just i -> k i
@@ -99,23 +98,28 @@ experiment (PropertyTest vars (e, lhs) (f, rhs)) = do
   g <- use hasLens
   let pe = prettyShow g e
   let pf = prettyShow g f
-  tell $ Seq.singleton $ WhenPropertyTesting vars pe pf $
-    report (pe, pf) (bisimReport lhs rhs)
-experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc ->
-  anExperiment "Bisimulation between" [l, r] $ report (l, r) (bisimReport lc rc)
+  tell $ Seq.singleton $ WhenPropertyTesting vars pe pf []
+  anExperiment "Equivalence between" ["lhs", "rhs"] $
+    report ("lhs", "rhs") (bisimReport lhs rhs)
+experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc -> do
+  anExperiment "Bisimulation between" [l, r] $
+    report (l, r) (bisimReport lc rc)
 experiment (Print x) = withImplem x $ \ i -> do
   g <- use hasLens
-  let txt = prettyShow g i
-  tell $ Seq.singleton $ ARawCode "Printing" x $ lines txt
+  tell $ Seq.singleton
+    $ ARawCode "Printing" x
+    $ prettyUnelabed g i
 experiment (Typing x) = withCompo x $ \ c -> do
   g <- use hasLens
-  let txt = prettyShow g $ TypeDecl x
-              (getInputType <$> inpTys c)
-              (getOutputType <$> oupTys c)
-  anExperiment "Typing for" [x] $ lines txt
+  anExperiment "Typing for" [x] $
+    prettyBlock
+      $ runUnelab g
+      $ TypeDecl x
+          (getInputType <$> inpTys c)
+          (getOutputType <$> oupTys c)
 experiment (Display xs x) = withImplem x $ \ i -> do
   st <- use hasLens
-  let (fdk, circuit) = whiteBoxDef st xs i
+  let (fdk, circuit) = whiteBoxDef st (map getName xs) i
   unless (null fdk) $ tell $ Seq.singleton (WhenDisplaying x $ toList fdk)
   case circuit of
     Nothing -> pure ()
@@ -128,16 +132,14 @@ experiment (Display xs x) = withImplem x $ \ i -> do
             Just{} -> AnSVGGraph xs x . lines <$> readProcess "dot" ["-q", "-Tsvg"] (unlines dot)
 experiment (Dnf x) = withImplem x $ \ i -> do
   env <- use hasLens
-  let txt = prettyShow env (dnf env i)
   tell $ Seq.singleton
     $ ARawCode "Disjunctive Normal Form of" x
-    $ lines txt
+    $ prettyUnelabed env $ dnf env i
 experiment (Anf x) = withImplem x $ \ i -> do
   env <- use hasLens
-  let txt = prettyShow env (toANF i)
   tell $ Seq.singleton
     $ ARawCode "A Normal Form of" x
-    $ lines txt
+    $ prettyUnelabed env $ toANF i
 experiment (Costing nms x) = do
   g <- use hasLens
   let support = foldMap singleton nms
@@ -145,22 +147,20 @@ experiment (Costing nms x) = do
   anExperiment "Cost for" [x] $
     flip foldMapArr cost (\ (x, Sum k) ->
       let copies = "cop" ++ if k > 1 then "ies" else "y" in
-      ["  " ++ show k ++ " " ++ copies ++ " of " ++ x])
+      aLine $$ [pretty k, " ", pretty copies, " of ", identifier x])
 experiment (Simplify x) = withImplem x $ \ i -> do
   g <- use hasLens
-  let txt = prettyShow g (deMorgan g i)
   tell $ Seq.singleton
     $ ARawCode "Simplification of" x
-    $ lines txt
+    $ prettyUnelabed g (deMorgan g i)
 experiment (FromOutputs f xs bs) = do
   g <- use hasLens
   case ttToDef g f (map getInputName xs) bs of
     Nothing -> tell $ Seq.singleton (AnInvalidTruthTableOutput f)
     Just def -> do
-      let txt = prettyShow g def
       tell $ Seq.singleton
         $ ARawCode "DNF circuit for" f
-        $ lines txt
+        $ prettyUnelabed g def
 
 ------------------------------------------------------------------------------
 -- running tine sequences
@@ -178,18 +178,18 @@ data TimeStep = TimeStep
   , currentOutputs :: [Va]
   }
 
-instance Render (Simulation n (Int, [Va]) TimeStep) where
-  renderHtml = pure . toHtml . concat . render
-  render (Simulation (z, mo) steps) = foldMap (pure . row) steps ++ [lastrow]
-      where
-        w = length (show z)
-        showtime t = reverse . take w  $ reverse (show t) ++ repeat ' '
-        row (TimeStep t mt is os) = concat
-          [ showtime t, " {", foldMap show  mt, "} "
-          , foldMap show is, " -> ", foldMap show os
-          ]
-        lastrow = concat
-          [ showtime z, " {", foldMap show mo, "}" ]
+instance Pretty (Simulation n (Int, [Va]) TimeStep) where
+  type PrettyDoc (Simulation n (Int, [Va]) TimeStep) = Doc
+  prettyPrec _ (Simulation (z, mo) steps) = foldMap row steps <> lastrow
+    where
+      w = length (show z)
+      prettyTime t = pretty $ reverse . take w  $ reverse (show t) ++ repeat ' '
+      row (TimeStep t mt is os) = aLine $$
+        [ prettyTime t, " ", braces (foldMap pretty mt)
+        , " "
+        , foldMap pretty is, " -> ", foldMap pretty os
+        ]
+      lastrow = aLine $$ [ prettyTime z, " ", braces (foldMap pretty mo) ]
 
 simulate :: Compo -> Simulation n [Va] [Va]
          -> Simulation n (Int, [Va]) TimeStep
@@ -247,12 +247,12 @@ unitTest c (CircuitConfig mi is) (CircuitConfig mo os) = do
       | os /= currentOutputs step -> Left (AWrongOutputSignals os (currentOutputs step))
       | otherwise -> pure ()
 
-runCompo :: Compo -> [Va] -> [[Va]] -> Either Feedback [String]
+runCompo :: Compo -> [Va] -> [[Va]] -> Either Feedback Doc
 runCompo c m0 iss = case fromList iss of
   AList xs -> do
     checkMemory c m0
     checkInputs c iss
-    pure $ render $ simulate c (Simulation m0 xs)
+    pure $ pretty $ simulate c (Simulation m0 xs)
 
 
 tyVaChks :: [Ty t Void] -> [Va] -> Bool
@@ -301,14 +301,14 @@ data RowTemplate = RowTemplate
   }
 
 -- Generate a template from a pattern and its type
-template :: Pat -> Ty a Void -> Template
+template :: Pat' ty String -> Ty a Void -> Template
 template _           (Meta x)   = absurd x
 template (PVar _ v)  t          = Meta (max (length v) (sizeTy t)) -- ?!
 template p           (TVar s t) = template p t
 template (PCab _ ps) (Cable ts) = Cable (zipWith template ps ts)
 template (PCab _ _) (Bit _) = impossible "ill typed pattern"
 
-mTemplate :: Maybe Pat -> Ty a Void -> Template
+mTemplate :: Maybe (Pat' ty String) -> Ty a Void -> Template
 mTemplate Nothing  t = Meta (sizeTy t)
 mTemplate (Just p) t = template p t
 
@@ -325,7 +325,7 @@ outputTemplate :: OutputWire -> Template
 outputTemplate (OutputWire p t) = mTemplate (fmap (fst <$>) p) t
 
 -- `displayPat ts ps` PRECONDITION: ts was generated using ps
-displayPat :: Template -> Pat -> String
+displayPat :: Template -> Pat' ty String -> String
 displayPat (TVar _ t) p           = displayPat (forget t) p
 displayPat (Meta s)   (PVar _ n)  = padRight (s - length n) n
 displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
@@ -333,7 +333,7 @@ displayPat (Bit x) _ = absurd x
 displayPat (Meta _) (PCab _ _) = impossible "displaying a cable pattern at a meta type"
 displayPat (Cable _) (PVar _ _) = impossible "displaying a variable pattern at a cable type"
 
-displayMPat :: Template -> Maybe Pat -> String
+displayMPat :: Template -> Maybe (Pat' ty String) -> String
 displayMPat t = maybe (displayEmpty t) (displayPat t)
 
 displayEmpty :: Template -> String
@@ -596,104 +596,118 @@ isBisimilar c d = case bisimReport c d of
   Report (Bisimilar{}) -> True
   _ -> False
 
-report :: (String, String) -> Report -> [String]
+report :: (Name, Name) -> Report -> Doc
 report (lnom, rnom) (Report (Incompatible (lis, los) (ris, ros))) =
-  [ lnom ++ " and " ++ rnom ++ " are incompatible"
-  , basicShow (TypeDecl lnom lis los)
-  , basicShow (TypeDecl rnom ris ros)
-  ]
+  aLine $$
+    [ identifier lnom, " and ", identifier rnom, " are incompatible:"]
+  <> aLine (isCode $ pretty (TypeDecl (StandardName lnom) lis los))
+  <> aLine (isCode $ pretty (TypeDecl (StandardName rnom) ris ros))
 report (lnom, rnom) (Report (InstantKarma ins ml (l : _) ru mr)) =
-  [lnom ++ " has a behaviour that " ++ rnom ++ " does not match"]
-  ++ mem
-  ++ foldMapArr grot mr
+  structure
+    (DetailsBlock $$ [ identifier lnom, " has a behaviour that "
+                     , identifier rnom, " does not match"])
+    $$ [mem, foldMapArr grot mr]
   where
     (loss, mem) = case fromJust $ findArr l ml of
-      (lvas, loss) -> (,) loss $ case fromJust $ leftmostArr lvas of
-        [] -> []
-        vs -> ["in memory state {" ++ foldMap show vs ++ "}"]
+      (lvas, loss) -> (loss,) $ case fromJust $ leftmostArr lvas of
+        [] -> mempty
+        vs -> aLine $$ ["in memory state", isCode (braces $ foldMap pretty vs)]
 
-    grot :: forall st. Ord st => (st, (Set [Va], [([Va], st)])) -> [String]
-    grot (r, (rvas, ross)) = (++ grump) $ case leftmostArr rvas of
-      Just [] -> []
-      _ -> ["when " ++ rnom ++ " has memory like {"
-            ++ intercalate "," (foldMapSet statesh rvas) ++ "}"]
+    grot :: forall st. Ord st => (st, (Set [Va], [([Va], st)])) -> Doc
+    grot (r, (rvas, ross)) = (<> grump) $ case leftmostArr rvas of
+      Just [] -> mempty
+      _ -> aLine $$
+        [ "when ", identifier rnom, " has memory like"
+        , pretty (ASet $ foldMapSet statesh rvas)
+        ]
       where
         grump = foldMap screp
           [ (is, (los, ros))
           | (is, ((los, _), (ros, _))) <- zip ins (zip loss ross)
           , los /= ros
           ]
-    screp (is, (los, ros)) = (:[]) $ concat
-      ["  "
-      ,lnom,"(",foldMap show is,") = ", foldMap show los
-      , " but "
-      ,rnom,"(",foldMap show is,") = ", foldMap show ros
-      ]
+    screp :: ([Va], ([Va], [Va])) -> Doc
+    screp (is, (los, ros)) =
+      let inputs = CircuitConfig [] is in
+      aLine $$
+        [ isCode $ circuitExec lnom inputs (CircuitConfig [] los)
+        , " but "
+        , isCode $ circuitExec rnom inputs (CircuitConfig [] ros)
+        ]
 report (lnom, rnom) (Report (InstantKarma ins ml [] (r : _) mr)) =
-  [rnom ++ " has a behaviour that " ++ lnom ++ " does not match"]
-  ++ mem
-  ++ foldMapArr grot ml
+  structure
+    (DetailsBlock $$ [ identifier rnom, " has a behaviour that "
+                     , identifier lnom, " does not match"])
+    $$ [mem, foldMapArr grot ml]
   where
     (ross, mem) = case fromJust $ findArr r mr of
       (rvas, ross) -> (,) ross $ case fromJust $ leftmostArr rvas of
-        [] -> []
-        vs -> ["in memory state {" ++ foldMap show vs ++ "}"]
-    grot (l, (lvas, loss)) = (++ grump) $ case leftmostArr lvas of
-      Just [] -> []
-      _ -> ["when " ++ lnom ++ " has memory like {"
-            ++ intercalate "," (foldMapSet statesh lvas) ++ "}"]
+        [] -> mempty
+        vs -> aLine $$ ["in memory state ", isCode (braces $ foldMap pretty vs)]
+    grot (l, (lvas, loss)) = (<> grump) $ case leftmostArr lvas of
+      Just [] -> mempty
+      _ -> aLine $$
+             [ "when ", identifier lnom, " has memory like "
+             , pretty (ASet $ foldMapSet statesh lvas)
+             ]
       where
         grump = foldMap screp
           [ (is, (los, ros))
           | (is, ((los, _), (ros, _))) <- zip ins (zip loss ross)
           , los /= ros
           ]
-    screp (is, (los, ros)) = (:[]) $ concat
-      ["  "
-      ,rnom,"(",foldMap show is,") = ", foldMap show ros
-      , " but "
-      ,lnom,"(",foldMap show is,") = ", foldMap show los
-      ]
+
+    screp :: ([Va], ([Va], [Va])) -> Doc
+    screp (is, (los, ros)) =
+      aLine $$
+        [ isCode $ circuitExec lnom (CircuitConfig [] is) (CircuitConfig [] los)
+        , " but "
+        , isCode $ circuitExec rnom (CircuitConfig [] is) (CircuitConfig [] ros)
+        ]
 report _ (Report (InstantKarma _ _ [] [] _)) =
   impossible "instant karma with no evidence"
 report (lnom, rnom) (Report (CounterModel ml (Left (l, rss)) mr)) =
-  [lnom ++ " can be distinguished from all possible states of " ++ rnom
-  ,"when " ++ lnom ++ " has memory {" ++ lmem ++ "}"
-  ] ++ foldMapArr grump rss
+  structure
+    (DetailsBlock $$ [ identifier lnom, " can be distinguished "
+                     , "from all possible states of ", identifier rnom ])
+    $$ [ aLine $$ [ "when ", identifier lnom, " has memory ", isCode (braces lmem) ]
+       , foldMapArr grump rss
+       ]
   where
   lmem = case fromJust $ findArr l ml of
     (lvas, _) -> case fromJust $ leftmostArr lvas of
-      lmem -> foldMap show lmem
-  grump (r, vss) =
-    ["if " ++ rnom ++ " has memory like {" ++
-     intercalate "," (foldMapSet statesh rs) ++ "}, try inputs " ++
-     intercalate ";" (fmap (foldMap show) vss)
+      lmem -> foldMap pretty lmem
+  grump (r, vss) = aLine $$
+    [ "if ", identifier rnom
+    , " has memory like ", isCode $ braces $$ map pretty (foldMapSet statesh rs)
+    , ", try inputs ", isCode $ punctuate ";" (fmap (foldMap pretty) vss)
     ] where rs = fst $ fromJust $ findArr r mr
 report (lnom, rnom) (Report (CounterModel ml (Right (r, lss)) mr)) =
-  [rnom ++ " can be distinguished from all possible states of " ++ lnom
-  ,"when " ++ rnom ++ " has memory {" ++ rmem ++ "}"
-  ] ++ foldMapArr grump lss
+  aLine $$
+    [ identifier rnom, " can be distinguished from all possible states of ", identifier lnom
+    , "when ", identifier rnom, " has memory ", isCode (braces rmem)
+    ]
+  <> foldMapArr grump lss
   where
   rmem = case fromJust $ findArr r mr of
     (rvas, _) -> case fromJust $ leftmostArr rvas of
-      rmem -> foldMap show rmem
-  grump (l, vss) =
-    ["if " ++ lnom ++ " has memory like {" ++
-     intercalate "," (foldMapSet statesh ls) ++ "}, try inputs " ++
-     intercalate ";" (fmap (foldMap show) vss)
+      rmem -> foldMap pretty rmem
+  grump (l, vss) = aLine $$
+    [ "if ", identifier lnom
+    , " has memory like ", isCode $ braces $$ map pretty (foldMapSet statesh ls)
+    , ", try inputs ", isCode $ punctuate ";" (fmap (foldMap pretty) vss)
     ] where ls = fst $ fromJust $ findArr l ml
 report (lnom, rnom) (Report (Bisimilar ml (Bisim l2r _) mr)) =
-  [lnom ++ " behaves like " ++ rnom] ++ foldMapArr simState l2r
+  aLine $$ [ identifier lnom, " behaves like ", identifier rnom ]
+  <> foldMapArr simState l2r
   where
     simState (l, r) = case (findArr l ml, findArr r mr) of
-      (Just (ls, _), Just (rs, _)) -> (:[]) $ concat
-        [  "  {"
-        ,  intercalate "," (foldMapSet statesh ls)
-        ,  "} ~ {"
-        ,  intercalate "," (foldMapSet statesh rs)
-        ,  "}"
+      (Just (ls, _), Just (rs, _)) -> nest 2 $ aLine $$
+        [ isCode $ braces $$ fmap pretty (foldMapSet statesh ls)
+        , " ~ "
+        , isCode $ braces $$ fmap pretty (foldMapSet statesh rs)
         ]
-      (_, _) -> ["The IMPOSSIBLE has happened: couldn't find states"]
+      (_, _) -> aLine "The IMPOSSIBLE has happened: couldn't find states"
 
 statesh :: [Va] -> [String]
 statesh vs = [foldMap show vs]

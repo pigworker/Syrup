@@ -4,7 +4,7 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE PatternGuards, MultiParamTypeClasses #-}
+{-# LANGUAGE PatternGuards #-}
 
 module Language.Syrup.Par where
 
@@ -18,6 +18,7 @@ import Data.Monoid (Last(..))
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
+import Language.Syrup.Doc hiding (brackets)
 import Language.Syrup.Fdk (Feedback(ASyntaxError))
 import Language.Syrup.Lex
 import Language.Syrup.Syn
@@ -135,6 +136,12 @@ pVar = do
       moan t = WantedIdSymbolic t
   pClue (SEEKING "variable") (pTok moan happy)
 
+pName :: Par Name
+pName = Name <$> pVar
+
+pTyName :: Par TyName
+pTyName = TyName <$> pVar
+
 pHol :: Par String
 pHol = do
   let happy (QM x) = Just x
@@ -215,14 +222,16 @@ pDef = pClue (SEEKING "a definition") $ Def
   <*> pClue (SEEKING "list of outputs") (pSep (pTokIs (Sym ",")) pExp)
   <* pSpc <*> pEqns
 
-pLhs :: String -> Par x -> Par (String, [x])
+pLhs :: String -> Par x -> Par (Name, [x])
 pLhs s p = pClue (SEEKING "a component template") $
-      (,) "not" <$ pTokIs (Sym "!") <* pSpc <*> ((:[]) <$> p)
-  <|> (,) "and" <$>
+      (,) (Name "zero") [] <$ pTokIs (Sym "0") <* pSpc
+  <|> (,) (Name "one") [] <$ pTokIs (Sym "1") <* pSpc
+  <|> (,) (Name "not") <$ pTokIs (Sym "!") <* pSpc <*> ((:[]) <$> p)
+  <|> (,) (Name "and") <$>
         ((:) <$> p <* pSpc <* pTokIs (Sym "&") <* pSpc <*> ((:[]) <$> p))
-  <|> (,) "or" <$>
+  <|> (,) (Name "or") <$>
         ((:) <$> p <* pSpc <* pTokIs (Sym "|") <* pSpc <*> ((:[]) <$> p))
-  <|> (,) <$> pVar <* pSpc
+  <|> (,) <$> pName <* pSpc
           <*> pBrk Round (SEEKING $ "list of input " ++ s ++ "s")
              (  pSep (pTokIs (Sym ",")) p)
   <|> pYelp AARGH
@@ -230,7 +239,7 @@ pLhs s p = pClue (SEEKING "a component template") $
 -- non terminals
 pNT :: Par TYC
 pNT = BIT   <$  pTokIs (Id "Bit")
-  <|> TYVAR <$> pVar <*> pure INothing
+  <|> TYVAR <$> pTyName <*> pure INothing
 
 pTY :: Par TYC
 pTY = pClue (SEEKING "a type") $
@@ -239,14 +248,14 @@ pTY = pClue (SEEKING "a type") $
   <|> OLD <$ pTokIs (Sym "@") <* pSpc <*> pTY
   <|> CABLE <$> pBrk Square  (SEEKING "cable contents")
                   (pAllSep (pTokIs (Sym ",")) pTY)
-  <|> TYVAR <$> pVar <*> pure INothing
+  <|> TYVAR <$> pTyName <*> pure INothing
   <|> pYelp AARGH
 
-pTYA :: Par (String, TYC)
+pTYA :: Par (TyName, TYC)
 pTYA = pTokIs (Id "type") *> pSpc *>
   pClue (SEEKING "a type alias")
     ( (,) <$
-      pTokIs (Sym "<") <*> pVar <* pTokIs (Sym ">")
+      pTokIs (Sym "<") <*> pTyName <* pTokIs (Sym ">")
       <* pSpc <* pTokIs (Sym "=") <* pSpc
       <*> pTY
     )
@@ -266,13 +275,15 @@ pExpPrec prec = pWee >>= pMore prec
 
 pWee :: Par Exp
 pWee = pClue (SEEKING "an expression") $
-      (pVar >>= \ f -> App [] f <$ pSpc <*> pBrk Round
-        (SEEKING $ "input for " ++ f) (pAllSep (pTokIs (Sym ",")) pExp))
+      (pName >>= \ f -> App [] f <$ pSpc <*> pBrk Round
+        (SEEKING $ "input for " ++ getName f) (pAllSep (pTokIs (Sym ",")) pExp))
   <|> Var () <$> pVar <* pPeek notApp
   <|> Hol () <$> pHol
   <|> Cab () <$> pBrk Square (SEEKING "cable contents")
                  (pSep (pTokIs (Sym ",")) pExp)
-  <|> (App [] "not" . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
+  <|> (App [] (Name "not") . (:[])) <$ pTokIs (Sym "!") <* pSpc <*> pWee
+  <|> App [] (Name "zero") [] <$ pTokIs (Sym "0") <* pSpc
+  <|> App [] (Name "one") [] <$ pTokIs (Sym "1") <* pSpc
   <|> pBrk Round (SEEKING "an expression in parentheses") pExp
   <|> pYelp AARGH
 
@@ -283,10 +294,10 @@ notApp _ = True
 
 pMore :: Int -> Exp -> Par Exp
 pMore prec e = ( pSpc *> (
-  (App [] "or" <$ guard (prec <= 1) <* pTokIs (Sym "|") <* pSpc
+  (App [] (Name "or") <$ guard (prec <= 1) <* pTokIs (Sym "|") <* pSpc
      <*> (((e:) . (:[])) <$> pExpPrec 1) >>= pMore prec)
   <|>
-  (App [] "and" <$ guard (prec <= 2) <* pTokIs (Sym "&") <* pSpc
+  (App [] (Name "and") <$ guard (prec <= 2) <* pTokIs (Sym "&") <* pSpc
      <*> (((e:) . (:[])) <$> pExpPrec 2) >>= pMore prec)
   ) ) <|> pure e
 
@@ -305,8 +316,8 @@ pEqn = pClue (SEEKING "an equation") $
 -- parsing experiments
 ------------------------------------------------------------------------------
 
-pCommand :: String -> (String -> EXPTC) -> Par EXPTC
-pCommand str con = con <$ pTokIs (Id str) <* pSpc <*> pVar <* pSpc <* pEOI
+pCommand :: String -> (Name -> EXPTC) -> Par EXPTC
+pCommand str con = con <$ pTokIs (Id str) <* pSpc <*> pName <* pSpc <* pEOI
 
 pEXPT :: Par EXPTC
 pEXPT
@@ -315,32 +326,39 @@ pEXPT
   <|> pCommand "dnf" Dnf
   <|> pCommand "type" Typing
   <|> pCommand "simplify" Simplify
-  <|> Display <$ pTokIs (Id "display") <* pSpc <*> pSupp <* pSpc <*> pVar <* pSpc <* pEOI
-  <|> Costing <$ pTokIs (Id "cost") <* pSpc <*> pSupp <* pSpc <*> pVar <* pSpc <* pEOI
+  <|> Display <$ pTokIs (Id "display") <* pSpc <*> pSupp <* pSpc <*> pName <* pSpc <* pEOI
+  <|> Costing <$ pTokIs (Id "cost") <* pSpc <*> pSupp <* pSpc <*> pName <* pSpc <* pEOI
   <|> FromOutputs
       <$ pTokIs (Id "definition")
-      <* pSpc <*> pVar
+      <* pSpc <*> pName
       <* pSpc <*> pBrk Square (SEEKING "Truth table variables")
            (pAllSep (pTokIs (Sym ",")) (InputName <$> pVar))
       <* pSpc <*> pBrk Square (SEEKING "Truth table values")
            (pAllSep (pTokIs (Sym ",")) (False <$ pTokIs (Sym "0") <|> True <$ pTokIs (Sym "1")))
   <|> pTokIs (Id "experiment") *> pSpc *>
   pClue (SEEKING "an experiment")
-  (    Tabulate <$> pVar <* pSpc <* pEOI
-  <|>  UnitTest <$> pVar <* pSpc
+  (    PropertyTest <$ pTokIs (Id "forall") <* pSpc
+                    <*>  pSep (pTokIs (Sym ",")) pVar
+                    <* pSpc <* pTokIs (Sym "->") <* pSpc
+                    <*> pExp
+                    <* pSpc <* pTokIs (Sym "=") <* pSpc
+                    <*> pExp
+                    <* pSpc <* pEOI
+  <|>  Tabulate <$> pName <* pSpc <* pEOI
+  <|>  UnitTest <$> pName <* pSpc
         <*> (CircuitConfig <$> pMem <* pSpc <*> pBrk Round (SEEKING "test inputs") pVas)
         <* pSpc <* pTokIs (Sym "=") <* pSpc
         <*> (CircuitConfig <$> pMem <* pSpc <*> pVas) <* pSpc <* pEOI
-  <|>  Simulate <$> pVar <* pSpc <*> pMem <* pSpc <*>
+  <|>  Simulate <$> pName <* pSpc <*> pMem <* pSpc <*>
          pBrk Round (SEEKING "a sequence of test inputs")
            (pAllSep (pTokIs (Sym ";")) pVas)
         <* pSpc <* pEOI
-  <|>  Bisimilarity <$> pVar <* pSpc <* pTokIs (Sym "=") <* pSpc
-         <*> pVar <* pSpc <* pEOI
+  <|>  Bisimilarity <$> pName <* pSpc <* pTokIs (Sym "=") <* pSpc
+         <*> pName <* pSpc <* pEOI
   )
 
-pSupp :: Par [String]
-pSupp = pBrk Square  (SEEKING "costing components") (pSep (pTokIs (Sym ",")) pVar)
+pSupp :: Par [Name]
+pSupp = pBrk Square  (SEEKING "costing components") (pSep (pTokIs (Sym ",")) pName)
   <|> pure []
 
 pMem :: Par [Va]
@@ -385,33 +403,45 @@ syrupKeywords = foldMap singleton
 -- syntax errors
 ------------------------------------------------------------------------------
 
-syntaxError :: ParErr -> [String]
+syntaxError :: ParErr -> Doc
 syntaxError Mystery =
-  ["Something is wrong but I can't quite put my finger on it."]
+  prettyBlock "Something is wrong but I can't quite put my finger on it."
 syntaxError (Explanation cz tzs y) = concat
-  [ preamble, [""]
-  , ["I got stuck here: "]
-  , ["  " ++ whereWasI cz (cur tzs " {HERE} ") ]
-  , seeking cz
-  , ["At that point, " ++ yelp y]
+  [ preamble
+  , prettyBlock "I got stuck here: "
+  , nest 2 $ prettyBlock $ whereWasI cz (cur tzs " {HERE} ")
+  , prettyBlock (seeking cz)
+  , prettyBlock ("At that point, " ++ yelp y)
   ]
   where
+    getSrc :: ParClue -> Last [String]
     getSrc (SOURCE src) = Last (Just (lines src))
     getSrc _ = Last Nothing
+
+    preamble :: Doc
     preamble = case foldMap getSrc cz of
       (Last (Just ls)) ->
-        "I was trying to make sense of the following code:" : "" : ls
-      _ ->
-        ["I can't remember what you wrote."]
+        prettyBlock "I was trying to make sense of the following code:"
+        <> nest 2 (structure PreBlock $ foldMap prettyBlock ls)
+      _ -> prettyBlock "I can't remember what you wrote."
+
+
+    cur :: (Bwd Token, [Token]) -> String -> String
     cur (tz, ts) m = foldMap show tz ++ m ++ foldMap show ts
+
+    whereWasI :: Bwd ParClue -> String -> String
     whereWasI B0 w = w
     whereWasI _ w | length w >= 40 = "... " ++ w ++ " ..."
     whereWasI (cz :< BRACKET b tz ts) w =
       whereWasI cz (cur (tz, ts) (o ++ w ++ c)) where (o, c) = brackets b
     whereWasI (cz :< _) w = whereWasI cz w
-    seeking B0 = ["I wish I knew what I was looking for."]
-    seeking (cz :< SEEKING x) = ["I was looking for " ++ x ++ "."]
+
+    seeking :: Bwd ParClue -> String
+    seeking B0 = "I wish I knew what I was looking for."
+    seeking (cz :< SEEKING x) = "I was looking for " ++ x ++ "."
     seeking (cz :< _) = seeking cz
+
+    yelp :: ParYelp -> String
     yelp AARGH = "I didn't know where to begin."
     yelp UnexpectedEnd = "I ran out of input when I needed more."
     yelp ExpectedEnd =

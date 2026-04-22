@@ -5,13 +5,29 @@
 ------------------------------------------------------------------------------
 
 {-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE TypeFamilies      #-}
 
 module Language.Syrup.Syn.Base where
 
-import Data.Forget (Forget)
-import Data.Void (Void)
 import Control.Monad (ap, guard)
+
+import Data.Forget (Forget, forget)
+import Data.String (IsString(..))
+import Data.Void (Void)
+
+import Language.Syrup.BigArray (Set)
+
+------------------------------------------------------------------------------
+-- Names
+
+newtype TyName = TyName { getTyName :: String } deriving (Show, Eq, Ord)
+
+newtype Name = Name { getName :: String } deriving (Show, Eq, Ord)
+instance IsString Name where
+  fromString = Name
+
+
+type Names = Set Name
+
 
 ------------------------------------------------------------------------------
 -- Values
@@ -46,10 +62,19 @@ circuitConfig isLHS (CircuitConfig mems vals) = concat $
 
 data Ty t x
   = Meta x
-  | TVar String (Ty t Void) -- type aliases are closed
+  | TVar TyName (Ty t Void) -- type aliases are closed
   | Bit t
   | Cable [Ty t x]
-  deriving (Eq, Functor, Foldable, Traversable)
+  deriving (Functor, Foldable, Traversable)
+
+instance (Eq t, Eq x) => Eq (Ty t x) where
+  Meta x == Meta y = x == y
+  TVar nm t == TVar nm' t' = nm == nm' || t == t'
+  TVar nm t == t' = forget t == t'
+  t == TVar nm t' = t == forget t'
+  Bit t == Bit t' = t == t'
+  Cable ts == Cable ts' = ts == ts'
+  _ == _ = False
 
 instance Forget b c => Forget (Ty a b) (Ty a c) where
 
@@ -84,10 +109,10 @@ data Ti = T0 | T1 deriving (Show, Eq)
 ------------------------------------------------------------------------------
 -- Expressions
 
-type Exp = Exp' ()
-data Exp' ty
+type Exp = Exp' Name ()
+data Exp' nm ty
   = Var ty String
   | Hol ty String
-  | App [ty] String [Exp' ty]
-  | Cab ty [Exp' ty]
-  deriving (Show, Eq, Functor, Foldable, Traversable)
+  | App [ty] nm [Exp' nm ty]
+  | Cab ty [Exp' nm ty]
+  deriving (Eq, Functor, Foldable, Traversable)

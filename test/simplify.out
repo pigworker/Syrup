@@ -1,55 +1,55 @@
-Circuits not and f are defined.
+Circuits `not` and `f` are defined.
 
-Simplification of f:
-f(<Bit>) -> <Bit>
-f(X) = !X
+Simplification of `f`:
+  f(<Bit>) -> <Bit>
+  f(X) = !X
 
-Circuit g is defined.
+Circuit `g` is defined.
 
-Simplification of g:
-g(<Bit>) -> <Bit>, <Bit>, <Bit>, <Bit>
-g(X) = X, !X, Z, E where
-  E = !X
-  Z = X
+Simplification of `g`:
+  g(<Bit>) -> <Bit>, <Bit>, <Bit>, <Bit>
+  g(X) = X, !X, Z, E where
+    E = !X
+    Z = X
 
-Circuit and is defined.
+Circuit `and` is defined.
 
-Simplification of and:
-<Bit> & <Bit> -> <Bit>
-X & Y = !nand(X, Y)
+Simplification of `and`:
+  <Bit> & <Bit> -> <Bit>
+  X & Y = !nand(X, Y)
 
-Circuit h is defined.
+Circuit `h` is defined.
 
-Simplification of h:
-h(<Bit>, <Bit>) -> <Bit>
-h(X, Y) = nand(X, Y)
+Simplification of `h`:
+  h(<Bit>, <Bit>) -> <Bit>
+  h(X, Y) = nand(X, Y)
 
-Circuits or and i are defined.
+Circuits `or` and `i` are defined.
 
-Simplification of i:
-i(<Bit>, <Bit>) -> <Bit>
-i(X, Y) = X & !Y
+Simplification of `i`:
+  i(<Bit>, <Bit>) -> <Bit>
+  i(X, Y) = X & !Y
 
-Circuit j is defined.
+Circuit `j` is defined.
 
-Simplification of j:
-j(<Bit>, <Bit>) -> <Bit>
-j(X, Y) = nand(X, Y)
+Simplification of `j`:
+  j(<Bit>, <Bit>) -> <Bit>
+  j(X, Y) = nand(X, Y)
 
-Circuit k is defined.
+Circuit `k` is defined.
 
-Simplification of k:
-k(<Bit>, <Bit>) -> <Bit>
-k(X, Y) = nand(X & Y, X)
+Simplification of `k`:
+  k(<Bit>, <Bit>) -> <Bit>
+  k(X, Y) = nand(X & Y, X)
 
-Circuit l is defined.
+Circuit `l` is defined.
 
-Simplification of l:
-l(<Bit>, <Bit>) -> <Bit>
-l(X, Y) = X & Y
+Simplification of `l`:
+  l(<Bit>, <Bit>) -> <Bit>
+  l(X, Y) = X & Y
 
-Circuit m is defined.
+Circuit `m` is defined.
 
-Simplification of m:
-m(<Bit>, <Bit>) -> <Bit>
-m(X, Y) = nand(X, Y)
+Simplification of `m`:
+  m(<Bit>, <Bit>) -> <Bit>
+  m(X, Y) = nand(X, Y)

@@ -26,30 +26,58 @@
     content: "\1F480";
     padding: 0 6px 0 0;
   }
+  .syrup-function {
+    color: light-dark(blue, #66d9ef);
+  }
+  .syrup-variable {
+    color: light-dark(purple, #fc929e);
+  }
+  .syrup-type {
+    color: light-dark(green, #a6e22e);
+  }
+  .syrup-keyword {
+    font-weight: bold;
+  }
 
 </style>
-<div class="syrup-happy">When unit testing <code>nand</code>(00) = 1:
+<div class="syrup-happy">When unit testing <code><span class="syrup-function">nand</span>(00) = 1</code>:
 <br>
-<div style="padding-left: 1em"><div class="syrup-happy">Success!</div></div></div><br>
-<div class="syrup-happy">When unit testing <code>nand</code>(11) = 0:
+<div style="padding-left: 2ch">Success!</div></div>
 <br>
-<div style="padding-left: 1em"><div class="syrup-happy">Success!</div></div></div><br>
-<div class="syrup-happy">When unit testing <code>dff</code>{0}(1) = {1}0:
+<div class="syrup-happy">When unit testing <code><span class="syrup-function">nand</span>(11) = 0</code>:
 <br>
-<div style="padding-left: 1em"><div class="syrup-happy">Success!</div></div></div><br>
-<div class="syrup-error">When unit testing <code>nand</code>{0}(00) = 1:
+<div style="padding-left: 2ch">Success!</div></div>
 <br>
-<div style="padding-left: 1em"><div class="syrup-error">Memory for <code>nand</code> has type <code>{}</code>.<br>That can&#39;t store {0}.</div></div></div><br>
-<div class="syrup-error">When unit testing <code>nand</code>() = 1:
+<div class="syrup-happy">When unit testing <code><span class="syrup-function">dff</span>{0}(1) = {1}0</code>:
 <br>
-<div style="padding-left: 1em"><div class="syrup-error">Inputs for <code>nand</code> are typed <code>(&lt;Bit&gt;, &lt;Bit&gt;)</code>.<br>That can&#39;t accept <code>()</code>.</div></div></div><br>
-<div class="syrup-error">When unit testing <code>nand</code>(00) = {1}0:
+<div style="padding-left: 2ch">Success!</div></div>
 <br>
-<div style="padding-left: 1em"><div class="syrup-error">Memory for <code>nand</code> has type <code>{}</code>.<br>That can&#39;t store {1}.</div></div></div><br>
-<div class="syrup-error">When unit testing <code>nand</code>(00) = 00:
+<div class="syrup-error">When unit testing <code><span class="syrup-function">nand</span>{0}(00) = 1</code>:
 <br>
-<div style="padding-left: 1em"><div class="syrup-error">Outputs for <code>nand</code> are typed <code>&lt;Bit&gt;</code>.<br>That can&#39;t accept <code>0, 0</code>.</div></div></div><br>
-<div class="syrup-comment">Circuit <code>alternator</code> is defined.</div><br>
-<div class="syrup-happy">When unit testing <code>alternator</code>{0}() = {1}0:
+<div style="padding-left: 2ch">Memory for <code><span class="syrup-function">nand</span></code> has type <code>{}</code>.
 <br>
-<div style="padding-left: 1em"><div class="syrup-happy">Success!</div></div></div>
+That can&#39;t store {0}.</div></div>
+<br>
+<div class="syrup-error">When unit testing <code><span class="syrup-function">nand</span>() = 1</code>:
+<br>
+<div style="padding-left: 2ch">Inputs for <code><span class="syrup-function">nand</span></code> are typed <code>(<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>)</code>.
+<br>
+That can&#39;t accept <code>()</code>.</div></div>
+<br>
+<div class="syrup-error">When unit testing <code><span class="syrup-function">nand</span>(00) = {1}0</code>:
+<br>
+<div style="padding-left: 2ch">Memory for <code><span class="syrup-function">nand</span></code> has type <code>{}</code>.
+<br>
+That can&#39;t store {1}.</div></div>
+<br>
+<div class="syrup-error">When unit testing <code><span class="syrup-function">nand</span>(00) = 00</code>:
+<br>
+<div style="padding-left: 2ch">Outputs for <code><span class="syrup-function">nand</span></code> are typed <code><span class="syrup-type">&lt;Bit&gt;</span></code>.
+<br>
+That can&#39;t accept <code>0, 0</code>.</div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">alternator</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">When unit testing <code><span class="syrup-function">alternator</span>{0}() = {1}0</code>:
+<br>
+<div style="padding-left: 2ch">Success!</div></div>

@@ -1,0 +1,6 @@
+type <Bitt> = <Bit>
+
+nand2(<Bitt>, <Bit>) -> <Bit>
+nand2(X, Y) = nand(X,Y)
+
+experiment nand = nand2

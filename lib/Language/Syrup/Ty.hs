@@ -4,11 +4,6 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-
 module Language.Syrup.Ty where
 
 import Control.Applicative ((<|>))
@@ -20,14 +15,14 @@ import Control.Monad.Writer (MonadWriter)
 
 import Data.Bifunctor (bimap)
 import Data.Foldable (traverse_)
-import Data.Forget (forget)
+import Data.Forget (Forget, forget)
 import Data.Monoid (First(..))
 import Data.Sequence (Seq)
 import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
-import Language.Syrup.Fdk
+import Language.Syrup.Fdk.Base
 import Language.Syrup.Syn
 import Language.Syrup.Va
 
@@ -42,9 +37,9 @@ type Ty2 = Ty Ti Void
 type Typ = Ty Unit TyNom
 
 type TypedPat = Pat' Typ String
-type TypedExp = Exp' Typ
-type TypedEqn = Eqn' Typ
-type TypedDef = Def' Typ
+type TypedExp = Exp' Name Typ
+type TypedEqn = Eqn' Name Typ
+type TypedDef = Def' Name Typ
 
 sizeBits :: Ty a Void -> Int
 sizeBits = \case
@@ -74,13 +69,14 @@ data InputWire = InputWire
   , getInputType :: Ty1
   }
 
-type OPat = Pat' () (String, Bool)
+type OPat = Pat' Typ (String, Bool)
 data OutputWire = OutputWire
   { getOutputPat  :: Maybe OPat
   , getOutputType :: Ty2
   }
 
-data TypeDecl t x t' x' = TypeDecl String [Ty t x] [Ty t' x']
+data TypeDecl' nm t x t' x' = TypeDecl nm [Ty t x] [Ty t' x']
+type TypeDecl = TypeDecl' Name
 
 isProperOPat :: OPat -> Maybe OPat
 isProperOPat op = do
@@ -89,26 +85,38 @@ isProperOPat op = do
 
 -- From a pattern and a list of memory cells, check whether any of the
 -- pattern's variables are pointing to one of the memory cell.
-mkOPat :: [MemoryCell] -> Pat -> OPat
+mkOPat :: [MemoryCell] -> TypedPat -> OPat
 mkOPat ms = fmap $ \ str -> (str, any ((Just (CellName str) ==) . getCellName) ms)
 
-mkOutputWire :: [MemoryCell] -> Exp -> Ty2 -> OutputWire
-mkOutputWire ms e ty = flip OutputWire ty $ do
+mkOutputWire :: [MemoryCell] -> Maybe TypedExp -> Ty2 -> OutputWire
+mkOutputWire ms me ty = flip OutputWire ty $ do
+  e <- me
   p <- exPat e
   isProperOPat (mkOPat ms p) <|> Just ((, False) <$> p)
 
+mkOutputWires :: [MemoryCell] -> [TypedExp] -> [Ty2] -> [OutputWire]
+mkOutputWires ms [] _ = []
+mkOutputWires ms (e:es) tys = case expTys e of
+  [ty] -> case tys of
+    [] -> error "The IMPOSSIBLE has happened"
+    (this : rest) -> mkOutputWire ms (Just e) this : mkOutputWires ms es rest
+  many -> case splitAt (length many) tys of
+    (these, rest) -> (mkOutputWire ms Nothing <$> these) ++ mkOutputWires ms es rest
+
+
 data Remarkable
   = IsZeroGate
+  | IsOneGate
   | IsNotGate
   | IsNandGate
   | IsAndGate
   | IsOrGate
   deriving (Eq)
 
-isRemarkable :: MonadReader CoEnv m => String -> m (Maybe Remarkable)
+isRemarkable :: MonadReader CoEnv m => Name -> m (Maybe Remarkable)
 isRemarkable f = asks (findArr f >=> rmk)
 
-getRemarkable :: MonadReader CoEnv m => Remarkable -> m (Maybe String)
+getRemarkable :: MonadReader CoEnv m => Remarkable -> m (Maybe Name)
 getRemarkable f = do
   arr <- ask
   pure $ getFirst $ flip foldMapArr arr $ \ (k, v) ->
@@ -116,22 +124,24 @@ getRemarkable f = do
 
 data AllRemarkables ty = AllRemarkables
   { bitTypeName  :: ty
-  , zeroGateName :: String
-  , notGateName  :: String
-  , orGateName   :: String
-  , andGateName  :: String
+  , zeroGateName :: Name
+  , oneGateName  :: Name
+  , notGateName  :: Name
+  , orGateName   :: Name
+  , andGateName  :: Name
   }
 
 allRemarkables :: CoEnv -> ty -> Maybe (AllRemarkables ty)
 allRemarkables env ty = do
   zeroN <- runReader (getRemarkable IsZeroGate) env
+  oneN  <- runReader (getRemarkable IsOneGate)  env
   notN  <- runReader (getRemarkable IsNotGate)  env
   orN   <- runReader (getRemarkable IsOrGate)   env
   andN  <- runReader (getRemarkable IsAndGate)  env
-  pure (AllRemarkables ty zeroN notN orN andN)
+  pure (AllRemarkables ty zeroN oneN notN orN andN)
 
 data Compo = Compo
-  { monick :: String
+  { monick :: Name
   , rmk    :: Maybe Remarkable
   , defn   :: Maybe TypedDef
   , memTys :: [MemoryCell]
@@ -146,8 +156,8 @@ data Compo = Compo
 instance Show Compo where
   show _ = "<component>"
 
-fogTy :: Ty t Void -> Ty Unit a
-fogTy (Meta x)    = absurd x
+fogTy :: Forget a b => Ty t a -> Ty Unit b
+fogTy (Meta x)    = Meta (forget x)
 fogTy (TVar s t)  = TVar s (fogTy t)
 fogTy (Bit _)     = Bit Unit
 fogTy (Cable ts)  = Cable (fmap fogTy ts)
@@ -222,13 +232,13 @@ data TyErr
   = CableWidth            -- cable widths have mismatched!
   | BitCable              -- a bit has been connected to a cable!
   | CableLoop             -- there's a spatial loop!
-  | DecDef String String  -- declaration and definition names mismatch!
+  | DecDef Name Name      -- declaration and definition names mismatch!
   | Stubbed [Feedback]    -- definition already stubbed out!
   | DuplicateWire String  -- same name used for two wires!
   | ConflictingHoles String -- same name used for two holes with different types
   | LongPats              -- too many patterns for the types!
   | ShortPats             -- not enough patterns for the expressions!
-  | Don'tKnow String      -- don't know what that component is!
+  | Don'tKnow Name        -- don't know what that component is!
   | Stage0 (Set String)   -- couldn't compute from memory!
   | Stage1 (Set String)   -- couldn't compute from memory and inputs!
   | Junk                  -- spurious extra stuff!
@@ -265,8 +275,8 @@ data Wire
 
 type Cxt = Arr Wire (Bool, Typ)
 
-type CoEnv = Arr String Compo
-type TyEnv = Arr String TY
+type CoEnv = Arr Name Compo
+type TyEnv = Arr TyName TY
 
 type TyNom = Integer
 
@@ -391,13 +401,13 @@ actOnTypedPat f = \case
  PVar ty a  -> PVar <$> f ty <*> pure a
  PCab ty ps -> PCab <$> f ty <*> traverse (actOnTypedPat f) ps
 
-actOnTypedEqn :: Applicative f => (ty -> f ty') -> Eqn' ty -> f (Eqn' ty')
+actOnTypedEqn :: Applicative f => (ty -> f ty') -> Eqn' nm ty -> f (Eqn' nm ty')
 actOnTypedEqn f (ps :=: es)
   = (:=:)
   <$> traverse (actOnTypedPat f) ps
   <*> traverse (traverse f) es
 
-actOnTypedDef :: Applicative f => (ty -> f ty') -> Def' ty -> f (Def' ty')
+actOnTypedDef :: Applicative f => (ty -> f ty') -> Def' nm ty -> f (Def' nm ty')
 actOnTypedDef f (Def (fn, ps) es meqns)
   = Def . (fn,)
   <$> traverse (actOnTypedPat f) ps

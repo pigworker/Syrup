@@ -4,6 +4,8 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE OverloadedStrings #-}
+
 module Language.Syrup.Smp where
 
 import Language.Syrup.Syn

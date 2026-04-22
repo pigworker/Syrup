@@ -1,0 +1,17 @@
+dup(<Bit>) -> <Bit>, <Bit>
+dup(X) = X,X
+
+experiment dup
+
+not(<Bit>) -> <Bit>
+not(X) = nand(X,X)
+
+dop(<Bit>) -> <Bit>, <Bit>
+dop(X) = dup(!X)
+
+experiment dop
+
+doop(<Bit>) -> <Bit>, <Bit>, <Bit>, <Bit>
+doop(X) = dup(!X), dup(!X)
+
+experiment doop

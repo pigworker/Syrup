@@ -27,7 +27,7 @@ import Language.Syrup.Fdk (Feedback(..))
 import Language.Syrup.Fsh
 import Language.Syrup.Gph
 import Language.Syrup.Smp (nand, dff, zero)
-import Language.Syrup.Syn (Def'(..), Ty(..))
+import Language.Syrup.Syn (Name(..), Def'(..), Ty(..))
 import Language.Syrup.Ty
 
 data Circuit = Circuit
@@ -208,7 +208,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
       Call tys f args -> case findArr f env of
         Nothing   -> do
           unless (f `elem` ["nand", "dff", "zero"]) $
-            modify (<> Seq.singleton (AMissingImplementation f))
+            modify (<> Seq.singleton (AMissingImplementation (Name f)))
           pure Nothing
         Just repr -> do
           id <- fresh
@@ -401,7 +401,7 @@ whiteBoxDef :: DotSt     -- state of the dot representations
             -> TypedDef  -- definition to render
             -> (Seq Feedback, Maybe [String])
 whiteBoxDef st transparetn (Stub nm _) = (Seq.singleton (ACannotDisplayStub nm), Nothing)
-whiteBoxDef st transparent (Def (nm, _) _ _) = case findArr nm (gates st) of
+whiteBoxDef st transparent (Def (nm, _) _ _) = case findArr (getName nm) (gates st) of
   Nothing -> (Seq.singleton (ACouldntFindCircuitDiagram nm), Nothing)
   Just ga -> case whitebox $ ga transparent TopLevel empty of
     (fdk, Nothing) -> (fdk, Nothing)

@@ -4,40 +4,46 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 
 module Language.Syrup.Chk where
 
 import Control.Applicative ((<|>))
-import Control.Monad (guard)
+import Control.Monad (guard, unless)
 import Control.Monad.Reader (local, runReaderT)
-import Control.Monad.State (execStateT, runStateT, get, gets, put)
+import Control.Monad.State (StateT, execStateT, runStateT, get, gets, put, modify)
+import qualified Control.Monad.State as State
 import Control.Monad.Writer (runWriterT, runWriter, tell)
 
 import Data.Bifunctor (bimap)
 import Data.Char (isAlpha)
+import Data.Either (partitionEithers)
 import Data.Forget (forget)
 import Data.Foldable (traverse_, fold)
 import Data.IMaybe (fromIJust)
 import Data.List (intercalate)
-import Data.Maybe (isJust, fromJust)
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Maybe (isJust, fromJust, fromMaybe)
 import Data.Monoid (Last(Last), First(..))
 import qualified Data.Sequence as Seq
+import qualified Data.Set as Set
 import Data.Traversable (for)
 import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
-import Language.Syrup.Expt (isBisimilar)
+import Language.Syrup.Expt (withCompo, isBisimilar)
 import Language.Syrup.Fdk
-import Language.Syrup.Pretty (basicShow, csepShow)
+import Language.Syrup.Doc
+import Language.Syrup.Pretty
 import Language.Syrup.Syn
 import Language.Syrup.Ty
+import Language.Syrup.Utils (($$))
 import Language.Syrup.Va
 
-import Utilities.Lens (hasLens, use, (%=))
+import Utilities.Lens (hasLens, use, (%=), (^.))
 
 ------------------------------------------------------------------------------
 -- Checking whether a component is remarkable
@@ -51,6 +57,7 @@ checkRemarkable cmp
   = do guard (isJust (traverse_ (isBit . getInputType) $ inpTys cmp))
        case inpTys cmp of
          []    -> IsZeroGate <$ guard (isBisimilar cmp zeroCompo)
+                  <|> IsOneGate <$ guard (isBisimilar cmp oneCompo)
          [i]   -> IsNotGate  <$ guard (isBisimilar cmp notCompo)
          [i,j] -> IsNandGate <$ guard (isBisimilar cmp nandCompo)
               <|> IsAndGate  <$ guard (isBisimilar cmp andCompo)
@@ -58,11 +65,13 @@ checkRemarkable cmp
          _ -> Nothing
 checkRemarkable _ = Nothing
 
-maybeRemarkable :: String -> Maybe Remarkable -> [Feedback]
+maybeRemarkable :: Name -> Maybe Remarkable -> [Feedback]
 maybeRemarkable str Nothing = []
 maybeRemarkable str (Just g) = [] -- [str ++ " is a remarkable gate (" ++ enunciate g ++ ")."]
-  where enunciate = \case
+  where enunciate :: Remarkable -> String
+        enunciate = \case
           IsZeroGate -> "zero"
+          IsOneGate -> "one"
           IsNotGate -> "not"
           IsNandGate -> "nand"
           IsAndGate -> "and"
@@ -89,7 +98,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
              (tySt0 {coEnv = env}) of
         Left (TyFailure ctx e) -> do
           tell $ Seq.fromList
-            [ ATypeError $ typeErrorReport (ctx, e)
+            [ ATypeError $ typeErrorReport env (ctx, e)
             , AStubbedOut g
             ]
           hasLens %= insertArr (g, stubOut dec)
@@ -98,7 +107,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
           hasLens %= insertArr (g, stubOut dec)
           tell $ Seq.fromList
             [ AFoundHoles g $ flip foldMapArr (allHoles def) $ \ (k, v) ->
-                ["  ?" ++ k ++ " : " ++ maybe "?" basicShow (getFirst v)]
+                pure $ fold [ "?", pretty k, " : ", maybe "?" pretty (getFirst v) ]
             , AStubbedOut g
             ]
           pure (False, Nothing)
@@ -120,7 +129,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
                         , defn = Just def
                         , memTys = mems
                         , inpTys = zipWith (InputWire . pure) ps ss
-                        , oupTys = zipWith (mkOutputWire mems) rhs ts
+                        , oupTys = mkOutputWires mems rhs ts
                         , stage0 = plan (Plan mI ta0 qs0)
                         , stage1 = plan (Plan (mI ++ ps) ta1 (mO ++ qs1))
                         }
@@ -138,7 +147,7 @@ mkComponent' isrmk (dec, decSrc) mdef =
                         _ -> Junk
                   hasLens %= insertArr (g, stubOut dec)
                   tell $ Seq.fromList
-                    [ ATypeError $ typeErrorReport (B0 :< TySOURCE decSrc defSrc, sin)
+                    [ ATypeError $ typeErrorReport env (B0 :< TySOURCE decSrc defSrc, sin)
                     , AStubbedOut g
                     ]
                   pure (False, Nothing)
@@ -153,7 +162,7 @@ mkComponent :: MonadCompo s m
             -> m (Bool, Maybe TypedDef)
 mkComponent = mkComponent' False
 
-guts :: TyMonad m => Dec -> Def -> m (([Pat], [Exp]), ([Pat], [Pat]), TypedDef)
+guts :: TyMonad m => Dec -> Def -> m (([Pat], [TypedExp]), ([Pat], [Pat]), TypedDef)
 guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   | f /= g = tyErr (DecDef f g)
   | otherwise = do
@@ -166,7 +175,7 @@ guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   (qs', (qs0, qs1)) <- fold <$> traverse stage ts
   solders qs' qs
   def <- normDef (Def (f, typs) tyes eqs)
-  return ((ps, es), (qs0, qs1), def)
+  return ((ps, tyes), (qs0, qs1), def)
 guts (Dec (g, ss) ts) (Stub f msg)
   | f /= g    = tyErr (DecDef f g)
   | otherwise = tyErr (Stubbed msg)
@@ -340,7 +349,7 @@ stage (Cable ts) = do
 ------------------------------------------------------------------------------
 
 data Dec
-  = Dec (String, [Ty1]) [Ty2]
+  = Dec (Name, [Ty1]) [Ty2]
 
 cookDec :: DEC -> Dec
 cookDec (DEC (f, is) os) =
@@ -356,99 +365,113 @@ cookTY t old (CABLE tys)  = Cable (fmap (cookTY t old) tys)
 -- error reporting
 ------------------------------------------------------------------------------
 
-typeErrorReport :: (Bwd TyClue, TyErr) -> [String]
-typeErrorReport (cz, e) = concat
-  [ preamble, [""]
-  , problem e
+instance Pretty TyErr where
+  type PrettyDoc TyErr = Doc
+  prettyPrec _ = \case
+    CableWidth -> aLine "I found a cable with the wrong width."
+    BitCable -> aLine "I found a cable connected to a bit wire."
+    CableLoop -> aLine "I couldn't fit a cable inside itself."
+    DecDef c f -> aLine $$
+      [ "I found a declaration for ", pretty c
+      , " but its definition was for ", pretty f, "."
+      ]
+    Stubbed msg -> foldMap pretty msg
+    DuplicateWire x -> aLine $$
+      ["I found more than one signal called ", pretty x, "."]
+    LongPats -> aLine "I found fewer signals than I needed."
+    ShortPats -> aLine "I found more signals than I needed."
+    Don'tKnow f -> aLine $$ ["I didn't know what ", pretty f, " was."]
+    Stage0 xs -> case foldMapSet human xs of
+      [] -> aLine "There were some signals I couldn't compute from memories."
+      xs -> aLine "I couldn't compute the following just from memories:"
+        <> nest 2 (aLine $ csep $ map pretty xs)
+        <> aLine "Check definitions!"
+    Stage1 xs -> case foldMapSet human xs of
+      [] -> aLine "There were some signals I couldn't compute from inputs."
+      xs -> aLine "I couldn't compute the following from inputs:"
+        <> nest 2 (aLine $ csep $ map pretty xs)
+        <> aLine "They're either stuck in a loop or missing entirely."
+    Junk -> aLine $$
+       [ "There's some extra junk in this circuit"
+       , "that I can't see how to compute!"
+       ]
+    BUGSolderMismatch -> aLine "I messed up my internal wiring: report me!"
+    ConflictingHoles x -> aLine $$ ["Conflicting uses for the hole name ?", pretty x, "."]
+
+
+typeErrorReport :: CoEnv -> (Bwd TyClue, TyErr) -> Doc
+typeErrorReport env (cz, e) = concat
+  [ preamble
+  , pretty e
   , context e cz
   ]
   where
+    getSrc :: TyClue -> Last [String]
     getSrc (TySOURCE dec def) = Last (Just (lines dec ++ lines def))
     getSrc _ = Last Nothing
+
+    preamble :: Doc
     preamble = case foldMap getSrc cz of
       (Last (Just ls)) ->
-        "I was trying to make sense of the following code:" : "" : ls
-      _ ->
-        ["I can't remember what you wrote."]
-    problem CableWidth = ["I found a cable with the wrong width."]
-    problem BitCable   = ["I found a cable connected to a bit wire."]
-    problem CableLoop  = ["I couldn't fit a cable inside itself."]
-    problem (DecDef c f) = [ concat
-      [ "I found a declaration for ", c
-      , " but its definition was for ", f, "."] ]
-    problem (Stubbed msg) = map (punctuate "\n" . render) msg
-    problem (DuplicateWire x) = [ concat
-      ["I found more than one signal called ", x, "."] ]
-    problem LongPats  = ["I found fewer signals than I needed."]
-    problem ShortPats = ["I found more signals than I needed."]
-    problem (Don'tKnow f) = ["I didn't know what " ++ f ++ " was."]
-    problem (Stage0 xs) = case foldMapSet human xs of
-      [] -> [ "There were some signals I couldn't compute from memories."]
-      xs -> [ "I couldn't compute the following just from memories:"
-            , "  " ++ intercalate ", " xs
-            , "Check definitions!"
-            ]
-    problem (Stage1 xs) = case foldMapSet human xs of
-      [] -> [ "There were some signals I couldn't compute from inputs."]
-      xs -> [ "I couldn't compute the following from inputs:"
-            , "  " ++ intercalate ", " xs
-            , "They're either stuck in a loop or missing entirely."
-            ]
-    problem Junk =
-      ["There's some extra junk in this circuit" ++
-       "that I can't see how to compute!"]
-    problem BUGSolderMismatch = ["I messed up my internal wiring: report me!"]
-    problem (ConflictingHoles x) = ["Conflicting uses for the hole name ?" ++ x ++ "."]
+        aLine "I was trying to make sense of the following code:"
+        <> nest 2 (structure PreBlock $ foldMap prettyBlock ls)
+      _ -> aLine "I can't remember what you wrote."
 
+    context :: TyErr -> Bwd TyClue -> Doc
     context (Stubbed _) = const []
-    context _ = ("" :) . context'
+    context _ = context'
+
+    context' :: Bwd TyClue -> Doc
     context' (_ :< TyEQN eq) =
-      ["At the time, I was checking this equation:", basicShow eq]
-    context' (_ :< TyOUTPUTS ts es) =
+      aLine $$
+        [ "At the time, I was checking this equation:"
+        , prettyUnelabed env eq
+        ]
+    context' (_ :< TyOUTPUTS ts es) = aLine $$
       [ "I was trying to get outputs"
-      , "  " ++ csepShow ts
+      , "  ", csep (map pretty ts), " "
       , "from expressions"
-      , "  " ++ csepShow es
+      , "  ", csep (map (prettyUnelabed env) es), " "
       , "at the time."
       ]
-    context' (_ :< TyINPUTS ts ps) =
+    context' (_ :< TyINPUTS ts ps) = aLine $$
       [ "I was trying to fit inputs"
-      , "  " ++ csepShow ts
+      , "  ", csep (map pretty ts), " "
       , "into the patterns"
-      , "  " ++ csepShow ps
+      , "  ", csep (map pretty ps), " "
       , "at the time."
       ]
-    context' (_ :< TyEXP e ts) =
+    context' (_ :< TyEXP e ts) = aLine $$
       [ "I was hoping to get the beginning of these"
-      , "  " ++ csepShow ts
+      , "  ", csep (map pretty ts), " "
       , "from the expression"
-      , "  " ++ basicShow e
+      , "  ", prettyUnelabed env e, " "
       , "at the time."
       ]
-    context' (_ :< TyCAB es ts) =
+    context' (_ :< TyCAB es ts) = aLine $$
       [ "I was trying to make a cable of these"
-      , "  " ++ csepShow ts
+      , "  ", csep (map pretty ts), " "
       , "from the expressions"
-      , "  " ++ csepShow es
+      , "  ", csep (map (prettyUnelabed env) es), " "
       , "at the time."
       ]
-    context' (_ :< TyAPP c es) =
-      [ "I was trying to use " ++ monick c ++ " which wants input types"
-      , "  " ++ csepShow (getInputType <$> inpTys c)
+    context' (_ :< TyAPP c es) = aLine $$
+      [ "I was trying to use ", pretty (monick c), " which wants input types"
+      , "  ", pretty (ATuple $ getInputType <$> inpTys c), " "
       , "but feeding in these expressions"
-      , "  " ++ csepShow es
+      , "  ", csep (map (prettyUnelabed env) es), " "
       , "at the time."
       ]
-    context' (g :< TyWIRE x s t) =
-      [ "I was trying to connect " ++ ww x
-      , "but it carried a signal of type " ++ basicShow s
-      , "where a signal of type " ++ basicShow t
+    context' (g :< TyWIRE x s t) = aLine $$
+      [ "I was trying to connect ", ww x, " "
+      , "but it carried a signal of type ", pretty s, " "
+      , "where a signal of type ", pretty t, " "
       , "was expected."
-      ] ++ context' g
+      ] <> context' g
       where
         ww (c : _) = "wire x"
         ww _       = "a wire"
-    context' _ = ["I can't remember any more about what I thought I was doing."]
+    context' _ = aLine "I can't remember any more about what I thought I was doing."
 
 human :: String -> [String]
 human s@(c : _) | isAlpha c = [s]
@@ -463,16 +486,86 @@ yank ts x = foldMap go ts where
 
 
 
+checkTypes
+  :: MonadCompo s m
+  => Maybe [Typ] -> Exp -> StateT (Map String Typ) m (Either () (Maybe [Typ]))
+checkTypes mt e = case e of
+  Var _ nm -> case mt of
+    Just [t] -> gets (Map.lookup nm) >>= \case
+      Just t' -> do
+        unless (t == t') $ undefined -- TODO error
+        pure (Right mt)
+      Nothing -> do
+        modify (Map.insert nm t)
+        pure (Right mt)
+    Just _ -> do
+      tell $ Seq.singleton undefined
+      pure (Left ())
+    Nothing -> pure (Right Nothing)
+  Hol{} -> pure (Right Nothing)
+  App _ f es -> State.lift (gets (findArr f . (^. hasLens))) >>= \case
+    Nothing -> do
+      tell $ Seq.singleton (AnUnknownIdentifier f)
+      pure (Left ())
+    Just c -> case map (fmap absurd . getInputType) (inpTys c) of
+      tys | length tys /= length es -> pure (Left ())
+      tys -> do
+        mets <- sequence $ zipWith (checkTypes . (Just . pure)) tys es
+        case partitionEithers mets of
+          ([], mts) -> pure (Right $ Just $ map (fogTy . getOutputType) (oupTys c))
+          _ -> undefined
 
+  Cab _ _ -> undefined
+
+isSingleton :: [a] -> Maybe a
+isSingleton [x] = Just x
+isSingleton _ = Nothing
+
+inferrable :: Exp -> Bool
+inferrable = \case
+  Var{} -> False
+  Hol{} -> False
+  App{} -> True
+  Cab _ es -> all inferrable es
+
+smartCheck :: MonadCompo s m => Exp -> Exp -> m (Maybe ([Ty Unit TyNom], Map String Typ))
+smartCheck lhs rhs
+  | inferrable lhs = check lhs rhs
+  | otherwise = check rhs lhs
+
+  where
+    check ::  MonadCompo s m => Exp -> Exp -> m (Maybe ([Ty Unit TyNom], Map String Typ))
+    check lhs rhs = runStateT (checkTypes Nothing lhs) Map.empty >>= \case
+      (Left (), _) -> pure Nothing
+      (Right mts1, ass) -> runStateT (checkTypes mts1 rhs) ass >>= \case
+        (Left (), _) -> pure Nothing
+        (Right mts2, ass) -> pure ((,ass) <$> (mts1 <|> mts2))
 
 checkExperiment :: MonadCompo s m
                 => EXPT' Exp -> m (EXPT' (Exp, Compo))
 checkExperiment (Anf nm) = pure (Anf nm)
 checkExperiment (Bisimilarity nm nm') = pure (Bisimilarity nm nm')
 checkExperiment (UnitTest nm vs vs') = pure (UnitTest nm vs vs')
-checkExperiment (PropertyTest vars lhs rhs) = do
-  x <- mkComponent (DEC "#lhs" _a) (Just _b)
-  _azg
+checkExperiment (PropertyTest vars elhs erhs) = smartCheck elhs erhs >>= \case
+  Nothing -> pure undefined
+  Just (otys, ass) -> do
+    -- Check that we have inferred the type of all the variables
+    case Set.toList (Set.fromList vars Set.\\ Map.keysSet ass) of
+      [] -> do
+        let (ivars, itys) = unzip $ Map.toList ass
+        case (traverse tyToTY' itys, traverse tyToTY' otys) of
+          (Nothing, _) -> undefined
+          (_, Nothing) -> undefined
+          (Just itys, Just otys) -> do
+            let fun nm e str = do
+                  let funDec = DEC (nm, itys) otys
+                  let funDef = Def (nm, map (PVar ()) vars) [e] Nothing
+                  mkComponent (funDec, str) (Just (funDef , ""))
+                  gets (findArr nm . (^. hasLens))
+            lhs <- fun "#lhs" elhs "Elab LHS"
+            rhs <- fun "#rhs" erhs "Elab RHS"
+            pure (PropertyTest vars (elhs, fromMaybe undefined lhs) (erhs, fromMaybe undefined rhs))
+      _ -> undefined
 
 checkExperiment (Costing nms nm) = pure (Costing nms nm)
 checkExperiment (Display nms nm) = pure (Display nms nm)
@@ -518,9 +611,28 @@ dffCompo = Compo
       , defn = Nothing
       , memTys = [MemoryCell (Just $ CellName "Q") (Bit Unit)]
       , inpTys = [InputWire  (Just (PVar () "D")) (Bit Unit)]
-      , oupTys = [OutputWire (Just (PVar () ("Q", True))) (Bit T0)]
+      , oupTys = [OutputWire (Just (PVar (Bit Unit) ("Q", True))) (Bit T0)]
       , stage0 = \ [q] -> [q]
       , stage1 = \ [_, d] -> [d]
+      }
+
+srffCompo :: Compo
+srffCompo = Compo
+      { monick = "srff"
+      , rmk = Nothing
+      , defn = Nothing
+      , memTys = [MemoryCell (Just $ CellName "Q") (Bit Unit)]
+      , inpTys = [ InputWire  (Just (PVar () "S")) (Bit Unit)
+                 , InputWire  (Just (PVar () "R")) (Bit Unit)
+                 ]
+      , oupTys = [OutputWire (Just (PVar (Bit Unit) ("Q", True))) (Bit T0)]
+      , stage0 = \ [q] -> [q]
+      , stage1 = \case
+          [q, V0, V0] -> [q]
+          [q, V0, V1] -> [V0]
+          [q, V1, V0] -> [V1]
+          [q, V1, V1] -> [VQ]
+          _ -> [VQ]
       }
 
 zeroCompo :: Compo
@@ -535,10 +647,23 @@ zeroCompo = Compo
       , stage1 = \ _ -> []
       }
 
+oneCompo :: Compo
+oneCompo = Compo
+      { monick = "one"
+      , rmk = Just IsOneGate
+      , defn = Nothing
+      , memTys = []
+      , inpTys = []
+      , oupTys = [OutputWire Nothing (Bit T0)]
+      , stage0 = \ _ -> [V1]
+      , stage1 = \ _ -> []
+      }
+
 myCoEnv :: CoEnv
 myCoEnv = foldr insertArr emptyCoEnv
   [ ("nand", nandCompo)
   , ("dff", dffCompo)
+  , ("srff", srffCompo)
   , ("zero", zeroCompo)
   ]
 

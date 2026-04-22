@@ -1,0 +1,13 @@
+experiment forall X, Y -> nand(X,Y) = nand(Y,X)
+
+not(<Bit>) -> <Bit>
+not(X) = nand(X,X)
+
+experiment forall X -> !!X = X
+
+or(<Bit>, <Bit>) -> <Bit>
+or(X,Y) = nand(!X,!Y)
+
+experiment forall X, Y, Z -> (X | Y) | Z = X | (Y | Z)
+
+experiment forall X -> X = !X

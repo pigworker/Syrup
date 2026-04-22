@@ -4,8 +4,6 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
-{-# LANGUAGE FlexibleInstances #-}
-
 module Language.Syrup.Sub where
 
 import Data.IMaybe (IMaybe(IJust))
@@ -16,14 +14,13 @@ import Language.Syrup.Syn
 import Language.Syrup.Ty
 
 class TySubst t where
-  tySubst :: TyEnv -> t False -> Either String (t True)
+  tySubst :: TyEnv -> t False -> Either TyName (t True)
 
 instance TySubst TY' where
   tySubst rho t = case t of
     BIT -> pure BIT
     OLD t -> OLD <$> tySubst rho t
     CABLE ts -> CABLE <$> mapM (tySubst rho) ts
-    META -> pure META
     TYVAR x _ -> case findArr x rho of
       Nothing -> Left x
       Just v  -> pure $ TYVAR x (IJust v)
@@ -33,9 +30,7 @@ instance TySubst DEC' where
     DEC <$> ((str,) <$> mapM (tySubst rho) ts)
         <*> mapM (tySubst rho) us
 
-
-
-subAlias :: TyEnv -> SourceC -> Either String (TyEnv, Either String Source)
+subAlias :: TyEnv -> SourceC -> Either TyName (TyEnv, Either TyName Source)
 subAlias rho c = case c of
   Declaration d    -> (rho,) . pure . Declaration <$> tySubst rho d
   TypeAlias (n, t) -> do
