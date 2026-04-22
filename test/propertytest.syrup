@@ -8,6 +8,15 @@ experiment forall X -> !!X = X
 or(<Bit>, <Bit>) -> <Bit>
 or(X,Y) = nand(!X,!Y)
 
+and(<Bit>, <Bit>) -> <Bit>
+and(X,Y) = !nand(X,Y)
+
+one() -> <Bit>
+one() = !0
+
 experiment forall X, Y, Z -> (X | Y) | Z = X | (Y | Z)
 
 experiment forall X -> X = !X
+
+experiment forall X -> X|!X = 1
+experiment forall X -> X&!X = 0

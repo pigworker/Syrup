@@ -14,7 +14,7 @@ Equivalence between `lhs`, `rhs`:
   `lhs` behaves like `rhs`
     `{}` ~ `{}`
 
-Circuits `or`, `#lhs`, and `#rhs` are defined.
+Circuits `or`, `and`, `one`, `#lhs`, and `#rhs` are defined.
 
 When property testing `(X | Y) | Z = X | Y | Z`:
 
@@ -30,3 +30,19 @@ Equivalence between `lhs`, `rhs`:
   `lhs` has a behaviour that `rhs` does not match
   `lhs(0) = 0` but `rhs(0) = 1`
   `lhs(1) = 1` but `rhs(1) = 0`
+
+Circuits `#lhs` and `#rhs` are defined.
+
+When property testing `X | !X = 1`:
+
+Equivalence between `lhs`, `rhs`:
+  `lhs` behaves like `rhs`
+    `{}` ~ `{}`
+
+Circuits `#lhs` and `#rhs` are defined.
+
+When property testing `X & !X = 0`:
+
+Equivalence between `lhs`, `rhs`:
+  `lhs` behaves like `rhs`
+    `{}` ~ `{}`
