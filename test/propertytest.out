@@ -16,6 +16,9 @@ When property testing `!!X = X`:
 
 Circuits `or`, `and`, and `one` are defined.
 
+Error: When property testing `0 = 0`:
+  Failed to infer the type of X.
+
 When property testing `(X | Y) | Z = X | Y | Z`:
   Circuit `#lhs` is defined.
   Circuit `#rhs` is defined.

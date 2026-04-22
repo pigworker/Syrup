@@ -14,6 +14,8 @@ and(X,Y) = !nand(X,Y)
 one() -> <Bit>
 one() = !0
 
+experiment forall X -> 0 = 0
+
 experiment forall X, Y, Z -> (X | Y) | Z = X | (Y | Z)
 
 experiment forall X -> X = !X

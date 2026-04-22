@@ -40,7 +40,7 @@ import Language.Syrup.Doc
 import Language.Syrup.Pretty
 import Language.Syrup.Syn
 import Language.Syrup.Ty
-import Language.Syrup.Utils (($$))
+import Language.Syrup.Utils (($$), oxfordList)
 import Language.Syrup.Va
 
 import Utilities.Lens (hasLens, use, (%=), (^.))
@@ -642,7 +642,13 @@ elabPropertyTest (vars, elhs, erhs) = smartCheck elhs erhs >>= \case
             lhs <- fun "#lhs" elhs "Elab LHS"
             rhs <- fun "#rhs" erhs "Elab RHS"
             pure (Just (fromMaybe undefined lhs, fromMaybe undefined rhs))
-      _ -> undefined
+      oops -> do
+        tell $ Seq.singleton $ ATypeError $ aLine $$
+          [ "Failed to infer the type of "
+          , oxfordList (pretty <$> oops)
+          , "."
+          ]
+        pure Nothing
 
 
 
