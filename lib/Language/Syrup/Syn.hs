@@ -22,7 +22,7 @@ data Source' a b
   = Declaration (DEC' b)
   | TypeAlias (a, TY' b)
   | Definition Def
-  | Experiment (EXPT' Exp)
+  | Experiment EXPT
 
 -- Concrete and internal sources
 type SourceC = Source' TyName False
@@ -98,11 +98,11 @@ type DEC  = DEC' True
 data InputName = InputName { getInputName :: String }
   deriving Show
 
-data EXPT' e
+data EXPT
   = Anf Name
   | Bisimilarity Name Name
   | UnitTest Name CircuitConfig CircuitConfig
-  | PropertyTest [String] e e
+  | PropertyTest [String] Exp Exp
   | Costing [Name] Name
   | Display [Name] Name
   | Dnf Name
@@ -112,10 +112,8 @@ data EXPT' e
   | Typing Name
   | Tabulate Name
   | FromOutputs Name [InputName] [Bool]
-  deriving Show
 
-type EXPTC = EXPT' Exp
-
+type EXPTC = EXPT
 
 ------------------------------------------------------------------------------
 -- operations on syntax

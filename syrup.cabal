@@ -92,6 +92,7 @@ library
                     , Language.Syrup.Doc
                     , Language.Syrup.Dot
                     , Language.Syrup.Expt
+                    , Language.Syrup.Expt.Run
                     , Language.Syrup.Fdk
                     , Language.Syrup.Fdk.Base
                     , Language.Syrup.Fsh

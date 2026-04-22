@@ -1,68 +1,65 @@
-Circuits `#lhs` and `#rhs` are defined.
-
 When property testing `nand(X, Y) = nand(Y, X)`:
+  Circuit `#lhs` is defined.
+  Circuit `#rhs` is defined.
+  Equivalence between `lhs`, `rhs`:
+    `lhs` behaves like `rhs`
+      `{}` ~ `{}`
 
-Equivalence between `lhs`, `rhs`:
-  `lhs` behaves like `rhs`
-    `{}` ~ `{}`
-
-Circuits `not`, `#lhs`, and `#rhs` are defined.
+Circuit `not` is defined.
 
 When property testing `!!X = X`:
+  Circuit `#lhs` is defined.
+  Circuit `#rhs` is defined.
+  Equivalence between `lhs`, `rhs`:
+    `lhs` behaves like `rhs`
+      `{}` ~ `{}`
 
-Equivalence between `lhs`, `rhs`:
-  `lhs` behaves like `rhs`
-    `{}` ~ `{}`
-
-Circuits `or`, `and`, `one`, `#lhs`, and `#rhs` are defined.
+Circuits `or`, `and`, and `one` are defined.
 
 When property testing `(X | Y) | Z = X | Y | Z`:
-
-Equivalence between `lhs`, `rhs`:
-  `lhs` behaves like `rhs`
-    `{}` ~ `{}`
-
-Circuits `#lhs` and `#rhs` are defined.
+  Circuit `#lhs` is defined.
+  Circuit `#rhs` is defined.
+  Equivalence between `lhs`, `rhs`:
+    `lhs` behaves like `rhs`
+      `{}` ~ `{}`
 
 When property testing `X = !X`:
-
-Equivalence between `lhs`, `rhs`:
-  `lhs` has a behaviour that `rhs` does not match
-  `lhs(0) = 0` but `rhs(0) = 1`
-  `lhs(1) = 1` but `rhs(1) = 0`
-
-Circuits `#lhs` and `#rhs` are defined.
+  Circuit `#lhs` is defined.
+  Circuit `#rhs` is defined.
+  Equivalence between `lhs`, `rhs`:
+    `lhs` has a behaviour that `rhs` does not match
+    `lhs(0) = 0` but `rhs(0) = 1`
+    `lhs(1) = 1` but `rhs(1) = 0`
 
 When property testing `X | !X = 1`:
-
-Equivalence between `lhs`, `rhs`:
-  `lhs` behaves like `rhs`
-    `{}` ~ `{}`
-
-Circuits `#lhs` and `#rhs` are defined.
+  Circuit `#lhs` is defined.
+  Circuit `#rhs` is defined.
+  Equivalence between `lhs`, `rhs`:
+    `lhs` behaves like `rhs`
+      `{}` ~ `{}`
 
 When property testing `X & !X = 0`:
-
-Equivalence between `lhs`, `rhs`:
-  `lhs` behaves like `rhs`
-    `{}` ~ `{}`
+  Circuit `#lhs` is defined.
+  Circuit `#rhs` is defined.
+  Equivalence between `lhs`, `rhs`:
+    `lhs` behaves like `rhs`
+      `{}` ~ `{}`
 
 Circuit `diag` is defined.
 
-Error: The variable X is checked against a list of types [<Bit>, <Bit>].
-
-Circuits `#lhs` and `#rhs` are defined.
+Error: When property testing `diag(X) = X`:
+  The variable X is checked against a list of types [<Bit>, <Bit>].
 
 When property testing `[!!X, Y] = [X, !!Y]`:
-
-Equivalence between `lhs`, `rhs`:
-  `lhs` behaves like `rhs`
-    `{}` ~ `{}`
-
-Circuits `#lhs` and `#rhs` are defined.
+  Circuit `#lhs` is defined.
+  Circuit `#rhs` is defined.
+  Equivalence between `lhs`, `rhs`:
+    `lhs` behaves like `rhs`
+      `{}` ~ `{}`
 
 When property testing `X = !!!!X`:
-
-Equivalence between `lhs`, `rhs`:
-  `lhs` behaves like `rhs`
-    `{}` ~ `{}`
+  Circuit `#lhs` is defined.
+  Circuit `#rhs` is defined.
+  Equivalence between `lhs`, `rhs`:
+    `lhs` behaves like `rhs`
+      `{}` ~ `{}`

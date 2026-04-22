@@ -22,6 +22,7 @@ import Text.Blaze.Html.Renderer.String (renderHtml)
 import Language.Syrup.Chk
 import Language.Syrup.Dot
 import Language.Syrup.Expt
+import Language.Syrup.Expt.Run
 import Language.Syrup.Fdk (Feedback(..), feedbackText, feedbackHtml, keep)
 import Language.Syrup.Lnt
 import Language.Syrup.Opt
@@ -65,8 +66,7 @@ grokSy (Right (Declaration dec@(DEC (f, _) _), s) : src) = do
   whenJust mtydef $ (hasLens %=) . flip addDef
   grokSy rest
 grokSy (Right (Experiment expt, _) : src) = do
-  mexpt' <- checkExperiment expt
-  whenJust mexpt' $ experiment
+  experiment expt
   grokSy src
 grokSy (Right (Definition d, _) : src) = do
   tell $ Seq.singleton $ AnUndeclaredCircuit (defName d)

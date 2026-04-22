@@ -182,7 +182,7 @@ instance Scoped Def where
 instance Scoped (DEC' a) where
   scopecheck ga (DEC (nm, _) _) = declareVar ga nm
 
-instance Scoped e => Scoped (EXPT' e) where
+instance Scoped EXPT where
   scopecheck ga = \case
     Tabulate nm         -> emptyExtension <$ isGlobalVar ga nm
     Simulate nm _ _     -> emptyExtension <$ isGlobalVar ga nm

@@ -621,12 +621,10 @@ reconstruct ass = \case
     mts <- traverse (reconstruct ass) es
     pure $ (pure . Cable) <$> traverse (>>= isSingleton) mts
 
-checkExperiment :: MonadCompo s m
-                => EXPT' Exp -> m (Maybe (EXPT' (Exp, Compo)))
-checkExperiment (Anf nm) = pure (Just $ Anf nm)
-checkExperiment (Bisimilarity nm nm') = pure (Just $ Bisimilarity nm nm')
-checkExperiment (UnitTest nm vs vs') = pure (Just $ UnitTest nm vs vs')
-checkExperiment (PropertyTest vars elhs erhs) = smartCheck elhs erhs >>= \case
+elabPropertyTest :: MonadCompo s m
+                 => ([String], Exp, Exp)
+                 -> m (Maybe (Compo, Compo))
+elabPropertyTest (vars, elhs, erhs) = smartCheck elhs erhs >>= \case
   Nothing -> pure Nothing
   Just (otys, ass) -> do
     -- Check that we have inferred the type of all the variables
@@ -643,18 +641,8 @@ checkExperiment (PropertyTest vars elhs erhs) = smartCheck elhs erhs >>= \case
                   gets (findArr nm . (^. hasLens))
             lhs <- fun "#lhs" elhs "Elab LHS"
             rhs <- fun "#rhs" erhs "Elab RHS"
-            pure (Just $ PropertyTest vars (elhs, fromMaybe undefined lhs) (erhs, fromMaybe undefined rhs))
+            pure (Just (fromMaybe undefined lhs, fromMaybe undefined rhs))
       _ -> undefined
-
-checkExperiment (Costing nms nm) = pure (Just $ Costing nms nm)
-checkExperiment (Display nms nm) = pure (Just $ Display nms nm)
-checkExperiment (Dnf nm) = pure (Just $ Dnf nm)
-checkExperiment (Print nm) = pure (Just $ Print nm)
-checkExperiment (Simplify nm) = pure (Just $ Simplify nm)
-checkExperiment (Simulate nm vs vss) = pure (Just $ Simulate nm vs vss)
-checkExperiment (Typing nm) = pure (Just $ Typing nm)
-checkExperiment (Tabulate nm) = pure (Just $ Tabulate nm)
-checkExperiment (FromOutputs nm is bs) = pure (Just $ FromOutputs nm is bs)
 
 
 
