@@ -250,7 +250,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
           (case loc of { TopLevel -> [iPorts]; Unfolded -> [] }) ++
           -- needed to get the outputs at the bottom in e.g. tff
           [ "subgraph cluster_circuit__" ++ gateNode ++ " {"
-          , "  style=" ++ case loc of { TopLevel -> "dashed"; _ -> "solid" } ++ ";"
+          , "  style=" ++ case loc of { TopLevel -> "dashed;\n  margin = 10"; _ -> "solid" } ++ ";"
           , "  label=<<table border=\"0\"><tr><td border=\"1\">" ++ nm ++ "</td></tr></table>>;"
           , "  labeljust=l;"
           ] ++ concat gph ++
@@ -402,6 +402,7 @@ whiteBoxDef st transparent (Def (nm, _) _ _) = case findArr (getName nm) (gates 
     (fdk, Nothing) -> (fdk, Nothing)
     (fdk, Just circuit) -> (fdk,) $ Just $
       [ "digraph whitebox {"
+      , "  margin = 0;"
       , "  rankdir = TB;"
       , "  nodesep = 0.5;"
       , "  ranksep = 0.05;"
