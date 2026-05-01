@@ -1,10 +1,12 @@
 Displaying `not`:
 digraph whitebox {
+  margin = 0;
   rankdir = TB;
-  nodesep = 0.2;
+  nodesep = 0.5;
+  ranksep = 0.05;
   GATE_not_3__INPUTS
     [ shape = none
-    , label = <<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="10">
+    , label = <<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="20">
                <TR>
                <TD PORT="x"><FONT POINT-SIZE="20">x</FONT></TD>
 
@@ -13,7 +15,10 @@ digraph whitebox {
     ];
 
 subgraph cluster_circuit__GATE_not_3 {
-  style=invis;
+  style=dashed;
+  margin = 10;
+  label=<<table border="0"><tr><td border="1">not</td></tr></table>>;
+  labeljust=l;
 subgraph gate_3__0__0 {
   style = invis;
   GATE_nand_3__0__0
@@ -50,7 +55,7 @@ subgraph fanout_3__1 {
 }
   GATE_not_3__OUTPUTS
     [ shape = none
-    , label = <<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="10">
+    , label = <<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="20">
                <TR>
                <TD PORT="__VIRTUAL__2"></TD>
 
