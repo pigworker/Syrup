@@ -116,6 +116,7 @@ library
                     , Utilities.HTML
                     , Utilities.Lens
                     , Utilities.Monad
+                    , Utilities.Monad.Fresh
                     , Utilities.Nat
                     , Utilities.Vector
 
