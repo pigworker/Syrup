@@ -39,3 +39,8 @@ When property testing `X = !!!!X`:
 Error: When property testing `X = 0`:
   `X` has a behaviour that `0` does not match
   `X(1) = 1` but `0(1) = 0`
+
+Circuits `xor` and `hadd` are defined.
+
+When property testing `hadd(X, Y) = hadd(Y, X)`:
+  Success!

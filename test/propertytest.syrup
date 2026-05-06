@@ -33,3 +33,11 @@ experiment forall X, Y -> [!!X,Y] = [X,!!Y]
 experiment forall X -> X = !!!!X
 
 experiment forall X -> X = 0
+
+xor(<Bit>, <Bit>) -> <Bit>
+xor(X,Y) = !X&Y | X&!Y
+
+hadd(<Bit>, <Bit>) -> <Bit>,<Bit>
+hadd(X,Y) = X&Y, xor(X, Y)
+
+experiment forall X, Y -> hadd(X, Y) = hadd(Y, X)

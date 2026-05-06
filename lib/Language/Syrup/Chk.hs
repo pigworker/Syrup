@@ -634,8 +634,10 @@ elabPropertyTest (vars, elhs, erhs) = smartCheck elhs erhs >>= \case
           Nothing -> pure Nothing
           Just (itys, otys) -> do
             let fun nm e str = do
+                  let ovars  = zipWith (const (("_OUTPUT" ++) . show)) otys [1..]
                   let funDec = DEC (nm, itys) otys
-                  let funDef = Def (nm, map (PVar ()) vars) [e] Nothing
+                  let funDef = Def (nm, map (PVar ()) ivars) (map (Var ()) ovars)
+                                 (Just [map (PVar ()) ovars :=: [e]])
                   mkComponent (funDec, str) (Just (funDef , ""))
                   gets (findArr nm . (^. hasLens))
             lhs <- fun "#lhs" elhs "Elab LHS"
