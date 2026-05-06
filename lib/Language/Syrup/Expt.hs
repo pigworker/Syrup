@@ -94,9 +94,11 @@ experiment (UnitTest x is os) = withCompo x $ \ c ->
   tell $ Seq.singleton $ WhenUnitTesting x is os $ case unitTest c is os of
   Left fdk -> [fdk]
   Right () -> [ASuccessfulUnitTest]
-experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc -> do
-  anExperiment "Bisimulation between" [l, r] $
-    report (l, r) (bisimReport lc rc)
+experiment (Bisimilarity l r) =
+  withCompo l $ \ lc -> ifSmallEnough lc $
+  withCompo r $ \ rc -> ifSmallEnough rc $ do
+    anExperiment "Bisimulation between" [l, r] $
+      report (l, r) (bisimReport lc rc)
 experiment (Print x) = withImplem x $ \ i -> do
   g <- use hasLens
   tell $ Seq.singleton
