@@ -61,6 +61,7 @@ data Feedback
   | AnIllTypedOutputs Name [Ty Ti Void] [Va]
   | AWrongFinalMemory [Va] [Va]
   | AWrongOutputSignals [Va] [Va]
+  | AFailedExperiment Doc
 
   -- warnings
   | AFoundHoles Name [LineDoc] -- non empty list
@@ -80,9 +81,11 @@ data Feedback
   | AnExperiment LineDoc [Name] Doc
   | AnSVGGraph [Name] Name [String]
   | ASuccessfulUnitTest
+  | ASuccessfulPropertyTest
 
   -- contextual
   | WhenDisplaying Name [Feedback]
+  | WhenPropertyTesting [String] String String [Feedback]
   | WhenUnitTesting Name CircuitConfig CircuitConfig [Feedback]
 
 instance Categorise Feedback where
@@ -108,6 +111,7 @@ instance Categorise Feedback where
     AnIllTypedOutputs{} -> Error
     AWrongFinalMemory{} -> Error
     AWrongOutputSignals{} -> Error
+    AFailedExperiment{} -> Error
 
     -- warnings
     AFoundHoles{} -> Warning
@@ -127,7 +131,9 @@ instance Categorise Feedback where
     AnExperiment{} -> Success
     AnSVGGraph{} -> Success
     ASuccessfulUnitTest{} -> Success
+    ASuccessfulPropertyTest{} -> Success
 
     -- contextual
     WhenDisplaying _ fdks -> foldMap categorise fdks
+    WhenPropertyTesting _ _ _ fdks -> foldMap categorise fdks
     WhenUnitTesting _ _ _ fdks -> foldMap categorise fdks

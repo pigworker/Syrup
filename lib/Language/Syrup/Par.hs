@@ -316,10 +316,10 @@ pEqn = pClue (SEEKING "an equation") $
 -- parsing experiments
 ------------------------------------------------------------------------------
 
-pCommand :: String -> (Name -> EXPT) -> Par EXPT
+pCommand :: String -> (Name -> EXPTC) -> Par EXPTC
 pCommand str con = con <$ pTokIs (Id str) <* pSpc <*> pName <* pSpc <* pEOI
 
-pEXPT :: Par EXPT
+pEXPT :: Par EXPTC
 pEXPT
    =  pCommand "print" Print
   <|> pCommand "anf" Anf
@@ -337,7 +337,14 @@ pEXPT
            (pAllSep (pTokIs (Sym ",")) (False <$ pTokIs (Sym "0") <|> True <$ pTokIs (Sym "1")))
   <|> pTokIs (Id "experiment") *> pSpc *>
   pClue (SEEKING "an experiment")
-  (    Tabulate <$> pName <* pSpc <* pEOI
+  (    PropertyTest <$ pTokIs (Id "forall") <* pSpc
+                    <*>  pSep (pTokIs (Sym ",")) pVar
+                    <* pSpc <* pTokIs (Sym "->") <* pSpc
+                    <*> pExp
+                    <* pSpc <* pTokIs (Sym "=") <* pSpc
+                    <*> pExp
+                    <* pSpc <* pEOI
+  <|>  Tabulate <$> pName <* pSpc <* pEOI
   <|>  UnitTest <$> pName <* pSpc
         <*> (CircuitConfig <$> pMem <* pSpc <*> pBrk Round (SEEKING "test inputs") pVas)
         <* pSpc <* pTokIs (Sym "=") <* pSpc

@@ -25,6 +25,7 @@ import Text.Blaze.Html.Renderer.String (renderHtml)
 import Language.Syrup.Chk
 import Language.Syrup.Dot
 import Language.Syrup.Expt
+import Language.Syrup.Expt.Run
 import Language.Syrup.Fdk (Feedback(..), feedbackText, feedbackHtml, keep)
 import Language.Syrup.Lnt
 import Language.Syrup.Opt

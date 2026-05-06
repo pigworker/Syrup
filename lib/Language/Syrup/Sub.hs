@@ -18,8 +18,8 @@ class TySubst t where
 
 instance TySubst TY' where
   tySubst rho t = case t of
-    BIT      -> pure BIT
-    OLD t    -> OLD <$> tySubst rho t
+    BIT -> pure BIT
+    OLD t -> OLD <$> tySubst rho t
     CABLE ts -> CABLE <$> mapM (tySubst rho) ts
     TYVAR x _ -> case findArr x rho of
       Nothing -> Left x

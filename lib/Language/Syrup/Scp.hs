@@ -11,7 +11,6 @@ module Language.Syrup.Scp where
 
 import Control.Monad (foldM, unless, when, void)
 
-import Data.Bifunctor ()
 import Data.Char (toLower)
 import Data.Foldable (traverse_)
 import Data.Kind (Type)
@@ -109,15 +108,15 @@ isGlobalVar ga nm = do
     scopeError $ OutOfScope Global nm (hints getName id gc nm)
 
 type family Level t :: ScopeLevel where
-  Level [a]           = Level a
-  Level (Maybe a)     = Level a
-  Level InputName     = 'Local
-  Level Pat           = 'Local
-  Level Eqn           = 'Local
-  Level (DEC' a)      = 'Global
-  Level (Source' a b) = 'Global
+  Level [a]            = Level a
+  Level (Maybe a)      = Level a
+  Level InputName      = 'Local
+  Level Pat            = 'Local
+  Level Eqn            = 'Local
+  Level (DEC' a)       = 'Global
+  Level (Source' a b)  = 'Global
   -- TODO?: add NoExtension
-  Level Exp           = 'Local
+  Level (Exp' Name ty) = 'Local
 
 class Scoped t where
   scopecheck :: Scope                         -- input scope
@@ -145,7 +144,7 @@ instance Scoped Pat where
     PVar _ x  -> declareVar ga x
     PCab _ ps -> scopecheck ga ps
 
-instance Scoped Exp where
+instance Scoped (Exp' Name ty) where
   scopecheck ga = \case
     Var _ s  -> emptyExtension <$ isLocalVar ga s
     Hol _ s  -> pure emptyExtension
@@ -156,7 +155,7 @@ instance Scoped Exp where
 
 instance Scoped [InputName]
 instance Scoped [Pat]
-instance Scoped [Exp]
+instance Scoped [Exp' Name ty]
 
 instance Scoped [Eqn] where
   scopecheck ga whr = do
@@ -193,6 +192,11 @@ instance Scoped EXPT where
       pure emptyExtension
     UnitTest nm ins outs -> do
       isGlobalVar ga nm
+      pure emptyExtension
+    PropertyTest vars lhs rhs -> do
+      let ga' = ga `extend` (Extend (foldMap singleton vars) :: Extension Local)
+      void $ scopecheck ga' lhs
+      void $ scopecheck ga' rhs
       pure emptyExtension
     Display nms nm -> do
       traverse_ (isGlobalVar ga) nms

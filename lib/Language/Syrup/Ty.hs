@@ -15,7 +15,7 @@ import Control.Monad.Writer (MonadWriter)
 
 import Data.Bifunctor (bimap)
 import Data.Foldable (traverse_)
-import Data.Forget (forget)
+import Data.Forget (Forget, forget)
 import Data.Monoid (First(..))
 import Data.Sequence (Seq)
 import Data.Void (Void, absurd)
@@ -156,8 +156,8 @@ data Compo = Compo
 instance Show Compo where
   show _ = "<component>"
 
-fogTy :: Ty t Void -> Ty Unit a
-fogTy (Meta x)    = absurd x
+fogTy :: Forget a b => Ty t a -> Ty Unit b
+fogTy (Meta x)    = Meta (forget x)
 fogTy (TVar s t)  = TVar s (fogTy t)
 fogTy (Bit _)     = Bit Unit
 fogTy (Cable ts)  = Cable (fmap fogTy ts)

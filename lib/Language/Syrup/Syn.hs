@@ -28,14 +28,6 @@ data Source' a b
 type SourceC = Source' TyName False
 type Source  = Source' Void   True
 
-type Exp = Exp' Name ()
-data Exp' nm ty
-  = Var ty String
-  | Hol ty String
-  | App [ty] nm [Exp' nm ty]
-  | Cab ty [Exp' nm ty]
-  deriving (Eq, Functor, Foldable, Traversable)
-
 expTys :: Exp' nm ty -> [ty]
 expTys = \case
   Var ty _ -> [ty]
@@ -88,6 +80,14 @@ data TY' b
 type TYC = TY' False
 type TY  = TY' True
 
+tyToTY' :: Ty x t -> Maybe (TY' True)
+tyToTY' = \case
+  Meta{} -> Nothing
+  TVar x t -> (TYVAR x . IJust) <$> tyToTY' t
+  Bit{} -> pure BIT
+  Cable ts -> CABLE <$> traverse tyToTY' ts
+
+
 data DEC' b = DEC (Name,[TY' b]) [TY' b]
   deriving Show
 
@@ -102,6 +102,7 @@ data EXPT
   = Anf Name
   | Bisimilarity Name Name
   | UnitTest Name CircuitConfig CircuitConfig
+  | PropertyTest [String] Exp Exp
   | Costing [Name] Name
   | Display [Name] Name
   | Dnf Name
@@ -111,9 +112,8 @@ data EXPT
   | Typing Name
   | Tabulate Name
   | FromOutputs Name [InputName] [Bool]
-  deriving Show
 
-
+type EXPTC = EXPT
 
 ------------------------------------------------------------------------------
 -- operations on syntax

@@ -105,3 +105,14 @@ data Unit = Unit deriving (Eq)
 -- Phases
 
 data Ti = T0 | T1 deriving (Show, Eq)
+
+------------------------------------------------------------------------------
+-- Expressions
+
+type Exp = Exp' Name ()
+data Exp' nm ty
+  = Var ty String
+  | Hol ty String
+  | App [ty] nm [Exp' nm ty]
+  | Cab ty [Exp' nm ty]
+  deriving (Eq, Functor, Foldable, Traversable)

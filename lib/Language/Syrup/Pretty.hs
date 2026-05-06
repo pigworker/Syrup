@@ -8,10 +8,7 @@
 
 module Language.Syrup.Pretty where
 
-import Control.Monad.Reader (MonadReader, runReader)
-
 import Data.Foldable (fold)
-import Data.List (intercalate, intersperse)
 
 import Prelude hiding (unwords, unlines)
 

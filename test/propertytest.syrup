@@ -1,0 +1,43 @@
+experiment forall X, Y -> nand(X,Y) = nand(Y,X)
+
+not(<Bit>) -> <Bit>
+not(X) = nand(X,X)
+
+experiment forall X -> !!X = X
+
+or(<Bit>, <Bit>) -> <Bit>
+or(X,Y) = nand(!X,!Y)
+
+and(<Bit>, <Bit>) -> <Bit>
+and(X,Y) = !nand(X,Y)
+
+one() -> <Bit>
+one() = !0
+
+experiment forall X -> 0 = 0
+
+experiment forall X, Y, Z -> (X | Y) | Z = X | (Y | Z)
+
+experiment forall X -> X = !X
+
+experiment forall X -> X|!X = 1
+experiment forall X -> X&!X = 0
+
+diag(<Bit>) -> <Bit>, <Bit>
+diag(X) = X,X
+
+experiment forall X -> diag(X) = X
+
+experiment forall X, Y -> [!!X,Y] = [X,!!Y]
+
+experiment forall X -> X = !!!!X
+
+experiment forall X -> X = 0
+
+xor(<Bit>, <Bit>) -> <Bit>
+xor(X,Y) = !X&Y | X&!Y
+
+hadd(<Bit>, <Bit>) -> <Bit>,<Bit>
+hadd(X,Y) = X&Y, xor(X, Y)
+
+experiment forall X, Y -> hadd(X, Y) = hadd(Y, X)

@@ -19,7 +19,6 @@ import Data.Foldable (fold)
 import Data.List (intercalate, intersperse)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
-import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray (isEmptyArr, foldMapSet)
 import Language.Syrup.Doc
@@ -125,6 +124,7 @@ instance Pretty Feedback where
                 [] -> ""
                 _ -> fold [" (with ", csep (map identifier xs), " unfolded)"]
       ASuccessfulUnitTest -> aLine "Success!"
+      ASuccessfulPropertyTest -> aLine "Success!"
       ARawCode str x ls ->
         aLine $$ [ str, " ", identifier x, ":" ]
         <> nest 2 (structure RawCodeBlock ls)
@@ -207,6 +207,7 @@ instance Pretty Feedback where
           , " but got "
           , isCode (parens $$ map pretty os')
           , "." ]
+      AFailedExperiment d -> d
 
       WhenUnitTesting x is os fdks ->
         aLine $$
@@ -217,6 +218,16 @@ instance Pretty Feedback where
               , pretty (circuitConfig False os)]
           , ":"]
         <> nest 2 (foldMap go fdks)
+      WhenPropertyTesting vars lhs rhs txt -> do
+        aLine $$
+          [ "When property testing "
+          , isCode $$
+            [ pretty lhs
+            , " = "
+            , pretty rhs
+            ]
+          , ":"]
+          <> nest 2 (foldMap go txt)
       WhenDisplaying f fdks ->
         aLine $$
           [ "When displaying ", identifier f, ":" ]

@@ -12,42 +12,41 @@ module Language.Syrup.Chk where
 import Control.Applicative ((<|>))
 import Control.Monad (guard)
 import Control.Monad.Reader (local, runReaderT)
-import Control.Monad.State (execStateT, runStateT, get, gets, put)
+import Control.Monad.State (StateT, execStateT, runStateT, get, gets, put, modify)
+import qualified Control.Monad.State as State
 import Control.Monad.Writer (runWriterT, runWriter, tell)
 
 import Data.Bifunctor (bimap)
 import Data.Char (isAlpha)
+import Data.Either (partitionEithers)
 import Data.Forget (forget)
 import Data.Foldable (traverse_, fold)
 import Data.IMaybe (fromIJust)
-import Data.List (intercalate)
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Maybe (isJust, fromJust)
 import Data.Monoid (Last(Last), First(..))
 import qualified Data.Sequence as Seq
+import qualified Data.Set as Set
 import Data.Traversable (for)
 import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
-import Language.Syrup.Doc
-import Language.Syrup.Expt
+import Language.Syrup.Expt (isBisimilar)
 import Language.Syrup.Fdk
+import Language.Syrup.Doc
 import Language.Syrup.Pretty
 import Language.Syrup.Syn
 import Language.Syrup.Ty
-import Language.Syrup.Utils (($$))
+import Language.Syrup.Utils (($$), oxfordList)
 import Language.Syrup.Va
 
-import Utilities.Lens (hasLens, use, (%=))
+import Utilities.Lens (hasLens, use, (%=), (^.))
 
 ------------------------------------------------------------------------------
 -- Checking whether a component is remarkable
 ------------------------------------------------------------------------------
-
-isBisimilar :: Compo -> Compo -> Bool
-isBisimilar c d = case bisimReport c d of
-  Report (Bisimilar{}) -> True
-  _ -> False
 
 checkRemarkable :: Compo -> Maybe Remarkable
 checkRemarkable cmp
@@ -483,6 +482,175 @@ yank ts x = foldMap go ts where
   go (qs :<- (_, ps))
     | x `inSet` foldMap support qs = foldMap support ps
     | otherwise = mempty
+
+
+
+checkTypes
+  :: MonadCompo s m
+  => Maybe [Typ] -> Exp -> StateT (Map String Typ) m (Either () (Maybe [Typ]))
+checkTypes mt e = case e of
+  Var _ nm -> case mt of
+    Just [t] -> gets (Map.lookup nm) >>= \case
+      Just t'
+        | t == t' -> pure (Right mt)
+        | otherwise -> do
+            tell $ Seq.singleton $ ATypeError $ aLine $$
+              [ "The variable "
+              , pretty nm
+              , " is used in places leading to conflicting types "
+              , pretty t
+              , " and "
+              , pretty t'
+              , "."
+              ]
+            pure (Left ())
+      Nothing -> do
+        modify (Map.insert nm t)
+        pure (Right mt)
+    Just ts -> do
+      tell $ Seq.singleton $ ATypeError $ aLine $$
+        [ "The variable "
+        , pretty nm
+        , " is checked against a list of types "
+        , pretty (AList ts)
+        , "."
+        ]
+      pure (Left ())
+    Nothing -> pure (Right Nothing)
+  Hol{} -> pure (Right Nothing)
+  App _ f es -> State.lift (gets (findArr f . (^. hasLens))) >>= \case
+    Nothing -> do
+      tell $ Seq.singleton (AnUnknownIdentifier f)
+      pure (Left ())
+    Just c -> case map (fmap absurd . getInputType) (inpTys c) of
+      tys | length tys /= length es -> do
+              tell $ Seq.singleton $ ATypeError $ aLine $$
+                [ "The function "
+                , identifier f
+                , " expects "
+                , pretty (length tys)
+                , " arguments but was given "
+                , pretty (length es)
+                , "."
+                ]
+              pure (Left ())
+      tys -> do
+        mets <- sequence $ zipWith (checkTypes . (Just . pure)) tys es
+        case partitionEithers mets of
+          ([], mts) -> pure (Right $ Just $ map (fogTy . getOutputType) (oupTys c))
+          _ -> pure (Left ())
+  Cab _ es -> case mt of
+    Just [ty@(Cable tys)]
+      | length tys /= length es -> do
+          tell $ Seq.singleton $ ATypeError $ aLine $$
+            [ "The cable "
+--            , pretty e
+            , " has size "
+            , pretty (length es)
+            , " but is checked against a cable type "
+            , pretty ty
+            , " of size "
+            , pretty (length tys)
+            , "."
+            ]
+          pure (Left ())
+      | otherwise -> do
+        mets <- sequence $ zipWith (checkTypes . (Just . pure)) tys es
+        case partitionEithers mets of
+          ([], mts) -> pure (Right mt)
+          _ -> pure (Left ())
+    Nothing -> do
+        mets <- traverse (checkTypes Nothing) es
+        case partitionEithers mets of
+          ([], mts) -> case sequence mts of
+            Nothing -> pure (Right Nothing)
+            Just tyss -> case traverse isSingleton tyss of
+              Nothing -> pure (Left ())
+              Just tys -> pure (Right (Just [Cable tys]))
+          _ -> pure (Left ())
+
+    Just ts -> do
+      tell $ Seq.singleton $ ATypeError $ aLine $$
+        [ "The cable "
+--        , pretty e
+        , " is checked against a list of types "
+        , pretty (AList ts)
+        , "."
+        ]
+      pure (Left ())
+
+
+isSingleton :: [a] -> Maybe a
+isSingleton [x] = Just x
+isSingleton _ = Nothing
+
+inferrable :: Exp -> Bool
+inferrable = \case
+  Var{} -> False
+  Hol{} -> False
+  App{} -> True
+  Cab _ es -> all inferrable es
+
+smartCheck :: MonadCompo s m => Exp -> Exp -> m (Maybe ([Ty Unit TyNom], Map String Typ))
+smartCheck lhs rhs
+  | inferrable lhs = check lhs rhs
+  | otherwise = check rhs lhs
+
+  where
+    check ::  MonadCompo s m => Exp -> Exp -> m (Maybe ([Ty Unit TyNom], Map String Typ))
+    check lhs rhs = runStateT (checkTypes Nothing lhs) Map.empty >>= \case
+      (Left (), _) -> pure Nothing
+      (Right mts1, ass) -> runStateT (checkTypes mts1 rhs) ass >>= \case
+        (Left (), _) -> pure Nothing
+        (Right mts2, ass) -> do
+          mts <- case mts1 <|> mts2 of
+            Just ts -> pure (Just ts)
+            Nothing -> reconstruct ass lhs
+          pure ((,ass) <$> mts)
+
+-- assuming we have a type for every variable
+reconstruct :: MonadCompo s m => Map String Typ -> Exp -> m (Maybe [Ty Unit TyNom])
+reconstruct ass = \case
+  Var _ nm -> pure $ pure <$> Map.lookup nm ass
+  Hol{} -> pure Nothing
+  App _ f _ -> gets (findArr f . (^. hasLens)) >>= \case
+    Nothing -> pure Nothing
+    Just c -> pure (Just $ map (fogTy . getOutputType) (oupTys c))
+  Cab _ es -> do
+    mts <- traverse (reconstruct ass) es
+    pure $ (pure . Cable) <$> traverse (>>= isSingleton) mts
+
+elabPropertyTest :: MonadCompo s m
+                 => ([String], Exp, Exp)
+                 -> m (Maybe (Compo, Compo))
+elabPropertyTest (vars, elhs, erhs) = smartCheck elhs erhs >>= \case
+  Nothing -> pure Nothing
+  Just (otys, ass) -> do
+    -- Check that we have inferred the type of all the variables
+    case Set.toList (Set.fromList vars Set.\\ Map.keysSet ass) of
+      [] -> do
+        let (ivars, itys) = unzip $ Map.toList ass
+        case ((,) <$> traverse tyToTY' itys <*> traverse tyToTY' otys) of
+          Nothing -> pure Nothing
+          Just (itys, otys) -> do
+            let fun nm e str = do
+                  let ovars  = zipWith (const (("_OUTPUT" ++) . show)) otys [1..]
+                  let funDec = DEC (nm, itys) otys
+                  let funDef = Def (nm, map (PVar ()) ivars) (map (Var ()) ovars)
+                                 (Just [map (PVar ()) ovars :=: [e]])
+                  mkComponent (funDec, str) (Just (funDef , ""))
+                  gets (findArr nm . (^. hasLens))
+            lhs <- fun "#lhs" elhs "Elab LHS"
+            rhs <- fun "#rhs" erhs "Elab RHS"
+            pure ((,) <$> lhs <*> rhs)
+      oops -> do
+        tell $ Seq.singleton $ ATypeError $ aLine $$
+          [ "Failed to infer the type of "
+          , oxfordList (pretty <$> oops)
+          , "."
+          ]
+        pure Nothing
+
 
 
 ------------------------------------------------------------------------------

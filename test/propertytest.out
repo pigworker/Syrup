@@ -1,0 +1,46 @@
+When property testing `nand(X, Y) = nand(Y, X)`:
+  Success!
+
+Circuit `not` is defined.
+
+When property testing `!!X = X`:
+  Success!
+
+Circuits `or`, `and`, and `one` are defined.
+
+Error: When property testing `0 = 0`:
+  Failed to infer the type of X.
+
+When property testing `(X | Y) | Z = X | Y | Z`:
+  Success!
+
+Error: When property testing `X = !X`:
+  `X` has a behaviour that `!X` does not match
+  `X(0) = 0` but `!X(0) = 1`
+  `X(1) = 1` but `!X(1) = 0`
+
+When property testing `X | !X = 1`:
+  Success!
+
+When property testing `X & !X = 0`:
+  Success!
+
+Circuit `diag` is defined.
+
+Error: When property testing `diag(X) = X`:
+  The variable X is checked against a list of types [<Bit>, <Bit>].
+
+When property testing `[!!X, Y] = [X, !!Y]`:
+  Success!
+
+When property testing `X = !!!!X`:
+  Success!
+
+Error: When property testing `X = 0`:
+  `X` has a behaviour that `0` does not match
+  `X(1) = 1` but `0(1) = 0`
+
+Circuits `xor` and `hadd` are defined.
+
+When property testing `hadd(X, Y) = hadd(Y, X)`:
+  Success!
