@@ -31,3 +31,5 @@ experiment forall X -> diag(X) = X
 experiment forall X, Y -> [!!X,Y] = [X,!!Y]
 
 experiment forall X -> X = !!!!X
+
+experiment forall X -> X = 0

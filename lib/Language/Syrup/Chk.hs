@@ -10,7 +10,7 @@
 module Language.Syrup.Chk where
 
 import Control.Applicative ((<|>))
-import Control.Monad (guard, unless)
+import Control.Monad (guard)
 import Control.Monad.Reader (local, runReaderT)
 import Control.Monad.State (StateT, execStateT, runStateT, get, gets, put, modify)
 import qualified Control.Monad.State as State
@@ -22,10 +22,9 @@ import Data.Either (partitionEithers)
 import Data.Forget (forget)
 import Data.Foldable (traverse_, fold)
 import Data.IMaybe (fromIJust)
-import Data.List (intercalate)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Maybe (isJust, fromJust, fromMaybe)
+import Data.Maybe (isJust, fromJust)
 import Data.Monoid (Last(Last), First(..))
 import qualified Data.Sequence as Seq
 import qualified Data.Set as Set
@@ -34,7 +33,7 @@ import Data.Void (Void, absurd)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Bwd
-import Language.Syrup.Expt (withCompo, isBisimilar)
+import Language.Syrup.Expt (isBisimilar)
 import Language.Syrup.Fdk
 import Language.Syrup.Doc
 import Language.Syrup.Pretty

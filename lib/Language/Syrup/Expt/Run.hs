@@ -22,13 +22,13 @@ import Language.Syrup.Chk (elabPropertyTest)
 import Language.Syrup.Cst (costing)
 import Language.Syrup.DeMorgan (deMorgan)
 import Language.Syrup.DNF (dnf, ttToDef)
-import Language.Syrup.Doc (pretty, aLine, prettyBlock)
+import Language.Syrup.Doc (pretty, aLine, prettyBlock, FeedbackStatus(..))
 import Language.Syrup.Dot (whiteBoxDef)
 import Language.Syrup.Expt
 import Language.Syrup.Fdk
 import Language.Syrup.Opt
 import Language.Syrup.Pretty
-import Language.Syrup.Syn (EXPT(..), getName, getInputName)
+import Language.Syrup.Syn (EXPT(..), Name(..), getInputName)
 import Language.Syrup.Ty (TypeDecl'(..), Compo(..), InputWire(..), OutputWire(..))
 import Language.Syrup.Unelab (runUnelab)
 import Language.Syrup.Utils
@@ -53,12 +53,21 @@ experiment (PropertyTest vars elhs erhs) = do
   g <- use hasLens
   let pe = prettyShow g elhs
   let pf = prettyShow g erhs
-  censor (Seq.singleton . WhenPropertyTesting vars pe pf . toList) $
+  censor (Seq.singleton . WhenPropertyTesting vars pe pf . cleanup . toList) $
     elabPropertyTest (vars, elhs, erhs) >>= \case
       Nothing -> pure ()
-      Just (lhs, rhs) ->
-        anExperiment "Equivalence between" ["lhs", "rhs"] $
-          report ("lhs", "rhs") (bisimReport lhs rhs)
+      Just (lhs, rhs) -> case bisimReport lhs rhs of
+        Report Bisimilar{} -> pure ()
+        rep -> tell $ Seq.singleton $ AFailedExperiment $
+          report (Name pe, Name pf) rep
+
+  where
+
+    cleanup :: [Feedback] -> [Feedback]
+    cleanup fdks = case filter ((`elem` [Error, Internal]) . categorise) fdks of
+      [] -> [ASuccessfulPropertyTest]
+      err -> err
+
 experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc -> do
   anExperiment "Bisimulation between" [l, r] $
     report (l, r) (bisimReport lc rc)

@@ -1,18 +1,10 @@
 When property testing `nand(X, Y) = nand(Y, X)`:
-  Circuit `#lhs` is defined.
-  Circuit `#rhs` is defined.
-  Equivalence between `lhs`, `rhs`:
-    `lhs` behaves like `rhs`
-      `{}` ~ `{}`
+  Success!
 
 Circuit `not` is defined.
 
 When property testing `!!X = X`:
-  Circuit `#lhs` is defined.
-  Circuit `#rhs` is defined.
-  Equivalence between `lhs`, `rhs`:
-    `lhs` behaves like `rhs`
-      `{}` ~ `{}`
+  Success!
 
 Circuits `or`, `and`, and `one` are defined.
 
@@ -20,33 +12,18 @@ Error: When property testing `0 = 0`:
   Failed to infer the type of X.
 
 When property testing `(X | Y) | Z = X | Y | Z`:
-  Circuit `#lhs` is defined.
-  Circuit `#rhs` is defined.
-  Equivalence between `lhs`, `rhs`:
-    `lhs` behaves like `rhs`
-      `{}` ~ `{}`
+  Success!
 
-When property testing `X = !X`:
-  Circuit `#lhs` is defined.
-  Circuit `#rhs` is defined.
-  Equivalence between `lhs`, `rhs`:
-    `lhs` has a behaviour that `rhs` does not match
-    `lhs(0) = 0` but `rhs(0) = 1`
-    `lhs(1) = 1` but `rhs(1) = 0`
+Error: When property testing `X = !X`:
+  `X` has a behaviour that `!X` does not match
+  `X(0) = 0` but `!X(0) = 1`
+  `X(1) = 1` but `!X(1) = 0`
 
 When property testing `X | !X = 1`:
-  Circuit `#lhs` is defined.
-  Circuit `#rhs` is defined.
-  Equivalence between `lhs`, `rhs`:
-    `lhs` behaves like `rhs`
-      `{}` ~ `{}`
+  Success!
 
 When property testing `X & !X = 0`:
-  Circuit `#lhs` is defined.
-  Circuit `#rhs` is defined.
-  Equivalence between `lhs`, `rhs`:
-    `lhs` behaves like `rhs`
-      `{}` ~ `{}`
+  Success!
 
 Circuit `diag` is defined.
 
@@ -54,15 +31,11 @@ Error: When property testing `diag(X) = X`:
   The variable X is checked against a list of types [<Bit>, <Bit>].
 
 When property testing `[!!X, Y] = [X, !!Y]`:
-  Circuit `#lhs` is defined.
-  Circuit `#rhs` is defined.
-  Equivalence between `lhs`, `rhs`:
-    `lhs` behaves like `rhs`
-      `{}` ~ `{}`
+  Success!
 
 When property testing `X = !!!!X`:
-  Circuit `#lhs` is defined.
-  Circuit `#rhs` is defined.
-  Equivalence between `lhs`, `rhs`:
-    `lhs` behaves like `rhs`
-      `{}` ~ `{}`
+  Success!
+
+Error: When property testing `X = 0`:
+  `X` has a behaviour that `0` does not match
+  `X(1) = 1` but `0(1) = 0`

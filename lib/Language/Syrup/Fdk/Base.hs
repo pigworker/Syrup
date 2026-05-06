@@ -61,6 +61,7 @@ data Feedback
   | AnIllTypedOutputs Name [Ty Ti Void] [Va]
   | AWrongFinalMemory [Va] [Va]
   | AWrongOutputSignals [Va] [Va]
+  | AFailedExperiment Doc
 
   -- warnings
   | AFoundHoles Name [LineDoc] -- non empty list
@@ -110,6 +111,7 @@ instance Categorise Feedback where
     AnIllTypedOutputs{} -> Error
     AWrongFinalMemory{} -> Error
     AWrongOutputSignals{} -> Error
+    AFailedExperiment{} -> Error
 
     -- warnings
     AFoundHoles{} -> Warning

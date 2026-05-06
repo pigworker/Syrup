@@ -206,6 +206,7 @@ instance Pretty Feedback where
           , " but got "
           , isCode (parens $$ map pretty os')
           , "." ]
+      AFailedExperiment d -> d
 
       WhenUnitTesting x is os fdks ->
         aLine $$
