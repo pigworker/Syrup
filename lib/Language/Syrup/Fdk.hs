@@ -28,6 +28,7 @@ import Language.Syrup.Pretty
 import Language.Syrup.Syn.Base
 
 import Language.Syrup.Utils (($$), be, plural, oxfordList)
+import Utilities.Monad.Fresh (MonadFresh)
 
 import Text.Blaze.Html5 (Html)
 import qualified Text.Blaze.Html5 as Html
@@ -240,8 +241,8 @@ feedbackText
   . map pretty
   . groupFeedback
 
-feedbackHtml :: [Feedback] -> Html
-feedbackHtml = (headerHtml <>) . renderToHtml . pretty
+feedbackHtml :: MonadFresh s m => [Feedback] -> m Html
+feedbackHtml = fmap (headerHtml <>) . renderToHtml . pretty
 
   where
     headerHtml :: Html

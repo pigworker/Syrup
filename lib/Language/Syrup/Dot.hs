@@ -170,7 +170,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
   let iPorts = if null iports then "" else unlines
          [ indent 2 $ concat [ gateNode, "__INPUTS" ]
          , "    [ shape = none"
-         , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"10\">"
+         , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"20\">"
          , "               <TR>"
          , unlines $ map (indent 15) iports
          , "               </TR>"
@@ -181,7 +181,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
   let oPorts = unlines
          [ indent 2 $ concat [ gateNode, "__OUTPUTS" ]
          , "    [ shape = none"
-         , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"10\">"
+         , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"20\">"
          , "               <TR>"
          , unlines $ map (indent 15) oports
          , "               </TR>"
@@ -250,15 +250,10 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
           (case loc of { TopLevel -> [iPorts]; Unfolded -> [] }) ++
           -- needed to get the outputs at the bottom in e.g. tff
           [ "subgraph cluster_circuit__" ++ gateNode ++ " {"
-          ] ++
-          (case loc of
-             TopLevel -> [ "  style=invis;" ]
-             Unfolded ->
-               [ "  style=solid;"
-               , "  label=<<table border=\"0\"><tr><td border=\"1\">" ++ nm ++ "</td></tr></table>>;"
-               , "  labeljust=l;"
-               ]
-          ) ++ concat gph ++
+          , "  style=" ++ case loc of { TopLevel -> "dashed;\n  margin = 10"; _ -> "solid" } ++ ";"
+          , "  label=<<table border=\"0\"><tr><td border=\"1\">" ++ nm ++ "</td></tr></table>>;"
+          , "  labeljust=l;"
+          ] ++ concat gph ++
           [ "}" ]
           ++ (case loc of { TopLevel -> [oPorts]; Unfolded -> [] })
       }
@@ -407,8 +402,10 @@ whiteBoxDef st transparent (Def (nm, _) _ _) = case findArr (getName nm) (gates 
     (fdk, Nothing) -> (fdk, Nothing)
     (fdk, Just circuit) -> (fdk,) $ Just $
       [ "digraph whitebox {"
+      , "  margin = 0;"
       , "  rankdir = TB;"
-      , "  nodesep = 0.2;"
+      , "  nodesep = 0.5;"
+      , "  ranksep = 0.05;"
       ]
       ++ circuitGraph circuit
       ++ ["}"]

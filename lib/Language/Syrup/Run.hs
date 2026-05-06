@@ -4,9 +4,11 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE RankNTypes #-}
+
 module Language.Syrup.Run where
 
-import Control.Monad.State (execStateT)
+import Control.Monad.State (execStateT, runState)
 import Control.Monad.Writer (tell, runWriter)
 import Control.Monad.Reader (runReaderT)
 
@@ -14,6 +16,7 @@ import Data.Either (partitionEithers)
 import Data.Foldable (toList)
 import Data.Functor (void)
 import qualified Data.Sequence as Seq
+import Data.Tuple (swap)
 import Data.Void (absurd)
 
 import Text.Blaze.Html5 (Html)
@@ -35,6 +38,7 @@ import Language.Syrup.Utils
 
 import Utilities.Lens (Has, hasLens, (.=), use, (%=))
 import Utilities.Monad (whenJust)
+import Utilities.Monad.Fresh (MonadFresh, Fresh(..))
 
 getDefsOf :: Name
           -> [Either a (Source, String)]
@@ -74,19 +78,23 @@ grokSy (Right (Definition d, _) : src) = do
 grokSy (Right (TypeAlias (x, _), _) : src) = absurd x
 
 data SyrupEnv = SyrupEnv
-  { syrupTyEnv :: TyEnv
+  { syrupFresh :: Fresh
+  , syrupTyEnv :: TyEnv
   , syrupCoEnv :: CoEnv
   , syrupDotSt :: DotSt
   }
 
+instance Has Fresh SyrupEnv where
+  hasLens f (SyrupEnv i ty co dot) = (\ i -> SyrupEnv i ty co dot) <$> f i
+
 instance Has TyEnv SyrupEnv where
-  hasLens f (SyrupEnv ty co dot) = (\ ty -> SyrupEnv ty co dot) <$> f ty
+  hasLens f (SyrupEnv i ty co dot) = (\ ty -> SyrupEnv i ty co dot) <$> f ty
 
 instance Has CoEnv SyrupEnv where
-  hasLens f (SyrupEnv ty co dot) = (\ co -> SyrupEnv ty co dot) <$> f co
+  hasLens f (SyrupEnv i ty co dot) = (\ co -> SyrupEnv i ty co dot) <$> f co
 
 instance Has DotSt SyrupEnv where
-  hasLens f (SyrupEnv ty co dot) = (\ dot -> SyrupEnv ty co dot) <$> f dot
+  hasLens f (SyrupEnv i ty co dot) = (\ dot -> SyrupEnv i ty co dot) <$> f dot
 
 type MonadSyrup s m =
   ( Has TyEnv s
@@ -107,14 +115,14 @@ runSyrup txt = do
 
 -- The sort of interface Marx prefers
 oldRunSyrup
-  :: ([Feedback] -> a)
+  :: (forall s m. MonadFresh s m => [Feedback] -> m a)
   -> Options -> SyrupEnv -> String -> (SyrupEnv, a)
-oldRunSyrup fdk opts env src
-  = fmap (fdk . filter (keep opts) . toList)
-  $ runWriter
-  $ flip runReaderT opts
-  $ flip execStateT env
-  $ runSyrup src
+oldRunSyrup fromFdks opts env src =
+  let (env', fdks) = runWriter
+                   $ flip runReaderT opts
+                   $ flip execStateT env
+                   $ runSyrup src
+  in swap $ runState (fromFdks $ filter (keep opts) $ toList fdks) env'
 
 marxRunSyrup :: Options -> SyrupEnv -> String -> (SyrupEnv, Html)
 marxRunSyrup = oldRunSyrup feedbackHtml
@@ -123,9 +131,9 @@ syrup :: Options -> String -> String
 syrup opts src = snd $ oldRunSyrup fdk opts env src where
 
   env :: SyrupEnv
-  env = SyrupEnv myTyEnv myCoEnv myDotSt
+  env = SyrupEnv (Fresh "" 0) myTyEnv myCoEnv myDotSt
 
-  fdk :: [Feedback] -> String
+  fdk :: MonadFresh s m => [Feedback] -> m String
   fdk = case outputFormat opts of
-    TextOutput -> unlines . feedbackText
-    HtmlOutput -> renderHtml . feedbackHtml
+    TextOutput -> pure . unlines . feedbackText
+    HtmlOutput -> fmap renderHtml . feedbackHtml

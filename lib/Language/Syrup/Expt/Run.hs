@@ -67,10 +67,11 @@ experiment (PropertyTest vars elhs erhs) = do
     cleanup fdks = case filter ((`elem` [Error, Internal]) . categorise) fdks of
       [] -> [ASuccessfulPropertyTest]
       err -> err
-
-experiment (Bisimilarity l r) = withCompo l $ \ lc -> withCompo r $ \ rc -> do
-  anExperiment "Bisimulation between" [l, r] $
-    report (l, r) (bisimReport lc rc)
+experiment (Bisimilarity l r) =
+  withCompo l $ \ lc -> ifSmallEnough lc $
+  withCompo r $ \ rc -> ifSmallEnough rc $ do
+    anExperiment "Bisimulation between" [l, r] $
+      report (l, r) (bisimReport lc rc)
 experiment (Print x) = withImplem x $ \ i -> do
   g <- use hasLens
   tell $ Seq.singleton

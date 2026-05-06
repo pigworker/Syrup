@@ -43,8 +43,6 @@ module Language.Syrup.Doc
 
 import Prelude hiding (unwords)
 
-import Control.Monad.State (MonadState, get, put, evalState)
-
 import Data.Foldable (fold)
 import Data.Kind (Type)
 import Data.List (intersperse)
@@ -58,6 +56,7 @@ import qualified Text.Blaze.Html5.Attributes as Attr
 
 import Language.Syrup.Syn.Base
 import Language.Syrup.Utils (plural)
+import Utilities.Monad.Fresh (MonadFresh, fresh, renderFresh)
 
 ------------------------------------------------------------------------------
 -- Feedback status
@@ -176,7 +175,7 @@ instance IsString LineDoc where
 
 class Render d where
   renderToString :: d -> [String]
-  renderToHtml :: d -> Html
+  renderToHtml :: MonadFresh s m => d -> m Html
 
 instance Render LineDoc where
 
@@ -188,20 +187,23 @@ instance Render LineDoc where
     go (AnAnnot (HasStyle _) d) = go d
     go (AConcat ds) = foldMap go ds
 
-  renderToHtml (AConcat ds) = foldMap renderToHtml ds
-  renderToHtml (AString str) = toHtml str
-  renderToHtml (AnAnnot ann d) = applyHighlight ann (renderToHtml d)
 
-    where
-      applyHighlight :: AnnLine -> Html -> Html
-      applyHighlight IsCode = Html.code
-      applyHighlight (HasStyle sty) = Html.span ! class_ (asAttribute sty)
+  renderToHtml = pure . go where
 
-      asAttribute :: AnnHighlight -> AttributeValue
-      asAttribute AFunction = "syrup-function"
-      asAttribute AVariable = "syrup-variable"
-      asAttribute AKeyword = "syrup-keyword"
-      asAttribute AType = "syrup-type"
+    go :: LineDoc -> Html
+    go (AConcat ds) = foldMap go ds
+    go (AString str) = toHtml str
+    go (AnAnnot ann d) = applyHighlight ann (go d)
+
+    applyHighlight :: AnnLine -> Html -> Html
+    applyHighlight IsCode = Html.code
+    applyHighlight (HasStyle sty) = Html.span ! class_ (asAttribute sty)
+
+    asAttribute :: AnnHighlight -> AttributeValue
+    asAttribute AFunction = "syrup-function"
+    asAttribute AVariable = "syrup-variable"
+    asAttribute AKeyword = "syrup-keyword"
+    asAttribute AType = "syrup-type"
 
 
 instance Render Doc where
@@ -229,7 +231,7 @@ instance Render Doc where
       concat (renderToString s) : ls
 
 
-  renderToHtml = flip evalState 0 . go False where
+  renderToHtml = go False where
 
     -- The Bool is True if we are in pre mode, in which case we do:
     -- 1. newlines as "\n" alone rather than (br <> "\n")
@@ -237,15 +239,15 @@ instance Render Doc where
     newline :: Bool -> Html
     newline b = (if b then id else (("\n" <> Html.br) <>)) "\n"
 
-    go :: MonadState Int m => Bool -> Doc -> m Html
+    go :: MonadFresh s m => Bool -> Doc -> m Html
     go b = fmap (fold . intersperse (newline b))
          . renderBlocks b
 
-    renderBlocks :: MonadState Int m => Bool -> Doc -> m [Html]
+    renderBlocks :: MonadFresh s m => Bool -> Doc -> m [Html]
     renderBlocks b = fmap fold . traverse (renderBlock b)
 
-    renderBlock :: MonadState Int m => Bool -> BlockDoc -> m [Html]
-    renderBlock b (ALine d) = pure [renderToHtml d]
+    renderBlock :: MonadFresh s m => Bool -> BlockDoc -> m [Html]
+    renderBlock b (ALine d) = pure <$> renderToHtml d
     renderBlock b (ABlock Nothing ds) = renderBlocks b ds
     renderBlock b (ABlock (Just ann) ds) = case ann of
       NestBlock i ->
@@ -259,7 +261,7 @@ instance Render Doc where
         html <- go True ds
         pure $ [Html.div ! class_ "syrup-code" $ html]
       GraphBlock ls -> do
-        n <- show <$> fresh
+        n <- renderFresh <$> fresh
         pure $ let graphName = "GRAPH" ++ n in
           [ Html.script ! type_ "module" $ fold $ intersperse "\n" $
               let dotName = "dot" <> toHtml n in
@@ -281,16 +283,10 @@ instance Render Doc where
         pure [Html.div ! class_ (toCSSClass cat) $ html]
       DetailsBlock s -> do
         html <- go b ds
+        s <- renderToHtml s
         pure $ pure $ Html.details $ do
-          Html.summary $ renderToHtml s
+          Html.summary s
           html
-
-fresh :: MonadState Int m => m Int
-fresh = do
-  n <- get
-  let sn = n + 1
-  put sn
-  pure sn
 
 ------------------------------------------------------------------------
 -- Basic combinators
