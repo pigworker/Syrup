@@ -1,0 +1,77 @@
+@skip
+  { space
+  | Comment
+  }
+
+@precedence { and @right, or @right }
+
+@tokens {
+  space      { @whitespace+ }
+  Comment    { "--" ![\n]* }
+  Identifier { @asciiLetter $[a-zA-Z0-9]* }
+  TypeName   { "<" @asciiLetter $[a-zA-Z0-9]* ">" }
+}
+
+
+@top Program
+  { Source }
+
+Source
+  { Declaration
+  | TypeAlias
+  | Definition
+  }
+
+Declaration
+  { LHS<Type> "->" List<Type> }
+
+TypeAlias
+  { @specialize<Identifier, "type"> TypeName "=" Type }
+
+Definition
+  { LHS<Pattern> "=" List<Expression> Equations }
+
+Equations
+  { @specialize<Identifier, "where"> Equation*
+  | ""
+  }
+
+Equation
+  { List<Pattern> "=" Expression }
+
+Expression
+  { WeeExpression
+  | Expression !and "&" Expression
+  | Expression !or  "|" Expression
+  }
+
+WeeExpression
+  { Identifier "(" List<Expression> ")"
+  | Identifier
+  | "!" WeeExpression
+  | "[" List<Expression> "]"
+  | "(" Expression ")"
+  }
+
+Pattern
+  { Identifier
+  | "[" ~statement List<Pattern> "]"
+  }
+
+Type
+  { TypeName
+  | "@" Type
+  | "[" ~statement List<Type> "]"
+  }
+
+LHS<el>
+  { "!" el
+  | el "&" el
+  | el "|" el
+  | Identifier "(" ~statement List<el> ")"
+  }
+
+List<el>
+  { ""
+  | el ("," el)*
+  }
