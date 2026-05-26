@@ -19,8 +19,6 @@ Error: You haven't defined the circuit `tripleAddTwo` just now.
 Warning: Circuit `tripleAddTwo` has been stubbed out.
 
 Truth table for `hadd`:
-  |   |   |  |   |   |
-  |---+---+--+---+---|
   | 0 | 0 |  | ? | ? |
   | 0 | 1 |  | ? | ? |
   | 1 | 0 |  | ? | ? |

@@ -181,8 +181,6 @@ Bisimulation between `xor`, `or`:
   `xor(11) = 0` but `or(11) = 1`
 
 Truth table for `one`:
-  |  |   |
-  |--+---|
   |  | 1 |
 
 Truth table for `tff2`:

@@ -19,7 +19,7 @@ import Data.Foldable (fold)
 import Data.Forget (forget)
 import Data.Function (on)
 import Data.List (find, intercalate, intersperse, sortBy)
-import Data.Maybe (fromMaybe, fromJust)
+import Data.Maybe (fromMaybe, fromJust, isJust)
 import Data.Monoid (Endo(Endo), appEndo, Sum(Sum))
 import qualified Data.Sequence as Seq
 import Data.Traversable (for)
@@ -298,9 +298,15 @@ displayRow tmp (vs, trs) =
     ]
 
 displayTabulation :: Tabulation -> Doc
-displayTabulation (Tabulation ins mes ous rs) = aTable $ TABLE (Just header) rows where
+displayTabulation (Tabulation ins mes ous rs) = aTable $ TABLE header rows where
 
-  header = inputs ++ states ++ "" : outputs
+  header
+    | any (isJust . getInputPat) ins
+      || any (isJust . getCellPat) mes
+      || any (isJust . getOutputPat) ous
+    = Just (inputs ++ states ++ "" : outputs)
+    | otherwise
+    = Nothing
   rows   = map (displayRow template) rs
 
   template = RowTemplate
