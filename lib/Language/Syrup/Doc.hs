@@ -10,13 +10,17 @@
 module Language.Syrup.Doc
   -- Doc stuff
   ( LineDoc
+  , TABLE(..), TH(..), TD(..)
   , Doc
   , Render(..)
   , AnnHighlight(..)
   , AnnStructure(..)
   , FeedbackStatus(..)
   , isErroring
+  , aGraph
   , aLine
+  , aString
+  , aTable
   , highlight
   , isCode
   , structure
@@ -43,9 +47,12 @@ module Language.Syrup.Doc
 
 import Prelude hiding (unwords)
 
+import Data.Bifunctor (bimap)
+import Data.Bifoldable (bifoldMap)
+import Data.Bitraversable (bitraverse)
 import Data.Foldable (fold)
 import Data.Kind (Type)
-import Data.List (intersperse)
+import Data.List (intercalate, intersperse)
 import Data.String (IsString, fromString)
 import Data.Void (Void, absurd)
 
@@ -55,7 +62,7 @@ import Text.Blaze.Html5.Attributes (class_, style, type_)
 import qualified Text.Blaze.Html5.Attributes as Attr
 
 import Language.Syrup.Syn.Base
-import Language.Syrup.Utils (plural)
+import Language.Syrup.Utils (padRight, plural, ($$))
 import Utilities.Monad.Fresh (MonadFresh, fresh, renderFresh)
 
 ------------------------------------------------------------------------------
@@ -125,7 +132,6 @@ data AnnStructure
   = NestBlock Int
   | PreBlock
   | RawCodeBlock
-  | GraphBlock [String]
   | StatusBlock FeedbackStatus
   | DetailsBlock LineDoc
 
@@ -133,6 +139,9 @@ data LineDoc
   = AString String
   | AnAnnot AnnLine LineDoc
   | AConcat [LineDoc]
+
+aString :: String -> LineDoc
+aString = AString
 
 highlight :: AnnHighlight -> LineDoc -> LineDoc
 highlight = AnAnnot . HasStyle
@@ -150,6 +159,12 @@ nest i d = structure (NestBlock i) d
 aLine :: LineDoc -> Doc
 aLine = pure . ALine
 
+aGraph :: [String] -> Doc
+aGraph = pure . AGraph
+
+aTable :: TABLE LineDoc -> Doc
+aTable = pure . ATable
+
 instance Semigroup LineDoc where
   AString "" <> d = d
   d <> AString "" = d
@@ -162,6 +177,35 @@ instance Monoid LineDoc where
 data BlockDoc
   = ALine LineDoc
   | ABlock (Maybe AnnStructure) Doc
+  | AGraph [String]
+  | ATable (TABLE LineDoc)
+
+newtype TH a = TH { getTH :: a } deriving (Functor, Foldable, Traversable)
+newtype TD a = TD { getTD :: a } deriving (Functor, Foldable, Traversable)
+
+data TABLE a = TABLE
+-- we assume that all of the lists have the same length
+  { tHead :: Maybe [TH a] -- optional thead
+  , tBody :: [[Either (TH a) (TD a)]] -- rows
+  }
+
+instance Functor TABLE where
+  fmap f (TABLE tHead tBody) =
+    TABLE
+      (fmap (fmap $ fmap f) tHead)
+      (fmap (fmap (bimap (fmap f) (fmap f))) tBody)
+
+instance Foldable TABLE where
+  foldMap f (TABLE tHead tBody) =
+      (foldMap (foldMap $ foldMap f) tHead) <>
+      (foldMap (foldMap (bifoldMap (foldMap f) (foldMap f))) tBody)
+
+instance Traversable TABLE where
+  traverse f (TABLE tHead tBody) =
+    TABLE
+      <$> traverse (traverse $ traverse f) tHead
+      <*> traverse (traverse (bitraverse (traverse f) (traverse f))) tBody
+
 
 instance Semigroup BlockDoc where
   d <> ABlock Nothing [] = d
@@ -215,6 +259,47 @@ instance Render Doc where
     renderBlock (ABlock ann ds)
       = maybe id applyStructure ann
       $ foldMap renderBlock ds
+    renderBlock (AGraph ls) = ls
+    renderBlock (ATable tb) =
+      let TABLE mhd rs = fmap (concat . renderToString) tb in
+      let ws = sizes mhd rs in
+       maybe id (\ hd -> (renderHead ws hd ++)) mhd $ map (renderRow ws) rs
+
+      where
+
+        -- Inside the table's body, TH will get a trailing colon when displayed
+        -- so their size is 1+ their length
+        sizeTH :: TH String -> Int
+        sizeTH = (1+) . length . getTH
+
+        sizeTD :: TD String -> Int
+        sizeTD = length . getTD
+
+        asTH :: TH String -> String
+        asTH = (++ ":") . getTH
+
+        sizes :: Maybe [TH String] -> [[Either (TH String) (TD String)]] -> [Int]
+        sizes mhd rs = foldr (zipWith max)
+          (maybe (repeat 0) (map (length . getTH)) mhd)
+          (map (map (either sizeTH sizeTD)) rs)
+
+        renderHead :: [Int] -> [TH String] -> [String]
+        renderHead ws ths =
+          [ "| " ++ intercalate " | " (zipWith (\ w (TH s) -> padRight (w - length s) s) ws ths) ++ " |"
+          , "|-" ++ intercalate "-+-" (map (flip replicate '-') ws) ++ "-|"
+          ]
+
+        renderCell :: Int -> Either (TH String) (TD String) -> String
+        renderCell w (Left th) = padRight (w - sizeTH th) (asTH th)
+        renderCell w (Right td) = padRight (w - sizeTD td) (getTD td)
+
+        renderRow :: [Int] -> [Either (TH String) (TD String)] -> String
+        renderRow ws thds = concat
+          [ "| "
+          , intercalate " | " (zipWith renderCell ws thds)
+          , " |"
+          ]
+
 
     applyStructure :: AnnStructure -> [String] -> [String]
     applyStructure (NestBlock i) ls
@@ -226,7 +311,6 @@ instance Render Doc where
       (plural status status ": " <> l) : ls
     applyStructure PreBlock ls = ls
     applyStructure RawCodeBlock ls = ls
-    applyStructure (GraphBlock ls) _ = ls
     applyStructure (DetailsBlock s) ls =
       concat (renderToString s) : ls
 
@@ -260,7 +344,16 @@ instance Render Doc where
       RawCodeBlock -> do
         html <- go True ds
         pure $ [Html.div ! class_ "syrup-code" $ html]
-      GraphBlock ls -> do
+      StatusBlock cat -> do
+        html <- go False ds
+        pure [Html.div ! class_ (toCSSClass cat) $ html]
+      DetailsBlock s -> do
+        html <- go b ds
+        s <- renderToHtml s
+        pure $ pure $ Html.details $ do
+          Html.summary s
+          html
+    renderBlock _ (AGraph ls) = do
         n <- renderFresh <$> fresh
         pure $ let graphName = "GRAPH" ++ n in
           [ Html.script ! type_ "module" $ fold $ intersperse "\n" $
@@ -278,15 +371,18 @@ instance Render Doc where
               ]
           , Html.div ! Attr.id (toValue graphName) $ ""
           ]
-      StatusBlock cat -> do
-        html <- go False ds
-        pure [Html.div ! class_ (toCSSClass cat) $ html]
-      DetailsBlock s -> do
-        html <- go b ds
-        s <- renderToHtml s
-        pure $ pure $ Html.details $ do
-          Html.summary s
-          html
+    renderBlock _ (ATable tb) = do
+      TABLE mhd rs <- traverse renderToHtml tb
+      pure $ pure $ Html.table $ do
+        maybe "" mkHead mhd
+        Html.tbody $$ intersperse "\n" (fmap mkRow rs)
+
+      where
+        mkHead :: [TH Html] -> Html
+        mkHead ths = (Html.thead . Html.tr) $$ fmap (Html.th . getTH) ths
+
+        mkRow :: [Either (TH Html) (TD Html)] -> Html
+        mkRow tdhs = Html.tr $$ fmap (either (Html.th . getTH) (Html.td . getTD)) tdhs
 
 ------------------------------------------------------------------------
 -- Basic combinators

@@ -93,16 +93,32 @@ data TimeStep = TimeStep
 
 instance Pretty (Simulation n (Int, [Va]) TimeStep) where
   type PrettyDoc (Simulation n (Int, [Va]) TimeStep) = Doc
-  prettyPrec _ (Simulation (z, mo) steps) = foldMap row steps <> lastrow
+  prettyPrec _ (Simulation (z, mo) steps) =
+    aTable $ TABLE (Just headers) $ foldMap (pure . row) steps <> lastrow
     where
-      w = length (show z)
-      prettyTime t = pretty $ reverse . take w  $ reverse (show t) ++ repeat ' '
-      row (TimeStep t mt is os) = aLine $$
-        [ prettyTime t, " ", braces (foldMap pretty mt)
-        , " "
-        , foldMap pretty is, " -> ", foldMap pretty os
+      headers = map TH
+        $ ("Time" :)
+        $ (if null mo then [] else [ "State" ]) ++
+        [ "Input", "->", "Output" ]
+
+      row (TimeStep t mt is os) =
+        ((Left . TH . aString) (show t) :)
+        $ map (Right . TD)
+        $ (if null mt then [] else [ braces (foldMap pretty mt) ]) ++
+        [ foldMap pretty is
+        , ""
+        , foldMap pretty os
         ]
-      lastrow = aLine $$ [ prettyTime z, " ", braces (foldMap pretty mo) ]
+      lastrow
+        | null mo = []
+        | otherwise = pure
+          $ ((Left . TH . aString) (show z) :)
+          $ map (Right . TD)
+          [ braces (foldMap pretty mo)
+          , ""
+          , ""
+          , ""
+          ]
 
 simulate :: Compo -> Simulation n [Va] [Va]
          -> Simulation n (Int, [Va]) TimeStep

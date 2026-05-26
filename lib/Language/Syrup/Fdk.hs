@@ -105,7 +105,7 @@ instance Pretty Feedback where
 
       ADotGraph xs x ls ->
         aLine $$ ["Displaying ", identifier x, extra, ":"]
-        <> structure (GraphBlock ls) []
+        <> aGraph ls
         where extra = case xs of
                 [] -> ""
                 _ -> fold [" (with ", punctuate ", " (map identifier xs), " unfolded)"]

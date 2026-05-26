@@ -43,10 +43,13 @@ allLeftsOrRight []             = Left []
 allLeftsOrRight (Left a : rs)  = Bi.first (a :) (allLeftsOrRight rs)
 allLeftsOrRight (Right b : rs) = Right (b : mapMaybe isRight rs)
 
-padRight :: Int -> String -> String
-padRight n xs
+padRightWith :: Char -> Int -> String -> String
+padRightWith c n xs
   | n <= 0    = xs
-  | otherwise = xs ++ replicate n ' '
+  | otherwise = xs ++ replicate n c
+
+padRight :: Int -> String -> String
+padRight = padRightWith ' '
 
 unzipWith :: (a -> (b, c)) -> [a] -> ([b], [c])
 unzipWith f []     = ([], [])
