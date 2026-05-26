@@ -94,16 +94,16 @@ data TimeStep = TimeStep
 instance Pretty (Simulation n (Int, [Va]) TimeStep) where
   type PrettyDoc (Simulation n (Int, [Va]) TimeStep) = Doc
   prettyPrec _ (Simulation (z, mo) steps) =
-    aTable $ TABLE (Just headers) $ foldMap (pure . row) steps <> lastrow
+    aTable $ TABLE (Just headers) $ foldMap (pure . SimpleRow . row) steps <> lastrow
     where
-      headers = map TH
-        $ ("Time" :)
+      headers =
+        ("Time" :)
         $ (if null mo then [] else [ "State" ]) ++
         [ "Input", "->", "Output" ]
 
       row (TimeStep t mt is os) =
-        ((Left . TH . aString) (show t) :)
-        $ map (Right . TD)
+        ((ATH . aString) (show t) :)
+        $ map ATD
         $ (if null mt then [] else [ braces (foldMap pretty mt) ]) ++
         [ foldMap pretty is
         , ""
@@ -112,8 +112,9 @@ instance Pretty (Simulation n (Int, [Va]) TimeStep) where
       lastrow
         | null mo = []
         | otherwise = pure
-          $ ((Left . TH . aString) (show z) :)
-          $ map (Right . TD)
+          $ SimpleRow
+          $ ((ATH . aString) (show z) :)
+          $ map ATD
           [ braces (foldMap pretty mo)
           , ""
           , ""

@@ -10,7 +10,7 @@
 module Language.Syrup.Doc
   -- Doc stuff
   ( LineDoc
-  , TABLE(..), TH(..), TD(..)
+  , TABLE(..), ROW(..), CELL(..)
   , Doc
   , Render(..)
   , AnnHighlight(..)
@@ -47,9 +47,6 @@ module Language.Syrup.Doc
 
 import Prelude hiding (unwords)
 
-import Data.Bifunctor (bimap)
-import Data.Bifoldable (bifoldMap)
-import Data.Bitraversable (bitraverse)
 import Data.Foldable (fold)
 import Data.Kind (Type)
 import Data.List (intercalate, intersperse)
@@ -180,32 +177,25 @@ data BlockDoc
   | AGraph [String]
   | ATable (TABLE LineDoc)
 
-newtype TH a = TH { getTH :: a } deriving (Functor, Foldable, Traversable)
-newtype TD a = TD { getTD :: a } deriving (Functor, Foldable, Traversable)
-
 data TABLE a = TABLE
 -- we assume that all of the lists have the same length
-  { tHead :: Maybe [TH a] -- optional thead
-  , tBody :: [[Either (TH a) (TD a)]] -- rows
-  }
+  { tHead :: Maybe [a] -- optional thead
+  , tBody :: [ROW a] -- rows
+  } deriving (Functor, Foldable, Traversable)
 
-instance Functor TABLE where
-  fmap f (TABLE tHead tBody) =
-    TABLE
-      (fmap (fmap $ fmap f) tHead)
-      (fmap (fmap (bimap (fmap f) (fmap f))) tBody)
+data CELL a
+  = ATH a
+  | ATD a
+  deriving (Functor, Foldable, Traversable)
 
-instance Foldable TABLE where
-  foldMap f (TABLE tHead tBody) =
-      (foldMap (foldMap $ foldMap f) tHead) <>
-      (foldMap (foldMap (bifoldMap (foldMap f) (foldMap f))) tBody)
+data ROW a
+  = SimpleRow [CELL a]
+  | MultiRow [CELL a] [[CELL a]]
+  deriving (Functor, Foldable, Traversable)
 
-instance Traversable TABLE where
-  traverse f (TABLE tHead tBody) =
-    TABLE
-      <$> traverse (traverse $ traverse f) tHead
-      <*> traverse (traverse (bitraverse (traverse f) (traverse f))) tBody
-
+isMultiRow :: ROW a -> Bool
+isMultiRow (SimpleRow _) = False
+isMultiRow (MultiRow _ _) = True
 
 instance Semigroup BlockDoc where
   d <> ABlock Nothing [] = d
@@ -263,42 +253,50 @@ instance Render Doc where
     renderBlock (ATable tb) =
       let TABLE mhd rs = fmap (concat . renderToString) tb in
       let ws = sizes mhd rs in
-       maybe id (\ hd -> (renderHead ws hd ++)) mhd $ map (renderRow ws) rs
+      maybe id (\ hd -> (renderHead ws hd ++)) mhd
+      $ concat
+      $ (if any isMultiRow rs then intersperse ([separator ws]) else id)
+      $ map (renderRow ws) rs
 
       where
 
-        -- Inside the table's body, TH will get a trailing colon when displayed
-        -- so their size is 1+ their length
-        sizeTH :: TH String -> Int
-        sizeTH = (1+) . length . getTH
-
-        sizeTD :: TD String -> Int
-        sizeTD = length . getTD
-
-        asTH :: TH String -> String
-        asTH = (++ ":") . getTH
-
-        sizes :: Maybe [TH String] -> [[Either (TH String) (TD String)]] -> [Int]
+        sizes :: Maybe [String] -> [ROW String] -> [Int]
         sizes mhd rs = foldr (zipWith max)
-          (maybe (repeat 0) (map (length . getTH)) mhd)
-          (map (map (either sizeTH sizeTD)) rs)
+          (maybe (repeat 0) (map length) mhd)
+          (map sizeROW rs)
 
-        renderHead :: [Int] -> [TH String] -> [String]
+        sizeROW :: ROW String -> [Int]
+        sizeROW (SimpleRow tdhs) = map (sizeCELL True) tdhs
+        sizeROW (MultiRow hds tdhs) =
+          map (sizeCELL True) hds ++
+          foldr (zipWith max) (repeat 0) (map (map (sizeCELL True)) tdhs)
+
+        -- The Bool tells us whether the TH will have a colon attached to the end of it
+        sizeCELL :: Bool -> CELL String -> Int
+        sizeCELL b (ATH s) = if b then 1 + length s else length s
+        sizeCELL _ (ATD s) = length s
+
+        separator :: [Int] -> String
+        separator ws = "|-" ++ intercalate "-+-" (map (flip replicate '-') ws) ++ "-|"
+
+        renderHead :: [Int] -> [String] -> [String]
         renderHead ws ths =
-          [ "| " ++ intercalate " | " (zipWith (\ w (TH s) -> padRight (w - length s) s) ws ths) ++ " |"
-          , "|-" ++ intercalate "-+-" (map (flip replicate '-') ws) ++ "-|"
+          [ "| " ++ intercalate " | " (zipWith (\ w s -> padRight (w - length s) s) ws ths) ++ " |"
+          , separator ws
           ]
 
-        renderCell :: Int -> Either (TH String) (TD String) -> String
-        renderCell w (Left th) = padRight (w - sizeTH th) (asTH th)
-        renderCell w (Right td) = padRight (w - sizeTD td) (getTD td)
+        renderCell :: Int -> CELL String -> String
+        renderCell w (ATH th) = padRight (w - (1 + length th)) (th ++ ":")
+        renderCell w (ATD td) = padRight (w - length td) td
 
-        renderRow :: [Int] -> [Either (TH String) (TD String)] -> String
-        renderRow ws thds = concat
+        renderRow :: [Int] -> ROW String -> [String]
+        renderRow ws (SimpleRow thds) = pure $ concat
           [ "| "
           , intercalate " | " (zipWith renderCell ws thds)
           , " |"
           ]
+        renderRow ws (MultiRow shs tdhss) = concatMap (renderRow ws . SimpleRow)
+          $ zipWith (++) (shs : repeat (ATD "" <$ shs)) tdhss
 
 
     applyStructure :: AnnStructure -> [String] -> [String]
@@ -378,11 +376,20 @@ instance Render Doc where
         Html.tbody $$ intersperse "\n" (fmap mkRow rs)
 
       where
-        mkHead :: [TH Html] -> Html
-        mkHead ths = (Html.thead . Html.tr) $$ fmap (Html.th . getTH) ths
+        mkHead :: [Html] -> Html
+        mkHead ths = (Html.thead . Html.tr) $$ fmap Html.th ths
 
-        mkRow :: [Either (TH Html) (TD Html)] -> Html
-        mkRow tdhs = Html.tr $$ fmap (either (Html.th . getTH) (Html.td . getTD)) tdhs
+        mkCell :: Maybe Html.Attribute -> CELL Html -> Html
+        mkCell ma (ATH th) = foldl (!) Html.th ma th
+        mkCell ma (ATD td) = foldl (!) Html.th ma td
+
+        mkRow :: ROW Html -> Html
+        mkRow (SimpleRow tdhs) = Html.tr $$ fmap (mkCell Nothing) tdhs
+        mkRow (MultiRow shs tdhss) = id $$
+          let numrows = length tdhss in
+          zipWith (\ l r -> Html.tr $$ (l ++ r))
+            (map (mkCell (Just $ Attr.rowspan (toValue $ show numrows))) shs : repeat [])
+            (fmap (fmap (mkCell Nothing)) tdhss)
 
 ------------------------------------------------------------------------
 -- Basic combinators
