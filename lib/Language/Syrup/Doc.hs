@@ -59,7 +59,7 @@ import Text.Blaze.Html5.Attributes (class_, style, type_)
 import qualified Text.Blaze.Html5.Attributes as Attr
 
 import Language.Syrup.Syn.Base
-import Language.Syrup.Utils (padRight, plural, ($$))
+import Language.Syrup.Utils (padRightWith, plural, ($$))
 import Utilities.Monad.Fresh (MonadFresh, fresh, renderFresh)
 
 ------------------------------------------------------------------------------
@@ -277,24 +277,30 @@ instance Render Doc where
         sizeCELL b (ATH s) = if b then 1 + length s else length s
         sizeCELL _ (ATD s) = length s
 
+        smartPadWith :: Char -> Int -> String -> String
+        smartPadWith c n str
+          | n <= 0 = ""
+          | otherwise = c : padRightWith c (1 + n - length str) str
+
         separator :: [Int] -> String
-        separator ws = "|-" ++ intercalate "-+-" (map (flip replicate '-') ws) ++ "-|"
+        separator ws = "|" ++ intercalate "+" (map (flip (smartPadWith '-') "") ws) ++ "|" where
+
 
         renderHead :: [Int] -> [String] -> [String]
         renderHead ws ths =
-          [ "| " ++ intercalate " | " (zipWith (\ w s -> padRight (w - length s) s) ws ths) ++ " |"
+          [ "|" ++ intercalate "|" (zipWith (smartPadWith ' ') ws ths) ++ "|"
           , separator ws
           ]
 
-        renderCell :: Int -> CELL String -> String
-        renderCell w (ATH th) = padRight (w - (1 + length th)) (th ++ ":")
-        renderCell w (ATD td) = padRight (w - length td) td
+        renderCell :: CELL String -> String
+        renderCell (ATH th) = th ++ ":"
+        renderCell (ATD td) = td
 
         renderRow :: [Int] -> ROW String -> [String]
         renderRow ws (SimpleRow thds) = pure $ concat
-          [ "| "
-          , intercalate " | " (zipWith renderCell ws thds)
-          , " |"
+          [ "|"
+          , intercalate "|" (zipWith (\ w -> smartPadWith ' ' w . renderCell) ws thds)
+          , "|"
           ]
         renderRow ws (MultiRow shs tdhss) = concatMap (renderRow ws . SimpleRow)
           $ zipWith (++) (shs : repeat (ATD "" <$ shs)) tdhss
