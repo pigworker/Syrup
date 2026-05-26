@@ -1,4 +1,11 @@
 <style>
+  .syrup-table table, .syrup-table th, .syrup-table td {
+    border: 1px solid;
+    border-collapse: collapse;
+    font-family: monospace;
+    white-space: pre;
+    padding: 0 4px 0 4px;
+  }
   .syrup-code {
     display: block;
     font-family: monospace;
@@ -206,16 +213,14 @@
 <br>
 <div class="syrup-happy">Truth table for <code><span class="syrup-function">fadd</span></code>:
 <br>
-<div style="padding-left: 2ch"><pre>X1 Y1 C1 | C2 Z1
----------|------
-0  0  0  | 0  0 
-0  0  1  | 0  1 
-0  1  0  | 0  1 
-0  1  1  | 1  0 
-1  0  0  | 0  1 
-1  0  1  | 1  0 
-1  1  0  | 1  0 
-1  1  1  | 1  1 </pre></div></div>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>X1</th><th>Y1</th><th>C1</th><th></th><th>C2</th><th>Z1</th></tr></thead><tbody><tr><td>0 </td><td>0 </td><td>0 </td><td></td><td>0 </td><td>0 </td></tr>
+<tr><td>0 </td><td>0 </td><td>1 </td><td></td><td>0 </td><td>1 </td></tr>
+<tr><td>0 </td><td>1 </td><td>0 </td><td></td><td>0 </td><td>1 </td></tr>
+<tr><td>0 </td><td>1 </td><td>1 </td><td></td><td>1 </td><td>0 </td></tr>
+<tr><td>1 </td><td>0 </td><td>0 </td><td></td><td>0 </td><td>1 </td></tr>
+<tr><td>1 </td><td>0 </td><td>1 </td><td></td><td>1 </td><td>0 </td></tr>
+<tr><td>1 </td><td>1 </td><td>0 </td><td></td><td>1 </td><td>0 </td></tr>
+<tr><td>1 </td><td>1 </td><td>1 </td><td></td><td>1 </td><td>1 </td></tr></tbody></table></div></div></div>
 <br>
 <div class="syrup-comment">Type <code><span class="syrup-type">&lt;Bit2&gt;</span></code> is defined.</div>
 <br>

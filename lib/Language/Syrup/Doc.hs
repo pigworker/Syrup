@@ -130,6 +130,7 @@ data AnnStructure
   | PreBlock
   | RawCodeBlock
   | StatusBlock FeedbackStatus
+  | ClassBlock String
   | DetailsBlock LineDoc
 
 data LineDoc
@@ -309,6 +310,7 @@ instance Render Doc where
       (plural status status ": " <> l) : ls
     applyStructure PreBlock ls = ls
     applyStructure RawCodeBlock ls = ls
+    applyStructure (ClassBlock cl) ls = ls
     applyStructure (DetailsBlock s) ls =
       concat (renderToString s) : ls
 
@@ -345,6 +347,9 @@ instance Render Doc where
       StatusBlock cat -> do
         html <- go False ds
         pure [Html.div ! class_ (toCSSClass cat) $ html]
+      ClassBlock cl -> do
+        html <- go False ds
+        pure $ [Html.div ! class_ (toValue cl) $ html]
       DetailsBlock s -> do
         html <- go b ds
         s <- renderToHtml s
@@ -381,7 +386,7 @@ instance Render Doc where
 
         mkCell :: Maybe Html.Attribute -> CELL Html -> Html
         mkCell ma (ATH th) = foldl (!) Html.th ma th
-        mkCell ma (ATD td) = foldl (!) Html.th ma td
+        mkCell ma (ATD td) = foldl (!) Html.td ma td
 
         mkRow :: ROW Html -> Html
         mkRow (SimpleRow tdhs) = Html.tr $$ fmap (mkCell Nothing) tdhs

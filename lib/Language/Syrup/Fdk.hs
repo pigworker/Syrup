@@ -130,7 +130,7 @@ instance Pretty Feedback where
         <> nest 2 (structure RawCodeBlock ls)
       ATruthTable x ls ->
         aLine $$ ["Truth table for ", identifier x, ":" ]
-        <> nest 2 (structure PreBlock $ foldMap prettyBlock ls)
+        <> nest 2 (structure (ClassBlock "syrup-table") ls)
       AnUnreasonablyLargeExperiment lim size x -> aLine $$
         [ "Gave up on experimenting on ", identifier x
         , " due to its size (", pretty size
@@ -248,6 +248,13 @@ feedbackHtml = fmap (headerHtml <>) . renderToHtml . pretty
     headerHtml :: Html
     headerHtml = (<> "\n") $ Html.style $ Html.toHtml $ unlines
       [ ""
+      , "  .syrup-table table, .syrup-table th, .syrup-table td {"
+      , "    border: 1px solid;"
+      , "    border-collapse: collapse;"
+      , "    font-family: monospace;"
+      , "    white-space: pre;"
+      , "    padding: 0 4px 0 4px;"
+      , "  }"
       , "  .syrup-code {"
       , "    display: block;"
       , "    font-family: monospace;"

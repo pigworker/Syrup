@@ -15,9 +15,10 @@ import Control.Monad.State (gets, StateT(StateT), execStateT, get, put, runState
 import Control.Monad.Writer (tell)
 
 import qualified Data.Bifunctor as Bi
+import Data.Foldable (fold)
 import Data.Forget (forget)
 import Data.Function (on)
-import Data.List (find, intercalate, sortBy)
+import Data.List (find, intercalate, intersperse, sortBy)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Monoid (Endo(Endo), appEndo, Sum(Sum))
 import qualified Data.Sequence as Seq
@@ -93,20 +94,20 @@ data TimeStep = TimeStep
 
 instance Pretty (Simulation n (Int, [Va]) TimeStep) where
   type PrettyDoc (Simulation n (Int, [Va]) TimeStep) = Doc
-  prettyPrec _ (Simulation (z, mo) steps) =
-    aTable $ TABLE (Just headers) $ foldMap (pure . SimpleRow . row) steps <> lastrow
+  prettyPrec _ (Simulation (z, mo) steps)
+    = structure (ClassBlock "syrup-table")
+    $ aTable $ TABLE (Just headers) $ foldMap (pure . SimpleRow . row) steps <> lastrow
     where
       headers =
         ("Time" :)
         $ (if null mo then [] else [ "State" ]) ++
-        [ "Input", "->", "Output" ]
+        [ "Input", "Output" ]
 
       row (TimeStep t mt is os) =
         ((ATH . aString) (show t) :)
         $ map ATD
         $ (if null mt then [] else [ braces (foldMap pretty mt) ]) ++
         [ foldMap pretty is
-        , ""
         , foldMap pretty os
         ]
       lastrow
@@ -116,7 +117,6 @@ instance Pretty (Simulation n (Int, [Va]) TimeStep) where
           $ ((ATH . aString) (show z) :)
           $ map ATD
           [ braces (foldMap pretty mo)
-          , ""
           , ""
           , ""
           ]
@@ -279,37 +279,29 @@ displayVa (Bit x) _ = absurd x
 displayVas :: [Template] -> [Va] -> String
 displayVas ts vs = unwords $ zipWith displayVa ts vs
 
-displayRow :: RowTemplate -> ([Va], [TabRow]) -> [String]
+displayRow :: RowTemplate -> ([Va], [TabRow]) -> ROW LineDoc
 displayRow tmp (vs, [TabRow [] [] os]) =
-  [ displayVas (inputTemplates tmp) vs
-  ++ " | "
-  ++ displayVas (outputTemplates tmp) os
-  ]
-displayRow tmp (vs, trs) = zipWith (++) (inputs : padding) transitions where
+  SimpleRow . map (ATD . aString)
+  $ zipWith displayVa (inputTemplates tmp) vs
+  ++ "" : zipWith displayVa (outputTemplates tmp) os
+displayRow tmp (vs, trs) =
+  fmap aString $ MultiRow inputs transitions where
 
-  padding     = repeat (replicate (length inputs) ' ')
-  inputs      = displayVas (inputTemplates tmp) vs
-  transitions =
-    [ concat [ " { " , displayVas (cellTemplates tmp)   ccs
-             , " -> ", displayVas (cellTemplates tmp)   ncs
-             , " } " , displayVas (outputTemplates tmp) os
-             ]
+  inputs      = map ATD $ zipWith displayVa (inputTemplates tmp) vs
+  transitions = map (map ATD) $
+    [ concat
+       [ "{ " , displayVas (cellTemplates tmp) ccs
+       , " -> ", displayVas (cellTemplates tmp) ncs
+       , " }"
+       ] : "" : zipWith displayVa (outputTemplates tmp) os
     | TabRow ccs ncs os <- trs
     ]
 
-displayTabulation :: Tabulation -> [String]
-displayTabulation (Tabulation ins mes ous rs) =
-  header ++ rows where
+displayTabulation :: Tabulation -> Doc
+displayTabulation (Tabulation ins mes ous rs) = aTable $ TABLE (Just header) rows where
 
-  header = [ inputs
-              ++ states
-              ++ outputs
-            ]
-         ++ [ replicate (length inputs) '-'
-              ++ statesSep
-              ++ replicate (length outputs) '-'
-            ]
-  rows   = concatMap (displayRow template) rs
+  header = inputs ++ states ++ "" : outputs
+  rows   = map (displayRow template) rs
 
   template = RowTemplate
     { inputTemplates  = tINS
@@ -317,8 +309,7 @@ displayTabulation (Tabulation ins mes ous rs) =
     , outputTemplates = tOUT
     }
 
-  states    = if null mes then " | " else " { " ++ cells ++ " -> " ++ cells ++ " } "
-  statesSep = if null mes then "-|-" else "-{-" ++ replicate (4 + 2 * length cells) '-' ++ "-}-"
+  states    = if null mes then [] else [ aString $$ ["{ ", cells, " -> ", cells, " }" ] ]
 
   -- templates
   tINS = map inputTemplate ins
@@ -326,9 +317,9 @@ displayTabulation (Tabulation ins mes ous rs) =
   tOUT = map outputTemplate ous
 
   -- actual tabulated values
-  inputs    = unwords $ zipWith (\ t -> displayMPat t . getInputPat)  tINS ins
+  inputs    = zipWith (\ t -> aString . displayMPat t . getInputPat)  tINS ins
   cells     = unwords $ zipWith (\ t -> displayMPat t . getCellPat)   tMEM mes
-  outputs   = unwords $ zipWith (\ t -> displayMPat t . fmap (fst <$>) . getOutputPat) tOUT ous
+  outputs   = zipWith (\ t -> aString . displayMPat t . fmap (fst <$>) . getOutputPat) tOUT ous
 
 tabulate :: Compo -> Tabulation
 tabulate c = Tabulation (inpTys c) (memTys c) (oupTys c)

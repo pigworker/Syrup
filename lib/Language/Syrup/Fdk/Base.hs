@@ -77,7 +77,7 @@ data Feedback
   -- successes
   | ADotGraph [Name] Name [String]
   | ARawCode LineDoc Name Doc
-  | ATruthTable Name [String]
+  | ATruthTable Name Doc
   | AnExperiment LineDoc [Name] Doc
   | AnSVGGraph [Name] Name [String]
   | ASuccessfulUnitTest

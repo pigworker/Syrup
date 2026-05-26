@@ -1,0 +1,93 @@
+<style>
+  .syrup-table table, .syrup-table th, .syrup-table td {
+    border: 1px solid;
+    border-collapse: collapse;
+    font-family: monospace;
+    white-space: pre;
+    padding: 0 4px 0 4px;
+  }
+  .syrup-code {
+    display: block;
+    font-family: monospace;
+    font-size: 17px;
+    white-space: pre;
+    margin: 1em 0;
+  }
+  .syrup-happy:before {
+    content: "\2705";
+    padding: 0 6px 0 0;
+  }
+  .syrup-comment:before {
+    content: "\2705";
+    padding: 0 6px 0 0;
+  }
+  .syrup-warning:before {
+    content: "\26A0\FE0F";
+    padding: 0 6px 0 0;
+  }
+  .syrup-error:before {
+    content: "\274C";
+    padding: 0 6px 0 0;
+  }
+  .syrup-internal:before {
+    content: "\1F480";
+    padding: 0 6px 0 0;
+  }
+  .syrup-function {
+    color: light-dark(blue, #66d9ef);
+  }
+  .syrup-variable {
+    color: light-dark(purple, #fc929e);
+  }
+  .syrup-type {
+    color: light-dark(green, #a6e22e);
+  }
+  .syrup-keyword {
+    font-weight: bold;
+  }
+
+</style>
+<div class="syrup-happy">Truth table for <code><span class="syrup-function">dff</span></code>:
+<br>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>D</th><th>{ Q -&gt; Q }</th><th></th><th>Q</th></tr></thead><tbody><tr><td rowspan="2">0</td><td>{ 0 -&gt; 0 }</td><td></td><td>0</td></tr><tr><td>{ 1 -&gt; 0 }</td><td></td><td>1</td></tr>
+<tr><td rowspan="2">1</td><td>{ 0 -&gt; 1 }</td><td></td><td>0</td></tr><tr><td>{ 1 -&gt; 1 }</td><td></td><td>1</td></tr></tbody></table></div></div></div>
+<br>
+<div class="syrup-happy">Typing for <code><span class="syrup-function">dff</span></code>:
+<br>
+<div style="padding-left: 2ch"><span class="syrup-function">dff</span>(<span class="syrup-type">&lt;Bit&gt;</span>) -&gt; @<span class="syrup-type">&lt;Bit&gt;</span></div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">not</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Simulation for <code><span class="syrup-function">dff</span></code>:
+<br>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>Time</th><th>State</th><th>Input</th><th>Output</th></tr></thead><tbody><tr><th>0</th><td>{0}</td><td>0</td><td>0</td></tr>
+<tr><th>1</th><td>{0}</td><td>0</td><td>0</td></tr>
+<tr><th>2</th><td>{0}</td><td>1</td><td>0</td></tr>
+<tr><th>3</th><td>{1}</td><td>0</td><td>1</td></tr>
+<tr><th>4</th><td>{0}</td><td>1</td><td>0</td></tr>
+<tr><th>5</th><td>{1}</td><td></td><td></td></tr></tbody></table></div></div></div>
+<br>
+<div class="syrup-comment">Circuits <code><span class="syrup-function">and</span></code>, <code><span class="syrup-function">or</span></code>, and <code><span class="syrup-function">alternator</span></code> are defined.</div>
+<br>
+<div class="syrup-happy">Truth table for <code><span class="syrup-function">alternator</span></code>:
+<br>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>{ ALT -&gt; ALT }</th><th></th><th>ALT</th></tr></thead><tbody><tr><td>{ 0   -&gt; 1   }</td><td></td><td>0  </td></tr><tr><td>{ 1   -&gt; 0   }</td><td></td><td>1  </td></tr></tbody></table></div></div></div>
+<br>
+<div class="syrup-comment">Circuits <code><span class="syrup-function">xor</span></code> and <code><span class="syrup-function">tff</span></code> are defined.</div>
+<br>
+<div class="syrup-happy">Truth table for <code><span class="syrup-function">tff</span></code>:
+<br>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>T</th><th>{ Q -&gt; Q }</th><th></th><th>Q</th></tr></thead><tbody><tr><td rowspan="2">0</td><td>{ 0 -&gt; 0 }</td><td></td><td>0</td></tr><tr><td>{ 1 -&gt; 1 }</td><td></td><td>1</td></tr>
+<tr><td rowspan="2">1</td><td>{ 0 -&gt; 1 }</td><td></td><td>0</td></tr><tr><td>{ 1 -&gt; 0 }</td><td></td><td>1</td></tr></tbody></table></div></div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">count2</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Truth table for <code><span class="syrup-function">count2</span></code>:
+<br>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>{ Q1 Q2 -&gt; Q1 Q2 }</th><th></th><th>Q2</th><th>Q1</th></tr></thead><tbody><tr><td>{ 0  0  -&gt; 1  0  }</td><td></td><td>0 </td><td>0 </td></tr><tr><td>{ 0  1  -&gt; 1  1  }</td><td></td><td>1 </td><td>0 </td></tr><tr><td>{ 1  0  -&gt; 0  1  }</td><td></td><td>0 </td><td>1 </td></tr><tr><td>{ 1  1  -&gt; 0  0  }</td><td></td><td>1 </td><td>1 </td></tr></tbody></table></div></div></div>
+<br>
+<div class="syrup-comment">Circuit <code><span class="syrup-function">count2tff</span></code> is defined.</div>
+<br>
+<div class="syrup-happy">Truth table for <code><span class="syrup-function">count2tff</span></code>:
+<br>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>{ Q1 Q2 -&gt; Q1 Q2 }</th><th></th><th>[Q2 Q1]</th></tr></thead><tbody><tr><td>{ 0  0  -&gt; 1  0  }</td><td></td><td>[0  0 ]</td></tr><tr><td>{ 0  1  -&gt; 1  1  }</td><td></td><td>[1  0 ]</td></tr><tr><td>{ 1  0  -&gt; 0  1  }</td><td></td><td>[0  1 ]</td></tr><tr><td>{ 1  1  -&gt; 0  0  }</td><td></td><td>[1  1 ]</td></tr></tbody></table></div></div></div>
