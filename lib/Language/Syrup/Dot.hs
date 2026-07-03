@@ -270,7 +270,7 @@ gate nm g@Gate{..} env transparent b p =
 
   theWhitebox = case evalWhiteBox (toWhitebox nm g env transparent b p) of
     ((Just (Circuit ins ous gts), fdk), gph) ->
-      let optimized = shrinkInvisible $ detectSplit gph
+      let optimized = markDead $ shrinkInvisible gph
           (vertices, edges) = fromGraph optimized
       in (fdk,) $ Just $ Circuit ins ous $ concat
         [ vertices
@@ -404,7 +404,7 @@ whiteBoxDef st transparent (Def (nm, _) _ _) = case findArr (getName nm) (gates 
       [ "digraph whitebox {"
       , "  margin = 0;"
       , "  rankdir = TB;"
-      , "  nodesep = 0.5;"
+      , "  nodesep = 0;"
       , "  ranksep = 0.05;"
       ]
       ++ circuitGraph circuit

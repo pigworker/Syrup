@@ -47,6 +47,7 @@ instance (Semigroup v, Semigroup e) => Semigroup (Graph' v e) where
 instance (Semigroup v, Semigroup e) => Monoid (Graph' v e) where
   mempty = Graph emptyArr emptyArr
 
+{-
 detectSplit :: Graph -> Graph
 detectSplit (Graph vs es) = Graph vs' es where
 
@@ -57,6 +58,7 @@ detectSplit (Graph vs es) = Graph vs' es where
         Nothing                  -> single v
         Just ts | sizeArr ts > 1 -> single (str, Invisible True)
                 | otherwise      -> single v
+-}
 
 shrinkInvisible :: Graph -> Graph
 shrinkInvisible g@(Graph vs es) = loop g es where

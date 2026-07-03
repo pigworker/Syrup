@@ -2,7 +2,7 @@ Displaying `not`:
 digraph whitebox {
   margin = 0;
   rankdir = TB;
-  nodesep = 0.5;
+  nodesep = 0;
   ranksep = 0.05;
   GATE_not_3__INPUTS
     [ shape = none
