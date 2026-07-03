@@ -6,8 +6,10 @@
 
 module Language.Syrup.Anf where
 
+import Control.Monad ((<=<))
 import Control.Monad.State
 
+import Data.List (isPrefixOf)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (First(..), Sum(..))
 import Data.Traversable (for)
@@ -100,6 +102,9 @@ freshVirtualName = do
   i <- fresh
   pure $ concat ["__VIRTUAL__", show i]
 
+isFreshVirtualName :: String -> Bool
+isFreshVirtualName = isPrefixOf "__VIRTUAL__"
+
 ------------------------------------------------------------------------------
 -- Elaboration
 --
@@ -135,12 +140,12 @@ elabExp :: TypedExp -> ANF (Output, [Assignment])
 elabExp = \case
   Var ty x -> do
     x' <- elabVar x
-    let isVirtual = x /= x' -- we got a name from a copy box back!
+    let isVirtual = x /= x' || isFreshVirtualName x -- we got a name from a copy box back!
     pure (Output isVirtual ty (Just x) x', [])
   e        -> declareAlias e
 
 -- If an expression on the RHS is a variable corresponding to an input
--- wire, we introduce a virtual name for it an do aliasing. This allows
+-- wire, we introduce a virtual name for it and do aliasing. This allows
 -- us to assume that the named inputs & outputs are always distinct
 -- which is a really useful invariant when producing a diagram.
 
@@ -247,7 +252,15 @@ elabAss (ous, e) = case e of
   Hol _ _ -> pure [] -- error: elaborating a hole?!
 
 toGate :: TypedDef -> Maybe (String, Gate)
-toGate = evalFresh . (`evalStateT` emptyArr) . elabDef
+toGate = evalFresh . (`evalStateT` emptyArr) . (elabDef <=< expandRHS)
+
+expandRHS :: TypedDef -> ANF TypedDef
+expandRHS (Def lhs [rhs@(App tys _ _)] eqns) | length tys > 1 = do
+  vnms <- traverse (const freshVirtualName) tys
+  let vars = zipWith Var tys vnms
+  let pvars = zipWith PVar tys vnms
+  pure (Def lhs vars (Just (pvars :=: [rhs] : fromMaybe [] eqns)))
+expandRHS d = pure d
 
 ------------------------------------------------------------------------------
 -- Back to Def

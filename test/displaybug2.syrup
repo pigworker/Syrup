@@ -1,0 +1,14 @@
+dup(<Bit>) -> <Bit>, <Bit>
+dup(X) = X, X
+
+dup2(<Bit>) -> <Bit>, <Bit>
+dup2(X) = dup(X)
+
+anf dup2
+
+weird(<Bit>) -> <Bit>
+weird(X) = Z where
+
+  _, Z = dup2(X)
+
+display weird
