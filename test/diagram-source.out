@@ -4,7 +4,7 @@ digraph whitebox {
   rankdir = TB;
   nodesep = 0;
   ranksep = 0.05;
-  GATE_not_3__INPUTS
+  GATE_not_4__INPUTS
     [ shape = none
     , label = <<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="20">
                <TR>
@@ -14,14 +14,14 @@ digraph whitebox {
                </TABLE>>
     ];
 
-subgraph cluster_circuit__GATE_not_3 {
+subgraph cluster_circuit__GATE_not_4 {
   style=dashed;
   margin = 10;
   label=<<table border="0"><tr><td border="1">not</td></tr></table>>;
   labeljust=l;
-subgraph gate_3__0__0 {
+subgraph gate_4__0__0 {
   style = invis;
-  GATE_nand_3__0__0
+  GATE_nand_4__0__0
     [ shape = none
     , label = <<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="4">
                <TR><TD PORT="X"><FONT POINT-SIZE="7">X</FONT></TD>
@@ -34,9 +34,9 @@ subgraph gate_3__0__0 {
               </TABLE>>
     ];
 }
-subgraph fanout_3__1 {
+subgraph fanout_4__1 {
   style = invis;
-  COPY_3__1
+  COPY_4__1
     [ shape = none
     , style = filled
     , fillcolor = skyblue
@@ -53,7 +53,7 @@ subgraph fanout_3__1 {
     ];
 }
 }
-  GATE_not_3__OUTPUTS
+  GATE_not_4__OUTPUTS
     [ shape = none
     , label = <<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="20">
                <TR>
@@ -63,8 +63,8 @@ subgraph fanout_3__1 {
                </TABLE>>
     ];
 
-COPY_3__1:__VIRTUAL__0:s -> GATE_nand_3__0__0:X:n [label=" ", arrowsize = .5 penwidth= 2];
-COPY_3__1:__VIRTUAL__1:s -> GATE_nand_3__0__0:Y:n [label=" ", arrowsize = .5 penwidth= 2];
-GATE_nand_3__0__0:Z:s -> GATE_not_3__OUTPUTS:__VIRTUAL__2 [label=" ", arrowsize = .5 penwidth= 2];
-GATE_not_3__INPUTS:x -> COPY_3__1:x:n [label=" ", arrowsize = .5 penwidth= 2 , dir = none];
+COPY_4__1:__VIRTUAL__0:s -> GATE_nand_4__0__0:X:n [label=" ", arrowsize = .5 penwidth= 2];
+COPY_4__1:__VIRTUAL__1:s -> GATE_nand_4__0__0:Y:n [label=" ", arrowsize = .5 penwidth= 2];
+GATE_nand_4__0__0:Z:s -> GATE_not_4__OUTPUTS:__VIRTUAL__2 [label=" ", arrowsize = .5 penwidth= 2];
+GATE_not_4__INPUTS:x -> COPY_4__1:x:n [label=" ", arrowsize = .5 penwidth= 2 , dir = none];
 }

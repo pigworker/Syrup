@@ -26,7 +26,7 @@ import Language.Syrup.BigArray
 import Language.Syrup.Fdk (Feedback(..))
 import Language.Syrup.Fsh
 import Language.Syrup.Gph
-import Language.Syrup.Smp (nand, dff, zero)
+import Language.Syrup.Smp (nand, dff, zero, srff)
 import Language.Syrup.Syn (Name(..), Def'(..), Ty(..))
 import Language.Syrup.Ty
 
@@ -207,7 +207,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
         pure (Just $ circuitGraph dotG)
       Call tys f args -> case findArr f env of
         Nothing   -> do
-          unless (f `elem` ["nand", "dff", "zero"]) $
+          unless (f `elem` ["nand", "dff", "srff", "zero"]) $
             modify (<> Seq.singleton (AMissingImplementation (Name f)))
           pure Nothing
         Just repr -> do
@@ -416,4 +416,5 @@ myDotSt
   [ nand
   , dff
   , zero
+  , srff
   ]

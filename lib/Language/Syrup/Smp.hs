@@ -25,6 +25,11 @@ nand = let ty = Bit Unit in
   Def ("nand", PVar ty <$> ["X", "Y"]) [Var ty "Z"] $ Just $
   [ ([PVar ty "Z"] :=: [App [ty] "nand" (Var ty <$> ["X", "Y"])]) ]
 
+srff :: TypedDef
+srff = let ty = Bit Unit in
+  Def ("srff", PVar ty <$> ["S", "R"]) [Var ty "Q"] $ Just $
+  [ ([PVar ty "Q"] :=: [App [ty] "srff" (Var ty <$> ["S", "R"])]) ]
+
 notG :: TypedDef
 notG = let ty = Bit Unit in
   Def ("not", [PVar ty "X"]) [Var ty "Z"] $ Just $

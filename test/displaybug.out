@@ -13,75 +13,75 @@ Displaying `weird`:
 <title>whitebox</title>
 <polygon fill="white" stroke="transparent" points="-4,4 -4,-350 116,-350 116,4 -4,4"/>
 <g id="clust1" class="cluster">
-<title>cluster_circuit__GATE_weird_3</title>
+<title>cluster_circuit__GATE_weird_4</title>
 <polygon fill="none" stroke="black" stroke-dasharray="5,2" points="21.5,-105 21.5,-241 78.5,-241 78.5,-105 21.5,-105"/>
 <polygon fill="none" stroke="black" points="32,-213.5 32,-234.5 69,-234.5 69,-213.5 32,-213.5"/>
 <text text-anchor="start" x="35" y="-220.3" font-family="Times,serif" font-size="14.00">weird</text>
 </g>
-<!-- NODE___3 -->
+<!-- NODE___4 -->
 <g id="node1" class="node">
-<title>NODE___3</title>
+<title>NODE___4</title>
 <ellipse fill="none" stroke="black" cx="11.5" cy="-37" rx="2.5" ry="2.5"/>
 </g>
-<!-- GATE_weird_3__INPUTS -->
+<!-- GATE_weird_4__INPUTS -->
 <g id="node2" class="node">
-<title>GATE_weird_3__INPUTS</title>
+<title>GATE_weird_4__INPUTS</title>
 <text text-anchor="start" x="30.5" y="-304" font-family="Times,serif" font-size="20.00">X</text>
 </g>
-<!-- COPY_3__2 -->
+<!-- COPY_4__2 -->
 <g id="node5" class="node">
-<title>COPY_3__2</title>
+<title>COPY_4__2</title>
 <polygon fill="skyblue" stroke="transparent" points="43.5,-198 33.5,-198 33.5,-191 43.5,-191 43.5,-198"/>
 </g>
-<!-- GATE_weird_3__INPUTS&#45;&gt;COPY_3__2 -->
+<!-- GATE_weird_4__INPUTS&#45;&gt;COPY_4__2 -->
 <g id="edge6" class="edge">
-<title>GATE_weird_3__INPUTS:X&#45;&gt;COPY_3__2:n</title>
+<title>GATE_weird_4__INPUTS:X&#45;&gt;COPY_4__2:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M38.5,-295.96C38.5,-275.94 38.5,-234.54 38.5,-199.5"/>
 <text text-anchor="middle" x="40.5" y="-252.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANIN_3__0 -->
+<!-- FANIN_4__0 -->
 <g id="node3" class="node">
-<title>FANIN_3__0</title>
+<title>FANIN_4__0</title>
 <polygon fill="red" stroke="transparent" points="43.5,-160 33.5,-160 33.5,-153 43.5,-153 43.5,-160"/>
 </g>
-<!-- FANOUT_3__1 -->
+<!-- FANOUT_4__1 -->
 <g id="node4" class="node">
-<title>FANOUT_3__1</title>
+<title>FANOUT_4__1</title>
 <polygon fill="red" stroke="transparent" points="43.5,-122 33.5,-122 33.5,-115 43.5,-115 43.5,-122"/>
 </g>
-<!-- FANIN_3__0&#45;&gt;FANOUT_3__1 -->
+<!-- FANIN_4__0&#45;&gt;FANOUT_4__1 -->
 <g id="edge3" class="edge">
-<title>FANIN_3__0:s&#45;&gt;FANOUT_3__1:n</title>
+<title>FANIN_4__0:s&#45;&gt;FANOUT_4__1:n</title>
 <path fill="none" stroke="black" stroke-width="4" d="M38.5,-153C38.5,-139.22 38.5,-135.78 38.5,-122"/>
 <text text-anchor="middle" x="40.5" y="-133.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_3__1&#45;&gt;NODE___3 -->
+<!-- FANOUT_4__1&#45;&gt;NODE___4 -->
 <g id="edge5" class="edge">
-<title>FANOUT_3__1:s&#45;&gt;NODE___3</title>
+<title>FANOUT_4__1:s&#45;&gt;NODE___4</title>
 <path fill="none" stroke="black" stroke-width="2" d="M36.5,-113.5C36.5,-94.02 23.38,-92.57 17.5,-74 13.44,-61.19 11.99,-44.91 11.61,-39.69"/>
 <text text-anchor="middle" x="34.5" y="-85.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- GATE_weird_3__OUTPUTS -->
+<!-- GATE_weird_4__OUTPUTS -->
 <g id="node6" class="node">
-<title>GATE_weird_3__OUTPUTS</title>
+<title>GATE_weird_4__OUTPUTS</title>
 <text text-anchor="start" x="45.5" y="-32" font-family="Times,serif" font-size="20.00">RES</text>
 </g>
-<!-- FANOUT_3__1&#45;&gt;GATE_weird_3__OUTPUTS -->
+<!-- FANOUT_4__1&#45;&gt;GATE_weird_4__OUTPUTS -->
 <g id="edge4" class="edge">
-<title>FANOUT_3__1:s&#45;&gt;GATE_weird_3__OUTPUTS:RES</title>
+<title>FANOUT_4__1:s&#45;&gt;GATE_weird_4__OUTPUTS:RES</title>
 <path fill="none" stroke="black" stroke-width="2" d="M40.5,-113.5C40.5,-92.62 48.94,-69.95 55.81,-54.95"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="57.52,-55.45 58.07,-50.18 54.35,-53.95 57.52,-55.45"/>
 <text text-anchor="middle" x="46.5" y="-85.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- COPY_3__2&#45;&gt;FANIN_3__0 -->
+<!-- COPY_4__2&#45;&gt;FANIN_4__0 -->
 <g id="edge1" class="edge">
-<title>COPY_3__2:s&#45;&gt;FANIN_3__0:n</title>
+<title>COPY_4__2:s&#45;&gt;FANIN_4__0:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M36.5,-191C36.5,-177.22 36.5,-173.78 36.5,-160"/>
 <text text-anchor="middle" x="38.5" y="-171.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>
-<!-- COPY_3__2&#45;&gt;FANIN_3__0 -->
+<!-- COPY_4__2&#45;&gt;FANIN_4__0 -->
 <g id="edge2" class="edge">
-<title>COPY_3__2:s&#45;&gt;FANIN_3__0:n</title>
+<title>COPY_4__2:s&#45;&gt;FANIN_4__0:n</title>
 <path fill="none" stroke="black" stroke-width="2" d="M40.5,-191C40.5,-177.22 40.5,-173.78 40.5,-160"/>
 <text text-anchor="middle" x="42.5" y="-171.8" font-family="Times,serif" font-size="14.00"> </text>
 </g>

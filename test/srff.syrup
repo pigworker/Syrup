@@ -1,8 +1,6 @@
 experiment srff
 experiment srff = srff
 
-display srff
-
 type srff
 
 not(<Bit>) -> <Bit>
@@ -13,3 +11,5 @@ dff2(D) = srff(D,!D)
 
 experiment dff2
 experiment dff = dff2
+
+display dff2
