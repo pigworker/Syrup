@@ -401,11 +401,15 @@ whiteBoxDef st transparent (Def (nm, _) _ _) = case findArr (getName nm) (gates 
   Just ga -> case whitebox $ ga transparent TopLevel empty of
     (fdk, Nothing) -> (fdk, Nothing)
     (fdk, Just circuit) -> (fdk,) $ Just $
+      let fontname cat = concat ["  ", cat, " [fontname = ", show "Lucida Sans Typewriter", "];"] in
       [ "digraph whitebox {"
       , "  margin = 0;"
       , "  rankdir = TB;"
       , "  nodesep = 0;"
       , "  ranksep = 0.05;"
+      , fontname "graph"
+      , fontname "node"
+      , fontname "edge"
       ]
       ++ circuitGraph circuit
       ++ ["}"]

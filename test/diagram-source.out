@@ -4,6 +4,9 @@ digraph whitebox {
   rankdir = TB;
   nodesep = 0;
   ranksep = 0.05;
+  graph [fontname = "Lucida Sans Typewriter"];
+  node [fontname = "Lucida Sans Typewriter"];
+  edge [fontname = "Lucida Sans Typewriter"];
   GATE_not_4__INPUTS
     [ shape = none
     , label = <<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="20">
