@@ -1,0 +1,6 @@
+weird(<Bit>) -> <Bit>
+weird(X) = RES where
+
+  [_, RES] = [X,X]
+
+display weird
