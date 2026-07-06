@@ -281,7 +281,11 @@ gate nm g@Gate{..} env transparent b p =
 
 toBlackbox :: Path -> [Input] -> String -> [Output] -> Circuit
 toBlackbox p is nm os =
-  let gateNode   = "GATE_" ++ nm ++ "_" ++ show p
+  let name = case nm of
+        "zero" -> "0"
+        "one" -> "1"
+        _ -> nm
+      gateNode   = "GATE_" ++ nm ++ "_" ++ show p
       iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
       iports     = map (declarePort 7 False . inputToPort) is
@@ -295,7 +299,7 @@ toBlackbox p is nm os =
     , unlines $ map (\ s -> indent 15 $ "<TR>" ++ s ++ "</TR>") $
         (if null iports then id else (unlines iports :))
         [ concat [ "<TD COLSPAN=\"", show (max (length iports) (length oports)), "\">"
-                 , "<FONT POINT-SIZE=\"20\">", nm, "</FONT>"
+                 , "<FONT POINT-SIZE=\"20\">", name, "</FONT>"
                  , "</TD>"
                  ]
         , unlines oports

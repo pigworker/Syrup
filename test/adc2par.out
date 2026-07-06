@@ -1,1 +1,5 @@
 Circuits `not`, `and`, `or`, `nor`, `xor`, `hadd`, `fadd`, `adc2`, `one`, `mux`, and `adc2par` are defined.
+
+Bisimulation between `adc2`, `adc2par`:
+  `adc2` behaves like `adc2par`
+    `{}` ~ `{}`
