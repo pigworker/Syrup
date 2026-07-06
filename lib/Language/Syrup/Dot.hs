@@ -299,7 +299,7 @@ toBlackbox p is nm os =
     , unlines $ map (\ s -> indent 15 $ "<TR>" ++ s ++ "</TR>") $
         (if null iports then id else (unlines iports :))
         [ concat [ "<TD COLSPAN=\"", show (max (length iports) (length oports)), "\">"
-                 , "<FONT POINT-SIZE=\"20\">", name, "</FONT>"
+                 , "<FONT POINT-SIZE=\"15\">", name ++ "&nbsp;", "</FONT>"
                  , "</TD>"
                  ]
         , unlines oports
