@@ -121,7 +121,7 @@ evalWhiteBox :: WhiteBox a -> ((a, Seq Feedback), Graph)
 evalWhiteBox = evalFresh . runWriterT . flip runStateT mempty . runWhiteBox
 
 tellVirtual :: String -> WhiteBox ()
-tellVirtual nm = tell (Graph (single (nm, Invisible False)) emptyArr)
+tellVirtual nm = tell (Graph (single (nm, Invisible)) emptyArr)
 
 tellVertex :: String -> String -> Maybe Shape -> WhiteBox ()
 tellVertex nm lb sh = tell (Graph (single (nm, Visible lb sh)) emptyArr)

@@ -17,8 +17,9 @@ data Shape = Rectangle | ThrownAway
   deriving (Eq, Show)
 
 data Vertex
-  = Visible String (Maybe Shape) -- label
-  | Invisible Bool               -- splitting?
+  = Visible String        -- label
+            (Maybe Shape) -- shape
+  | Invisible
   deriving (Eq)
 
 instance Semigroup Vertex where
@@ -47,19 +48,6 @@ instance (Semigroup v, Semigroup e) => Semigroup (Graph' v e) where
 instance (Semigroup v, Semigroup e) => Monoid (Graph' v e) where
   mempty = Graph emptyArr emptyArr
 
-{-
-detectSplit :: Graph -> Graph
-detectSplit (Graph vs es) = Graph vs' es where
-
-  vs' = flip foldMapArr vs $ \ v@(str, vertex) ->
-    case vertex of
-      Visible{}   -> single v
-      Invisible{} -> case findArr str es of
-        Nothing                  -> single v
-        Just ts | sizeArr ts > 1 -> single (str, Invisible True)
-                | otherwise      -> single v
--}
-
 shrinkInvisible :: Graph -> Graph
 shrinkInvisible g@(Graph vs es) = loop g es where
 
@@ -68,7 +56,7 @@ shrinkInvisible g@(Graph vs es) = loop g es where
     Just ((src, ts), queue) ->
       let (vs', es') = case foldMapArr pure ts of
             [(t, Edge size False)] -> case (findArr t vs, findArr t es) of
-              (Just (Invisible False), Just next) -> ( deleteArr t vs
+              (Just Invisible, Just next) -> ( deleteArr t vs
                                                      , insertArr (src, next)
                                                      $ deleteArr src
                                                      $ deleteArr t es)
@@ -81,7 +69,7 @@ markDead ous g@(Graph vs es) = loop g vs where
 
   loop g@(Graph vs es) queue = case popArr queue of
     Nothing -> g
-    Just ((nm, v@(Invisible False)), queue)
+    Just ((nm, v@Invisible), queue)
       | nm `notElem` ous ->
       let vs' = case fromMaybe emptyArr $ findArr nm es of
            arr | null arr -> insertArr (nm, Visible "" (Just ThrownAway))
@@ -107,7 +95,7 @@ fromGraph Graph{..} =
         , if sh == Just ThrownAway then ", height = 0.075" else ""
         , "];"
         ]
-      Invisible sp  -> nm ++ " [shape = point" ++ if sp then "];" else ", height = 0];"
+      Invisible -> nm ++ " [label=\"\", height = 0];"
 
   , -- then add edges
     flip foldMapArr edges $ \ (src, es) ->

@@ -53,6 +53,6 @@ adc2par([X2,X1],[Y2,Y1],C1) = C4,[Z2,Z1] where
   C4=mux(C2,C40,C41)
   Z2=mux(C2,Z20,Z21)
 
--- display adc2par
+display adc2par
 
 experiment adc2 = adc2par
