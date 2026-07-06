@@ -33,7 +33,8 @@ import Language.Syrup.Ty
 data Circuit = Circuit
   { inputPorts   :: [String]
   , outputPorts  :: [String]
-  , circuitGraph :: [String]
+  , circuitGraph :: [String] -- preamble to insert in the subcluster
+                 -> [String]
   }
 
 data DotGate = DotGate
@@ -167,8 +168,9 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
 
   let iports = map (declarePort 20 True . inputToPort) is
   let oports = map (declarePort 20 True . outputToPort) os
+  let iPortsName = concat [ gateNode, "__INPUTS" ]
   let iPorts = if null iports then "" else unlines
-         [ indent 2 $ concat [ gateNode, "__INPUTS" ]
+         [ indent 2 $ iPortsName
          , "    [ shape = none"
          , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"20\">"
          , "               <TR>"
@@ -178,8 +180,9 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
          , "    ];"
          ]
 
+  let oPortsName = concat [ gateNode, "__OUTPUTS" ]
   let oPorts = unlines
-         [ indent 2 $ concat [ gateNode, "__OUTPUTS" ]
+         [ indent 2 $ oPortsName
          , "    [ shape = none"
          , "    , label = <<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"20\">"
          , "               <TR>"
@@ -204,7 +207,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
           tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") False
         for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
           tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
-        pure (Just $ circuitGraph dotG)
+        pure (Just $ circuitGraph dotG [])
       Call tys f args -> case findArr f env of
         Nothing   -> do
           unless (f `elem` ["nand", "dff", "srff", "zero"]) $
@@ -223,7 +226,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
             tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") b
           for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
             tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
-          pure (Just $ circuitGraph dotG)
+          pure (Just $ circuitGraph dotG [])
       FanIn args -> do
         id <- fresh
         let dotG = fanIn (extend id p) args os
@@ -231,7 +234,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
           tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") False
         for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
           tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
-        pure (Just $ circuitGraph dotG)
+        pure (Just $ circuitGraph dotG [])
       FanOut arg -> do
         id <- fresh
         let dotG = fanOut aFanOut (extend id p) [arg] os
@@ -239,24 +242,21 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
           tellEdge (inputType arg) (mkNode p (inputName arg)) (iport ++ ":n") False
         for_ (zip (outputPorts dotG) os) $ \ (oport, out) -> do
           tellEdge (outputType out) (oport ++ ":s") (mkNode p $ outputName out) False
-        pure (Just $ circuitGraph dotG)
+        pure (Just $ circuitGraph dotG [])
 
   pure $ do
     gph <- sequence gph
-    pure $ Circuit
-      { inputPorts   = ins
-      , outputPorts  = ous
-      , circuitGraph =
-          (case loc of { TopLevel -> [iPorts]; Unfolded -> [] }) ++
-          -- needed to get the outputs at the bottom in e.g. tff
-          [ "subgraph cluster_circuit__" ++ gateNode ++ " {"
-          , "  style=" ++ case loc of { TopLevel -> "dashed;\n  margin = 10"; _ -> "solid" } ++ ";"
-          , "  label=<<table border=\"0\"><tr><td border=\"1\">" ++ boxName nm ++ "</td></tr></table>>;"
-          , "  labeljust=l;"
-          ] ++ concat gph ++
-          [ "}" ]
-          ++ (case loc of { TopLevel -> [oPorts]; Unfolded -> [] })
-      }
+    pure $ Circuit ins ous $ \ preamb ->
+      let subGraphName = concat ["cluster_circuit__", gateNode] in
+      (case loc of { TopLevel -> [iPorts]; Unfolded -> [] }) ++
+      -- needed to get the outputs at the bottom in e.g. tff
+      [ "subgraph " ++ subGraphName ++ " {"
+      , "  style=" ++ case loc of { TopLevel -> "dashed;\n  margin = 10"; _ -> "solid" } ++ ";"
+      , "  label=<<table border=\"0\"><tr><td border=\"1\">" ++ boxName nm ++ "</td></tr></table>>;"
+      , "  labeljust=l;"
+      ] ++ preamb ++ concat gph ++
+      [ "}" ]
+      ++ (case loc of { TopLevel -> [oPorts]; Unfolded -> [] })
 
 gate :: String
      -> Gate
@@ -272,9 +272,8 @@ gate nm g@Gate{..} env transparent b p =
     ((Just (Circuit ins ous gts), fdk), gph) ->
       let optimized = markDead ous $ shrinkInvisible gph
           (vertices, edges) = fromGraph optimized
-      in (fdk,) $ Just $ Circuit ins ous $ concat
-        [ vertices
-        , gts
+      in (fdk,) $ Just $ Circuit ins ous $ \ preamb -> concat
+        [ gts (map (indent 2) vertices ++ preamb)
         , edges
         ]
     ((Nothing, fdk), gph) -> (fdk, Nothing)
@@ -293,7 +292,7 @@ toBlackbox p is nm os =
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
       iports     = map (declarePort 7 False . inputToPort) is
       oports     = map (declarePort 7 False . outputToPort) os
-  in Circuit iportNames oportNames $
+  in Circuit iportNames oportNames $ \ preamb ->
     [ "subgraph gate_" ++ show p ++ " {"
     , "  style = invis;"
     , indent 2 $ gateNode
@@ -309,7 +308,8 @@ toBlackbox p is nm os =
         ]
     , "              </TABLE>>"
     , "    ];"
-    , "}"
+    ] ++ preamb ++
+    [ "}"
     ]
 
 fanIn :: Path -> [Input] -> [Output] -> Circuit
@@ -320,7 +320,7 @@ fanIn p is os =
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
       iports     = map (declarePort 7 False . inputToPort . \ r -> r { isVirtualInput = True}) is
       oports     = map (declarePort' (Just width) 7 False . outputToPort . \ r -> r { isVirtualOutput = True}) os
-  in Circuit iportNames oportNames $
+  in Circuit iportNames oportNames $ \ preamb ->
     [ "subgraph fanin_" ++ show p ++ " {"
     , "  style = invis;"
     , indent 2 $ gateNode
@@ -335,7 +335,8 @@ fanIn p is os =
     , indent 15 $ "<TR>" ++ unlines oports ++ "</TR>"
     , "              </TABLE>>"
     , "    ];"
-    , "}"
+    ] ++ preamb ++
+    [ "}"
     ]
 
 data FanOutType = FanOutType
@@ -358,7 +359,7 @@ fanOut fot p is os =
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
       iports     = map (declarePort' (Just width) 7 False . inputToPort . \ r -> r { isVirtualInput = True}) is
       oports     = map (declarePort 7 False . outputToPort . \ r -> r { isVirtualOutput = True}) os
-  in Circuit iportNames oportNames $
+  in Circuit iportNames oportNames $ \ preamb ->
     [ "subgraph fanout_" ++ show p ++ " {"
     , "  style = invis;"
     , indent 2 $ gateNode
@@ -373,7 +374,8 @@ fanOut fot p is os =
     , indent 15 $ "<TR>" ++ unlines oports ++ "</TR>"
     , "              </TABLE>>"
     , "    ];"
-    , "}"
+    ] ++ preamb ++
+    [ "}"
     ]
 
 declarePort' :: Maybe Int -> Int -> Bool -> Port -> String
@@ -418,7 +420,7 @@ whiteBoxDef st transparent (Def (nm, _) _ _) = case findArr (getName nm) (gates 
       , fontname "node"
       , fontname "edge"
       ]
-      ++ circuitGraph circuit
+      ++ circuitGraph circuit []
       ++ ["}"]
 
 myDotSt :: DotSt

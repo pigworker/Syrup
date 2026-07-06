@@ -20,64 +20,64 @@ Displaying `or` (with `not` unfolded):
 </g>
 <g id="clust2" class="cluster">
 <title>cluster_circuit__GATE_not_5__0__4</title>
-<polygon fill="none" stroke="black" points="126,-226 126,-388 224,-388 224,-226 126,-226"/>
-<polygon fill="none" stroke="black" points="136,-360.5 136,-381.5 170,-381.5 170,-360.5 136,-360.5"/>
-<text text-anchor="start" x="139" y="-367.3" font-family="Lucida Sans Typewriter" font-size="14.00">not </text>
+<polygon fill="none" stroke="black" points="126,-195 126,-419 224,-419 224,-195 126,-195"/>
+<polygon fill="none" stroke="black" points="136,-391.5 136,-412.5 170,-412.5 170,-391.5 136,-391.5"/>
+<text text-anchor="start" x="139" y="-398.3" font-family="Lucida Sans Typewriter" font-size="14.00">not </text>
 </g>
 <g id="clust5" class="cluster">
 <title>cluster_circuit__GATE_not_5__1__4</title>
-<polygon fill="none" stroke="black" points="18,-226 18,-388 116,-388 116,-226 18,-226"/>
-<polygon fill="none" stroke="black" points="28,-360.5 28,-381.5 62,-381.5 62,-360.5 28,-360.5"/>
-<text text-anchor="start" x="31" y="-367.3" font-family="Lucida Sans Typewriter" font-size="14.00">not </text>
+<polygon fill="none" stroke="black" points="18,-195 18,-419 116,-419 116,-195 18,-195"/>
+<polygon fill="none" stroke="black" points="28,-391.5 28,-412.5 62,-412.5 62,-391.5 28,-391.5"/>
+<text text-anchor="start" x="31" y="-398.3" font-family="Lucida Sans Typewriter" font-size="14.00">not </text>
 </g>
 <!-- GATE_or_5__INPUTS -->
 <g id="node1" class="node">
 <title>GATE_or_5__INPUTS</title>
-<text text-anchor="start" x="91" y="-525" font-family="Lucida Sans Typewriter" font-size="20.00">X</text>
-<text text-anchor="start" x="129" y="-525" font-family="Lucida Sans Typewriter" font-size="20.00">Y</text>
+<text text-anchor="start" x="88" y="-525" font-family="Lucida Sans Typewriter" font-size="20.00">X</text>
+<text text-anchor="start" x="126" y="-525" font-family="Lucida Sans Typewriter" font-size="20.00">Y</text>
 </g>
 <!-- NODE_x_5__0__4 -->
 <g id="node3" class="node">
 <title>NODE_x_5__0__4</title>
-<ellipse fill="black" stroke="black" cx="139" cy="-419" rx="0" ry="0"/>
+<ellipse fill="black" stroke="black" cx="136" cy="-376" rx="0" ry="0"/>
 </g>
 <!-- GATE_or_5__INPUTS&#45;&gt;NODE_x_5__0__4 -->
 <g id="edge11" class="edge">
 <title>GATE_or_5__INPUTS:Y&#45;&gt;NODE_x_5__0__4:n</title>
-<path fill="none" stroke="black" stroke-width="2" d="M136,-516C136,-473.31 139,-462.69 139,-420"/>
-<text text-anchor="middle" x="139.5" y="-473.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
+<path fill="none" stroke="black" stroke-width="2" d="M133,-516C133,-454.21 136,-438.79 136,-377"/>
+<text text-anchor="middle" x="135.5" y="-473.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
 <!-- NODE_x_5__1__4 -->
 <g id="node7" class="node">
 <title>NODE_x_5__1__4</title>
-<ellipse fill="black" stroke="black" cx="81" cy="-419" rx="0" ry="0"/>
+<ellipse fill="black" stroke="black" cx="81" cy="-376" rx="0" ry="0"/>
 </g>
 <!-- GATE_or_5__INPUTS&#45;&gt;NODE_x_5__1__4 -->
 <g id="edge10" class="edge">
 <title>GATE_or_5__INPUTS:X&#45;&gt;NODE_x_5__1__4:n</title>
-<path fill="none" stroke="black" stroke-width="2" d="M98,-516C98,-472.67 81,-463.33 81,-420"/>
-<text text-anchor="middle" x="96.5" y="-473.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
+<path fill="none" stroke="black" stroke-width="2" d="M95,-516C95,-453.91 81,-439.09 81,-377"/>
+<text text-anchor="middle" x="95.5" y="-473.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
 <!-- NODE___VIRTUAL__2_5__0__4 -->
 <g id="node2" class="node">
 <title>NODE___VIRTUAL__2_5__0__4</title>
-<ellipse fill="black" stroke="black" cx="150" cy="-195" rx="0" ry="0"/>
+<ellipse fill="black" stroke="black" cx="142" cy="-205" rx="0" ry="0"/>
 </g>
 <!-- GATE_nand_5__2__0 -->
 <g id="node10" class="node">
 <title>GATE_nand_5__2__0</title>
-<text text-anchor="start" x="114" y="-146.9" font-family="Lucida Sans Typewriter" font-size="7.00">X</text>
-<text text-anchor="start" x="141.5" y="-146.9" font-family="Lucida Sans Typewriter" font-size="7.00">Y</text>
-<text text-anchor="start" x="109" y="-124.5" font-family="Lucida Sans Typewriter" font-size="15.00">nand </text>
-<text text-anchor="start" x="114" y="-105.9" font-family="Lucida Sans Typewriter" font-size="7.00">Z</text>
-<polygon fill="none" stroke="black" points="99.5,-97 99.5,-160 160.5,-160 160.5,-97 99.5,-97"/>
+<text text-anchor="start" x="92" y="-146.9" font-family="Lucida Sans Typewriter" font-size="7.00">X</text>
+<text text-anchor="start" x="119.5" y="-146.9" font-family="Lucida Sans Typewriter" font-size="7.00">Y</text>
+<text text-anchor="start" x="87" y="-124.5" font-family="Lucida Sans Typewriter" font-size="15.00">nand </text>
+<text text-anchor="start" x="92" y="-105.9" font-family="Lucida Sans Typewriter" font-size="7.00">Z</text>
+<polygon fill="none" stroke="black" points="77.5,-97 77.5,-160 138.5,-160 138.5,-97 77.5,-97"/>
 </g>
 <!-- NODE___VIRTUAL__2_5__0__4&#45;&gt;GATE_nand_5__2__0 -->
 <g id="edge12" class="edge">
 <title>NODE___VIRTUAL__2_5__0__4:s&#45;&gt;GATE_nand_5__2__0:n</title>
-<path fill="none" stroke="black" stroke-width="2" d="M150,-194C150,-178.58 145.24,-173.82 144.2,-160.73"/>
-<polygon fill="black" stroke="black" stroke-width="2" points="145.94,-160.43 144,-155.5 142.44,-160.56 145.94,-160.43"/>
-<text text-anchor="middle" x="151.5" y="-175.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
+<path fill="none" stroke="black" stroke-width="2" d="M142,-204C142,-182.51 125,-179.24 122.35,-160.59"/>
+<polygon fill="black" stroke="black" stroke-width="2" points="124.09,-160.37 122,-155.5 120.59,-160.61 124.09,-160.37"/>
+<text text-anchor="middle" x="139.5" y="-175.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
 <!-- COPY_5__0__4__1 -->
 <g id="node5" class="node">
@@ -87,8 +87,8 @@ Displaying `or` (with `not` unfolded):
 <!-- NODE_x_5__0__4&#45;&gt;COPY_5__0__4__1 -->
 <g id="edge4" class="edge">
 <title>NODE_x_5__0__4&#45;&gt;COPY_5__0__4__1:n</title>
-<path fill="none" stroke="black" stroke-width="2" d="M139.07,-417.89C140.48,-415.63 163,-378.97 163,-346.5"/>
-<text text-anchor="middle" x="152.5" y="-399.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
+<path fill="none" stroke="black" stroke-width="2" d="M136.08,-374.96C137.66,-374.24 163,-362.38 163,-345"/>
+<text text-anchor="middle" x="162.5" y="-356.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
 <!-- GATE_nand_5__0__4__0__0 -->
 <g id="node4" class="node">
@@ -102,8 +102,8 @@ Displaying `or` (with `not` unfolded):
 <!-- GATE_nand_5__0__4__0__0&#45;&gt;NODE___VIRTUAL__2_5__0__4 -->
 <g id="edge3" class="edge">
 <title>GATE_nand_5__0__4__0__0:s&#45;&gt;NODE___VIRTUAL__2_5__0__4</title>
-<path fill="none" stroke="black" stroke-width="2" d="M161,-243.5C161,-222.51 150.68,-197.61 150.03,-196.07"/>
-<text text-anchor="middle" x="159.5" y="-206.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
+<path fill="none" stroke="black" stroke-width="2" d="M161,-243.5C161,-225.4 143.17,-207.18 142.05,-206.05"/>
+<text text-anchor="middle" x="158.5" y="-216.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
 <!-- COPY_5__0__4__1&#45;&gt;GATE_nand_5__0__4__0__0 -->
 <g id="edge1" class="edge">
@@ -122,14 +122,14 @@ Displaying `or` (with `not` unfolded):
 <!-- NODE___VIRTUAL__2_5__1__4 -->
 <g id="node6" class="node">
 <title>NODE___VIRTUAL__2_5__1__4</title>
-<ellipse fill="black" stroke="black" cx="56" cy="-195" rx="0" ry="0"/>
+<ellipse fill="black" stroke="black" cx="59" cy="-205" rx="0" ry="0"/>
 </g>
 <!-- NODE___VIRTUAL__2_5__1__4&#45;&gt;GATE_nand_5__2__0 -->
 <g id="edge13" class="edge">
 <title>NODE___VIRTUAL__2_5__1__4:s&#45;&gt;GATE_nand_5__2__0:n</title>
-<path fill="none" stroke="black" stroke-width="2" d="M56,-194C56,-164.17 109.17,-184.46 115.41,-160.51"/>
-<polygon fill="black" stroke="black" stroke-width="2" points="117.15,-160.67 116,-155.5 113.67,-160.26 117.15,-160.67"/>
-<text text-anchor="middle" x="103.5" y="-175.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
+<path fill="none" stroke="black" stroke-width="2" d="M59,-204C59,-179.29 89.25,-181.58 93.51,-160.67"/>
+<polygon fill="black" stroke="black" stroke-width="2" points="95.27,-160.64 94,-155.5 91.78,-160.31 95.27,-160.64"/>
+<text text-anchor="middle" x="88.5" y="-175.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
 <!-- COPY_5__1__4__1 -->
 <g id="node9" class="node">
@@ -139,8 +139,8 @@ Displaying `or` (with `not` unfolded):
 <!-- NODE_x_5__1__4&#45;&gt;COPY_5__1__4__1 -->
 <g id="edge8" class="edge">
 <title>NODE_x_5__1__4&#45;&gt;COPY_5__1__4__1:n</title>
-<path fill="none" stroke="black" stroke-width="2" d="M80.99,-417.89C80.88,-415.53 79,-377.3 79,-346.5"/>
-<text text-anchor="middle" x="82.5" y="-399.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
+<path fill="none" stroke="black" stroke-width="2" d="M80.99,-374.95C80.88,-373.96 79,-357.95 79,-345"/>
+<text text-anchor="middle" x="82.5" y="-356.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
 <!-- GATE_nand_5__1__4__0__0 -->
 <g id="node8" class="node">
@@ -154,8 +154,8 @@ Displaying `or` (with `not` unfolded):
 <!-- GATE_nand_5__1__4__0__0&#45;&gt;NODE___VIRTUAL__2_5__1__4 -->
 <g id="edge7" class="edge">
 <title>GATE_nand_5__1__4__0__0:s&#45;&gt;NODE___VIRTUAL__2_5__1__4</title>
-<path fill="none" stroke="black" stroke-width="2" d="M53,-243.5C53,-223.01 55.82,-197.64 55.99,-196.08"/>
-<text text-anchor="middle" x="57.5" y="-206.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
+<path fill="none" stroke="black" stroke-width="2" d="M53,-243.5C53,-227.15 58.63,-207.29 58.98,-206.06"/>
+<text text-anchor="middle" x="59.5" y="-216.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
 <!-- COPY_5__1__4__1&#45;&gt;GATE_nand_5__1__4__0__0 -->
 <g id="edge5" class="edge">
@@ -178,9 +178,9 @@ Displaying `or` (with `not` unfolded):
 <!-- GATE_nand_5__2__0&#45;&gt;GATE_or_5__OUTPUTS -->
 <g id="edge9" class="edge">
 <title>GATE_nand_5__2__0:s&#45;&gt;GATE_or_5__OUTPUTS:__VIRTUAL__0</title>
-<path fill="none" stroke="black" stroke-width="2" d="M116,-100.5C116,-75.52 116,-45.77 116,-33.15"/>
-<polygon fill="black" stroke="black" stroke-width="2" points="117.75,-33.04 116,-28.04 114.25,-33.04 117.75,-33.04"/>
-<text text-anchor="middle" x="118.5" y="-63.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
+<path fill="none" stroke="black" stroke-width="2" d="M94,-100.5C94,-75.52 94,-45.77 94,-33.15"/>
+<polygon fill="black" stroke="black" stroke-width="2" points="95.75,-33.04 94,-28.04 92.25,-33.04 95.75,-33.04"/>
+<text text-anchor="middle" x="96.5" y="-63.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
 </g>
 </svg>
