@@ -22,8 +22,8 @@ Displaying `weird`:
 <g id="clust1" class="cluster">
 <title>cluster_circuit__GATE_weird_6</title>
 <polygon fill="none" stroke="black" stroke-dasharray="5,2" points="8,-105 8,-221 106,-221 106,-105 8,-105"/>
-<polygon fill="none" stroke="black" points="18,-193.5 18,-214.5 62,-214.5 62,-193.5 18,-193.5"/>
-<text text-anchor="start" x="21" y="-200.3" font-family="Lucida Sans Typewriter" font-size="14.00">weird</text>
+<polygon fill="none" stroke="black" points="18.5,-193.5 18.5,-214.5 67.5,-214.5 67.5,-193.5 18.5,-193.5"/>
+<text text-anchor="start" x="21.5" y="-200.3" font-family="Lucida Sans Typewriter" font-size="14.00">weird </text>
 </g>
 <!-- NODE___6 -->
 <g id="node1" class="node">

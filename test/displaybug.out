@@ -14,9 +14,9 @@ Displaying `weird`:
 <polygon fill="white" stroke="transparent" points="-4,4 -4,-350 119,-350 119,4 -4,4"/>
 <g id="clust1" class="cluster">
 <title>cluster_circuit__GATE_weird_4</title>
-<polygon fill="none" stroke="black" stroke-dasharray="5,2" points="20,-105 20,-241 84,-241 84,-105 20,-105"/>
-<polygon fill="none" stroke="black" points="30,-213.5 30,-234.5 74,-234.5 74,-213.5 30,-213.5"/>
-<text text-anchor="start" x="33" y="-220.3" font-family="Lucida Sans Typewriter" font-size="14.00">weird</text>
+<polygon fill="none" stroke="black" stroke-dasharray="5,2" points="20,-105 20,-241 89,-241 89,-105 20,-105"/>
+<polygon fill="none" stroke="black" points="30.5,-213.5 30.5,-234.5 79.5,-234.5 79.5,-213.5 30.5,-213.5"/>
+<text text-anchor="start" x="33.5" y="-220.3" font-family="Lucida Sans Typewriter" font-size="14.00">weird </text>
 </g>
 <!-- NODE___4 -->
 <g id="node1" class="node">

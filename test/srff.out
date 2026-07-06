@@ -52,8 +52,8 @@ Displaying `dff2`:
 <g id="clust1" class="cluster">
 <title>cluster_circuit__GATE_dff2_5</title>
 <polygon fill="none" stroke="black" stroke-dasharray="5,2" points="23,-83 23,-339 110,-339 110,-83 23,-83"/>
-<polygon fill="none" stroke="black" points="33,-311.5 33,-332.5 67,-332.5 67,-311.5 33,-311.5"/>
-<text text-anchor="start" x="36" y="-318.3" font-family="Lucida Sans Typewriter" font-size="14.00">dff2</text>
+<polygon fill="none" stroke="black" points="33.5,-311.5 33.5,-332.5 72.5,-332.5 72.5,-311.5 33.5,-311.5"/>
+<text text-anchor="start" x="36.5" y="-318.3" font-family="Lucida Sans Typewriter" font-size="14.00">dff2 </text>
 </g>
 <!-- GATE_dff2_5__INPUTS -->
 <g id="node1" class="node">

@@ -15,20 +15,20 @@ Displaying `or` (with `not` unfolded):
 <g id="clust1" class="cluster">
 <title>cluster_circuit__GATE_or_5</title>
 <polygon fill="none" stroke="black" stroke-dasharray="5,2" points="8,-83 8,-462 234,-462 234,-83 8,-83"/>
-<polygon fill="none" stroke="black" points="18.5,-434.5 18.5,-455.5 39.5,-455.5 39.5,-434.5 18.5,-434.5"/>
-<text text-anchor="start" x="21.5" y="-441.3" font-family="Lucida Sans Typewriter" font-size="14.00">or</text>
+<polygon fill="none" stroke="black" points="18.5,-434.5 18.5,-455.5 43.5,-455.5 43.5,-434.5 18.5,-434.5"/>
+<text text-anchor="start" x="21.5" y="-441.3" font-family="Lucida Sans Typewriter" font-size="14.00">or </text>
 </g>
 <g id="clust2" class="cluster">
 <title>cluster_circuit__GATE_not_5__0__4</title>
 <polygon fill="none" stroke="black" points="126,-226 126,-388 224,-388 224,-226 126,-226"/>
-<polygon fill="none" stroke="black" points="136.5,-360.5 136.5,-381.5 165.5,-381.5 165.5,-360.5 136.5,-360.5"/>
-<text text-anchor="start" x="139.5" y="-367.3" font-family="Lucida Sans Typewriter" font-size="14.00">not</text>
+<polygon fill="none" stroke="black" points="136,-360.5 136,-381.5 170,-381.5 170,-360.5 136,-360.5"/>
+<text text-anchor="start" x="139" y="-367.3" font-family="Lucida Sans Typewriter" font-size="14.00">not </text>
 </g>
 <g id="clust5" class="cluster">
 <title>cluster_circuit__GATE_not_5__1__4</title>
 <polygon fill="none" stroke="black" points="18,-226 18,-388 116,-388 116,-226 18,-226"/>
-<polygon fill="none" stroke="black" points="28.5,-360.5 28.5,-381.5 57.5,-381.5 57.5,-360.5 28.5,-360.5"/>
-<text text-anchor="start" x="31.5" y="-367.3" font-family="Lucida Sans Typewriter" font-size="14.00">not</text>
+<polygon fill="none" stroke="black" points="28,-360.5 28,-381.5 62,-381.5 62,-360.5 28,-360.5"/>
+<text text-anchor="start" x="31" y="-367.3" font-family="Lucida Sans Typewriter" font-size="14.00">not </text>
 </g>
 <!-- GATE_or_5__INPUTS -->
 <g id="node1" class="node">

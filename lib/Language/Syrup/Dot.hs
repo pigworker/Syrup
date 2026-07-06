@@ -251,7 +251,7 @@ toWhitebox nm (Gate is os defs) env transparent loc p = do
           -- needed to get the outputs at the bottom in e.g. tff
           [ "subgraph cluster_circuit__" ++ gateNode ++ " {"
           , "  style=" ++ case loc of { TopLevel -> "dashed;\n  margin = 10"; _ -> "solid" } ++ ";"
-          , "  label=<<table border=\"0\"><tr><td border=\"1\">" ++ nm ++ "</td></tr></table>>;"
+          , "  label=<<table border=\"0\"><tr><td border=\"1\">" ++ boxName nm ++ "</td></tr></table>>;"
           , "  labeljust=l;"
           ] ++ concat gph ++
           [ "}" ]
@@ -279,13 +279,16 @@ gate nm g@Gate{..} env transparent b p =
         ]
     ((Nothing, fdk), gph) -> (fdk, Nothing)
 
+boxName :: String -> String
+boxName nm = (++ "&nbsp;") $ case nm of
+  "zero" -> "0"
+  "one" -> "1"
+  _ -> nm
+
+
 toBlackbox :: Path -> [Input] -> String -> [Output] -> Circuit
 toBlackbox p is nm os =
-  let name = case nm of
-        "zero" -> "0"
-        "one" -> "1"
-        _ -> nm
-      gateNode   = "GATE_" ++ nm ++ "_" ++ show p
+  let gateNode   = "GATE_" ++ nm ++ "_" ++ show p
       iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
       iports     = map (declarePort 7 False . inputToPort) is
@@ -299,7 +302,7 @@ toBlackbox p is nm os =
     , unlines $ map (\ s -> indent 15 $ "<TR>" ++ s ++ "</TR>") $
         (if null iports then id else (unlines iports :))
         [ concat [ "<TD COLSPAN=\"", show (max (length iports) (length oports)), "\">"
-                 , "<FONT POINT-SIZE=\"15\">", name ++ "&nbsp;", "</FONT>"
+                 , "<FONT POINT-SIZE=\"15\">", boxName nm, "</FONT>"
                  , "</TD>"
                  ]
         , unlines oports
