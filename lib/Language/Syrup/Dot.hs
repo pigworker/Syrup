@@ -287,7 +287,7 @@ boxName nm = (++ "&nbsp;") $ case nm of
 
 toBlackbox :: Path -> [Input] -> String -> [Output] -> Circuit
 toBlackbox p is nm os =
-  let gateNode   = "GATE_" ++ nm ++ "_" ++ show p
+  let gateNode   = mkGate p nm
       iportNames = map (\ i -> gateNode ++ ":" ++ inputName i) is
       oportNames = map (\ o -> gateNode ++ ":" ++ outputName o) os
       iports     = map (declarePort 7 False . inputToPort) is
