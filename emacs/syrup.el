@@ -52,7 +52,7 @@
   ;; handling comments
   :syntax-table syrup-syntax-table
   ;; code for syntax highlighting
-  (set-face-attribute 'default nil :height 175)
+  (set-face-attribute 'default nil :height 125)
   (setq font-lock-defaults '((syrup-font-lock-keywords)))
   (setq mode-name "syrup")
   ;; clear memory
@@ -60,7 +60,8 @@
   (setq syrup-operators-regexp nil)
   ;; kill emacs buffer
   (setq inhibit-startup-screen t)
-  (split-window-right))
+  (unless (get-buffer "*syrup output*")
+    (split-window-right)))
 
 ;; Customisation options
 
