@@ -76,12 +76,13 @@ shrinkInvisible g@(Graph vs es) = loop g es where
             _ -> (vs, es)
       in loop (Graph vs' es') queue
 
-markDead :: Graph -> Graph
-markDead g@(Graph vs es) = loop g vs where
+markDead :: [String] -> Graph -> Graph
+markDead ous g@(Graph vs es) = loop g vs where
 
   loop g@(Graph vs es) queue = case popArr queue of
     Nothing -> g
-    Just ((nm, v@(Invisible False)), queue) ->
+    Just ((nm, v@(Invisible False)), queue)
+      | nm `notElem` ous ->
       let vs' = case fromMaybe emptyArr $ findArr nm es of
            arr | null arr -> insertArr (nm, Visible "" (Just ThrownAway))
                $ deleteArr nm vs

@@ -270,7 +270,7 @@ gate nm g@Gate{..} env transparent b p =
 
   theWhitebox = case evalWhiteBox (toWhitebox nm g env transparent b p) of
     ((Just (Circuit ins ous gts), fdk), gph) ->
-      let optimized = markDead $ shrinkInvisible gph
+      let optimized = markDead ous $ shrinkInvisible gph
           (vertices, edges) = fromGraph optimized
       in (fdk,) $ Just $ Circuit ins ous $ concat
         [ vertices
