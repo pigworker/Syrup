@@ -187,8 +187,8 @@ subgraph cluster_circuit__GATE_not_5__0__4 {
   style=solid;
   label=<<table border="0"><tr><td border="1">not&nbsp;</td></tr></table>>;
   labeljust=l;
-  NODE___VIRTUAL__2_5__0__4 [label="", height = 0];
-  NODE_x_5__0__4 [label="", height = 0];
+  NODE___VIRTUAL__2_5__0__4 [label="", shape=point, height=0];
+  NODE_x_5__0__4 [label="", shape=point, height=0];
 subgraph gate_5__0__4__0__0 {
   style = invis;
   GATE_nand_5__0__4__0__0
@@ -231,8 +231,8 @@ subgraph cluster_circuit__GATE_not_5__1__4 {
   style=solid;
   label=<<table border="0"><tr><td border="1">not&nbsp;</td></tr></table>>;
   labeljust=l;
-  NODE___VIRTUAL__2_5__1__4 [label="", height = 0];
-  NODE_x_5__1__4 [label="", height = 0];
+  NODE___VIRTUAL__2_5__1__4 [label="", shape=point, height=0];
+  NODE_x_5__1__4 [label="", shape=point, height=0];
 subgraph gate_5__1__4__0__0 {
   style = invis;
   GATE_nand_5__1__4__0__0

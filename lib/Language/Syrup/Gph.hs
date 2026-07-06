@@ -95,7 +95,7 @@ fromGraph Graph{..} =
         , if sh == Just ThrownAway then ", height = 0.075" else ""
         , "];"
         ]
-      Invisible -> nm ++ " [label=\"\", height = 0];"
+      Invisible -> nm ++ " [label=\"\", shape=point, height=0];"
 
   , -- then add edges
     flip foldMapArr edges $ \ (src, es) ->
