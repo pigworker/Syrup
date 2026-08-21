@@ -4,6 +4,8 @@
 -----                                                                    -----
 ------------------------------------------------------------------------------
 
+{-# LANGUAGE StandaloneDeriving #-}
+
 module Language.Syrup.Ty where
 
 import Control.Applicative ((<|>))
@@ -36,7 +38,7 @@ type Ty1 = Ty Unit Void
 type Ty2 = Ty Ti Void
 type Typ = Ty Unit TyNom
 
-type TypedPat = Pat' Typ String
+type TypedPat = Pat' Typ PVarName
 type TypedExp = Exp' Name Typ
 type TypedEqn = Eqn' Name Typ
 type TypedDef = Def' Name Typ
@@ -69,7 +71,7 @@ data InputWire = InputWire
   , getInputType :: Ty1
   }
 
-type OPat = Pat' Typ (String, Bool)
+type OPat = Pat' Typ (PVarName, Bool)
 data OutputWire = OutputWire
   { getOutputPat  :: Maybe OPat
   , getOutputType :: Ty2
@@ -86,7 +88,9 @@ isProperOPat op = do
 -- From a pattern and a list of memory cells, check whether any of the
 -- pattern's variables are pointing to one of the memory cell.
 mkOPat :: [MemoryCell] -> TypedPat -> OPat
-mkOPat ms = fmap $ \ str -> (str, any ((Just (CellName str) ==) . getCellName) ms)
+mkOPat ms = fmap $ \ x -> (x,) $ case x of
+  CatchAll _ -> False
+  PVarName str -> any ((Just (CellName str) ==) . getCellName) ms
 
 mkOutputWire :: [MemoryCell] -> Maybe TypedExp -> Ty2 -> OutputWire
 mkOutputWire ms me ty = flip OutputWire ty $ do
@@ -243,6 +247,7 @@ data TyErr
   | Stage1 (Set String)   -- couldn't compute from memory and inputs!
   | Junk                  -- spurious extra stuff!
   | BUGSolderMismatch     -- soldering fails to match up properly (my fault)
+  | BUGDuplicatedCatchall -- two catchalls with the same name (my fault)
 --  deriving Show
 
 tyErr :: TyMonad m => TyErr -> m x
@@ -266,10 +271,11 @@ data TySt = TySt
   , memIn  :: [Pat]          -- memory input patterns
   , memOu  :: [Pat]          -- memory output patterns
   , sched  :: [Task]         -- scheduled tasks so far
+  , caNew  :: Integer        -- supply of fresh catchall names
   }
 
 data Wire
-  = Physical String
+  = Physical PVarName
   | Holey String
   deriving (Show, Eq, Ord)
 
@@ -291,6 +297,7 @@ tySt0 = TySt
   , memIn = []
   , memOu = []
   , sched = []
+  , caNew = 0
   }
 
 tyF :: TyMonad m => m Typ
@@ -300,12 +307,12 @@ tyF = do
   put (st {tyNew = u + 1})
   return (Meta u)
 
-wiF :: TyMonad m => m String
+wiF :: TyMonad m => m PVarName
 wiF = do
   st <- get
   let u = wiNew st
   put (st {wiNew = u + 1})
-  return ("|" ++ show u)
+  return $ PVarName ('|' : show u)
 
 tyD :: TyMonad m => (TyNom, Typ) -> m ()
 tyD (x, t) = do
@@ -336,7 +343,9 @@ defineWire mt x = do
           tyEq (ty, ty')
           return ty'
     Just (True, ty) -> case x of
-      Physical nm -> tyErr (DuplicateWire nm)
+      Physical nm -> case nm of
+        CatchAll i -> tyErr BUGDuplicatedCatchall
+        PVarName nm -> tyErr (DuplicateWire nm)
       Holey{} -> case mt of
         Just ty' -> ty <$ tyEq (ty, ty')
         _ -> pure ty

@@ -141,7 +141,9 @@ instance (KnownLevel (Level a), Scoped a) => Scoped (Maybe a)
 
 instance Scoped Pat where
   scopecheck ga = \case
-    PVar _ x  -> declareVar ga x
+    PVar _ x  -> case x of
+      CatchAll _ -> pure emptyExtension
+      PVarName x -> declareVar ga x
     PCab _ ps -> scopecheck ga ps
 
 instance Scoped (Exp' Name ty) where

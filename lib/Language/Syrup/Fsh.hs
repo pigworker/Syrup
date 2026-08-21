@@ -20,7 +20,7 @@ newtype FreshT e m a = FreshT { getFreshT :: StateT e m a }
 
 type Fresh e = FreshT e Identity
 
-class MonadFresh e m | m -> e where
+class Monad m => MonadFresh e m | m -> e where
   fresh :: m e
 
 runFreshT :: Enum e => FreshT e m a -> m (a, e)

@@ -20,6 +20,7 @@ import Language.Syrup.BigArray
 import Language.Syrup.Bwd
 import Language.Syrup.Doc hiding (brackets)
 import Language.Syrup.Fdk (Feedback(ASyntaxError))
+import Language.Syrup.Fsh (MonadFresh(fresh))
 import Language.Syrup.Lex
 import Language.Syrup.Syn
 
@@ -49,8 +50,9 @@ data ParEn = ParEn
   } deriving Show
 
 data ParSt = ParSt
-  {  toksEaten :: Bwd Token
-  ,  toksAhead :: [Token]
+  { toksEaten :: Bwd Token
+  , toksAhead :: [Token]
+  , freshName :: Integer
   } deriving Show
 
 data ParErr
@@ -135,6 +137,9 @@ pVar = do
   let moan (Id kw) = WantedIdGotKeyword kw
       moan t = WantedIdSymbolic t
   pClue (SEEKING "variable") (pTok moan happy)
+
+pPVarName :: Par PVarName
+pPVarName = pVar >>= mkPVarName
 
 pName :: Par Name
 pName = Name <$> pVar
@@ -262,7 +267,7 @@ pTYA = pTokIs (Id "type") *> pSpc *>
 
 pPat :: Par Pat
 pPat = pClue (SEEKING "a pattern") $
-  PVar () <$> pVar
+  PVar () <$> pPVarName
   <|> PCab () <$> pBrk Square (SEEKING "cable contents")
          (pAllSep (pTokIs (Sym ",")) pPat)
   <|> pYelp AARGH
@@ -392,6 +397,7 @@ syrupSource (s, ts) = case par pSource en st of
     st = ParSt
       { toksEaten = B0
       , toksAhead = ts
+      , freshName = 0
       }
 
 syrupKeywords :: Set String
@@ -491,3 +497,10 @@ instance MonadState ParSt Par where
 instance MonadReader ParEn Par where
   ask       = Par $ \ g s -> Right (g, s)
   local f p = Par (par p . f)
+
+instance MonadFresh Integer Par where
+  fresh = do
+    st <- get
+    let u = freshName st
+    put (st { freshName = u + 1 })
+    pure u

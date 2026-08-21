@@ -56,7 +56,7 @@ class DeMorgan ty t where
   simplify :: Polarity Name ty -> t -> DeMorganM ty t
 
 isAssignment :: String -> Eqn' nm ty -> Either (Exp' nm ty) (Eqn' nm ty)
-isAssignment x eqn@([PVar _ y] :=: [e])
+isAssignment x eqn@([PVar _ (PVarName y)] :=: [e])
   | x == y = Left e
   | otherwise = Right eqn
 isAssignment x eqn = Right eqn
@@ -132,7 +132,7 @@ instance DeMorgan ty (Exp' Name ty) where
   simplify pol og@(Var ty x) = isDefined x >>= \case
     Just e -> do
       e <- simplify Positive e
-      modify (([PVar ty x] :=: [e]) :)
+      modify (([PVar ty (PVarName x)] :=: [e]) :)
       if isPositive pol then pure og else simplify pol e
     Nothing -> pure $ applyPolarity pol og
   simplify pol og = pure $ applyPolarity pol og

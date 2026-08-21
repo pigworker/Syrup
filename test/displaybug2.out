@@ -44,14 +44,14 @@ Displaying `weird`:
 <polygon fill="black" stroke="black" stroke-width="2" points="45.75,-164.5 44,-159.5 42.25,-164.5 45.75,-164.5"/>
 <text text-anchor="middle" x="46.5" y="-222.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
-<!-- NODE___6 -->
+<!-- NODE__0_6 -->
 <g id="node2" class="node">
-<title>NODE___6</title>
+<title>NODE__0_6</title>
 <ellipse fill="none" stroke="black" cx="44" cy="-37" rx="2.5" ry="2.5"/>
 </g>
-<!-- GATE_dup2_6__0__5&#45;&gt;NODE___6 -->
+<!-- GATE_dup2_6__0__5&#45;&gt;NODE__0_6 -->
 <g id="edge1" class="edge">
-<title>GATE_dup2_6__0__5:s&#45;&gt;NODE___6</title>
+<title>GATE_dup2_6__0__5:s&#45;&gt;NODE__0_6</title>
 <path fill="none" stroke="black" stroke-width="2" d="M44,-112.5C44,-83.53 44,-48.22 44,-39.84"/>
 <text text-anchor="middle" x="46.5" y="-85.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>

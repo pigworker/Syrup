@@ -1,0 +1,6 @@
+garbage(<Bit>,<Bit>,<Bit>,<Bit>) -> <Bit>
+garbage(_, _, X, _) = Z where
+
+  [_, Z, _] = [X,X,X]
+
+experiment garbage
