@@ -123,7 +123,7 @@ type Assignment = ([Output], TypedExp)
 elabPat :: TypedPat -> ANF (Input, [Input], [LetBinding])
 elabPat p = case p of
   PVar ty (PVarName x) -> let vx = Input False ty Nothing x in pure (vx, [vx], [])
-  PVar ty (CatchAll i) -> let vx = Input True ty Nothing ('#':show i) in pure (vx, [], [])
+  PVar ty (CatchAll i) -> let vx = Input True ty Nothing ('-':show i) in pure (vx, [], [])
   PCab ty ps -> do
     x <- Input True ty (Just $ basicShow p) <$> freshVirtualName
     ias <- mapM elabPat ps

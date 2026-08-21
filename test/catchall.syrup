@@ -4,3 +4,7 @@ garbage(_, _, X, _) = Z where
   [_, Z, _] = [X,X,X]
 
 experiment garbage
+display garbage
+
+oops(<Bit>) -> <Bit>
+oops(_) = _

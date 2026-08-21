@@ -139,7 +139,7 @@ pVar = do
   pClue (SEEKING "variable") (pTok moan happy)
 
 pPVarName :: Par PVarName
-pPVarName = pVar >>= mkPVarName
+pPVarName = ("_" <$ pTokIs (Id "_") <|> pVar) >>= mkPVarName
 
 pName :: Par Name
 pName = Name <$> pVar
@@ -402,7 +402,7 @@ syrupSource (s, ts) = case par pSource en st of
 
 syrupKeywords :: Set String
 syrupKeywords = foldMap singleton
-  ["where", "experiment", "type"]
+  ["_", "where", "experiment", "type"]
 
 
 ------------------------------------------------------------------------------
