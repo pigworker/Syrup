@@ -158,6 +158,11 @@ Displaying `garbage`:
 </g>
 </svg>
 
+Printing `garbage`:
+  garbage(<Bit>, <Bit>, <Bit>, <Bit>) -> <Bit>
+  garbage(_, _, X, _) = Z where
+    [_, Z, _] = [X, X, X]
+
 Error: I was trying to make sense of the following code:
   oops(_) = _
 I got stuck here: 

@@ -6,5 +6,7 @@ garbage(_, _, X, _) = Z where
 experiment garbage
 display garbage
 
+print garbage
+
 oops(<Bit>) -> <Bit>
 oops(_) = _
