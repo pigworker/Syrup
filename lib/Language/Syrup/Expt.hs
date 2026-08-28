@@ -15,12 +15,11 @@ import Control.Monad.State (gets, StateT(StateT), execStateT, get, put, runState
 import Control.Monad.Writer (tell)
 
 import qualified Data.Bifunctor as Bi
-import Data.Foldable (fold)
 import Data.Forget (forget)
 import Data.Function (on)
-import Data.List (find, intercalate, intersperse, sortBy)
+import Data.List (find, sortBy)
 import Data.Maybe (fromMaybe, fromJust, isJust)
-import Data.Monoid (Endo(Endo), appEndo, Sum(Sum))
+import Data.Monoid (Endo(Endo), appEndo)
 import qualified Data.Sequence as Seq
 import Data.Traversable (for)
 import Data.Void (Void, absurd)
@@ -230,15 +229,18 @@ data RowTemplate = RowTemplate
   , outputTemplates :: [Template]
   }
 
+templatePVar :: PVarName -> Ty a Void -> Template
+templatePVar v t = Meta (max (sizePVar v) (sizeTy t)) -- ?!
+
 -- Generate a template from a pattern and its type
-template :: Pat' ty String -> Ty a Void -> Template
+template :: Pat' ty PVarName -> Ty a Void -> Template
 template _           (Meta x)   = absurd x
-template (PVar _ v)  t          = Meta (max (length v) (sizeTy t)) -- ?!
+template (PVar _ v)  t          = templatePVar v t
 template p           (TVar s t) = template p t
 template (PCab _ ps) (Cable ts) = Cable (zipWith template ps ts)
 template (PCab _ _) (Bit _) = impossible "ill typed pattern"
 
-mTemplate :: Maybe (Pat' ty String) -> Ty a Void -> Template
+mTemplate :: Maybe (Pat' ty PVarName) -> Ty a Void -> Template
 mTemplate Nothing  t = Meta (sizeTy t)
 mTemplate (Just p) t = template p t
 
@@ -246,7 +248,7 @@ inputTemplate :: InputWire -> Template
 inputTemplate (InputWire p t) = mTemplate p t
 
 getCellPat :: MemoryCell -> Maybe Pat
-getCellPat = fmap (PVar () . cellName) . getCellName
+getCellPat = fmap (PVar () . PVarName . cellName) . getCellName
 
 cellTemplate :: MemoryCell -> Template
 cellTemplate c@(MemoryCell _ t) = mTemplate (getCellPat c) t
@@ -254,16 +256,20 @@ cellTemplate c@(MemoryCell _ t) = mTemplate (getCellPat c) t
 outputTemplate :: OutputWire -> Template
 outputTemplate (OutputWire p t) = mTemplate (fmap (fst <$>) p) t
 
+displayPVarName :: PVarName -> String
+displayPVarName (CatchAll _) = "_"
+displayPVarName (PVarName n) = n
+
 -- `displayPat ts ps` PRECONDITION: ts was generated using ps
-displayPat :: Template -> Pat' ty String -> String
+displayPat :: Template -> Pat' ty PVarName -> String
 displayPat (TVar _ t) p           = displayPat (forget t) p
-displayPat (Meta s)   (PVar _ n)  = padRight (s - length n) n
+displayPat (Meta s)   (PVar _ n)  = padRight (s - sizePVar n) (displayPVarName n)
 displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
 displayPat (Bit x) _ = absurd x
 displayPat (Meta _) (PCab _ _) = impossible "displaying a cable pattern at a meta type"
 displayPat (Cable _) (PVar _ _) = impossible "displaying a variable pattern at a cable type"
 
-displayMPat :: Template -> Maybe (Pat' ty String) -> String
+displayMPat :: Template -> Maybe (Pat' ty PVarName) -> String
 displayMPat t = maybe (displayEmpty t) (displayPat t)
 
 displayEmpty :: Template -> String

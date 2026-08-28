@@ -1,0 +1,12 @@
+garbage(<Bit>,<Bit>,<Bit>,<Bit>) -> <Bit>
+garbage(_, _, X, _) = Z where
+
+  [_, Z, _] = [X,X,X]
+
+experiment garbage
+display garbage
+
+print garbage
+
+oops(<Bit>) -> <Bit>
+oops(_) = _

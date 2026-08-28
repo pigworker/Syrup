@@ -34,9 +34,9 @@ Displaying `weird`:
 <path fill="none" stroke="black" stroke-width="2" d="M56,-285.96C56,-265.94 56,-224.54 56,-189.5"/>
 <text text-anchor="middle" x="58.5" y="-242.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
-<!-- NODE___4 -->
+<!-- NODE__0_4 -->
 <g id="node2" class="node">
-<title>NODE___4</title>
+<title>NODE__0_4</title>
 <ellipse fill="none" stroke="black" cx="59" cy="-37" rx="2.5" ry="2.5"/>
 </g>
 <!-- FANIN_4__0 -->
@@ -55,9 +55,9 @@ Displaying `weird`:
 <path fill="none" stroke="black" stroke-width="4" d="M60,-143C60,-129.22 61,-125.78 61,-112"/>
 <text text-anchor="middle" x="62.5" y="-123.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
-<!-- FANOUT_4__1&#45;&gt;NODE___4 -->
-<g id="edge5" class="edge">
-<title>FANOUT_4__1:s&#45;&gt;NODE___4</title>
+<!-- FANOUT_4__1&#45;&gt;NODE__0_4 -->
+<g id="edge4" class="edge">
+<title>FANOUT_4__1:s&#45;&gt;NODE__0_4</title>
 <path fill="none" stroke="black" stroke-width="2" d="M59,-105C59,-78.94 59,-47.19 59,-39.66"/>
 <text text-anchor="middle" x="61.5" y="-85.8" font-family="Lucida Sans Typewriter" font-size="14.00"> </text>
 </g>
@@ -67,7 +67,7 @@ Displaying `weird`:
 <text text-anchor="start" x="117" y="-32" font-family="Lucida Sans Typewriter" font-size="20.00">RES</text>
 </g>
 <!-- FANOUT_4__1&#45;&gt;GATE_weird_4__OUTPUTS -->
-<g id="edge4" class="edge">
+<g id="edge5" class="edge">
 <title>FANOUT_4__1:s&#45;&gt;GATE_weird_4__OUTPUTS:RES</title>
 <path fill="none" stroke="black" stroke-width="2" d="M63,-105C63,-91.03 92.36,-68.07 114.09,-53"/>
 <polygon fill="black" stroke="black" stroke-width="2" points="115.19,-54.36 118.33,-50.09 113.21,-51.48 115.19,-54.36"/>

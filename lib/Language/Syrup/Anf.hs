@@ -122,7 +122,8 @@ type Assignment = ([Output], TypedExp)
 -- the successive fan-outs
 elabPat :: TypedPat -> ANF (Input, [Input], [LetBinding])
 elabPat p = case p of
-  PVar ty x -> let vx = Input False ty Nothing x in pure (vx, [vx], [])
+  PVar ty (PVarName x) -> let vx = Input False ty Nothing x in pure (vx, [vx], [])
+  PVar ty (CatchAll i) -> let vx = Input True ty Nothing ('-':show i) in pure (vx, [], [])
   PCab ty ps -> do
     x <- Input True ty (Just $ basicShow p) <$> freshVirtualName
     ias <- mapM elabPat ps
@@ -258,7 +259,7 @@ expandRHS :: TypedDef -> ANF TypedDef
 expandRHS (Def lhs [rhs@(App tys _ _)] eqns) | length tys > 1 = do
   vnms <- traverse (const freshVirtualName) tys
   let vars = zipWith Var tys vnms
-  let pvars = zipWith PVar tys vnms
+  let pvars = zipWith (\ ty nm -> PVar ty (PVarName nm)) tys vnms
   pure (Def lhs vars (Just (pvars :=: [rhs] : fromMaybe [] eqns)))
 expandRHS d = pure d
 
@@ -270,12 +271,12 @@ expandRHS d = pure d
 -- `d` and `toANF d` are bisimilar!
 fromGate :: String -> Gate -> TypedDef
 fromGate nm g =
-  Def (Name nm, map (\ i -> PVar (inputType i) (inputName i)) (inputs g))
+  Def (Name nm, map (\ i -> PVar (inputType i) (PVarName $ inputName i)) (inputs g))
       (map (\ o -> Var (outputType o) (outputName o)) (outputs g))
   $ case letBindings g of
       []   -> Nothing
       eqns -> Just $ map (\ (os, rhs) ->
-        (map (\ o -> PVar (outputType o) (outputName o)) os)
+        (map (\ o -> PVar (outputType o) (PVarName $ outputName o)) os)
                 :=:
                 [case rhs of
                    Alias ty x -> Var ty x

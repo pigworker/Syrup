@@ -100,6 +100,12 @@ instance Pretty (Exp' PrettyName ty) where
     Cab _ es -> pretty (AList es)
     App _ f es -> prettyPrec lvl (FunctionCall f es)
 
+instance Pretty PVarName where
+  type PrettyDoc PVarName = LineDoc
+  prettyPrec lvl = \case
+    CatchAll _ -> "_"
+    PVarName x -> pretty x
+
 instance (Pretty a, PrettyDoc a ~ LineDoc) => Pretty (Pat' ty a) where
   type PrettyDoc (Pat' ty a) = LineDoc
   prettyPrec lvl = \case

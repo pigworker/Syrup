@@ -83,11 +83,11 @@ linter xs = xs >>= \case
 abstractThisCable :: [Pat] -> Exp -> Bool
 abstractThisCable ps e = isEmptyArr (foldMap support ps `intersectSet` go e) where
 
-  cable = Cab () (map patToExp ps)
+  cable = Cab () <$> traverse patToExp ps
 
   go :: Exp -> Set String
-  go e | e == cable = mempty
-       | otherwise  = case e of
+  go e | Just e == cable = mempty
+       | otherwise = case e of
     Var _ x    -> singleton x
     Hol _ x    -> mempty
     App _ _ es -> foldMap go es

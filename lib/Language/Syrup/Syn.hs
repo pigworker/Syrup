@@ -16,6 +16,7 @@ import Data.Void (Void)
 
 import Language.Syrup.BigArray
 import Language.Syrup.Fdk.Base
+import Language.Syrup.Fsh (MonadFresh(fresh))
 import Language.Syrup.Syn.Base
 
 data Source' a b
@@ -35,7 +36,25 @@ expTys = \case
   App tys _ _ -> tys
   Cab ty _ -> [ty]
 
-type Pat = Pat' () String
+data PVarName
+  = CatchAll Integer
+  | PVarName String
+  deriving (Show, Eq, Ord)
+
+sizePVar :: PVarName -> Int
+sizePVar (CatchAll _) = 0
+sizePVar (PVarName x) = length x
+
+isPVarName :: PVarName -> Maybe String
+isPVarName (CatchAll _) = Nothing
+isPVarName (PVarName x) = Just x
+
+mkPVarName :: MonadFresh Integer m => String -> m PVarName
+mkPVarName "_" = CatchAll <$> fresh
+mkPVarName str = pure (PVarName str)
+
+type Pat = Pat' () PVarName
+
 data Pat' ty a
   = PVar ty a
   | PCab ty [Pat' ty a]
@@ -46,24 +65,25 @@ patTy = \case
   PVar ty a -> ty
   PCab ty _ -> ty
 
-exPat :: Exp' nm ty -> Maybe (Pat' ty String)
-exPat (Var ty x)  = return (PVar ty x)
+exPat :: Exp' nm ty -> Maybe (Pat' ty PVarName)
+exPat (Var ty x)  = pure (PVar ty (PVarName x))
 exPat (Hol ty x)  = Nothing -- for now?
 exPat (Cab ty es) = PCab ty <$> traverse exPat es
 exPat _           = Nothing
 
-patToExp :: Pat' ty String -> Exp' nm ty
+patToExp :: Pat' ty PVarName -> Maybe (Exp' nm ty)
 patToExp = \case
-  PVar ty x  -> Var ty x
-  PCab ty ps -> Cab ty $ map patToExp ps
+  PVar ty x  -> Var ty <$> isPVarName x
+  PCab ty ps -> Cab ty <$> traverse patToExp ps
 
 type Eqn = Eqn' Name ()
-data Eqn' nm ty = [Pat' ty String] :=: [Exp' nm ty]
+data Eqn' nm ty = [Pat' ty PVarName] :=: [Exp' nm ty]
+
 type Def = Def' Name ()
 data Def' nm ty
   = Stub nm [Feedback]
   -- stubbed out definition together with error msg
-  | Def (nm, [Pat' ty String]) [Exp' nm ty] (Maybe [Eqn' nm ty])
+  | Def (nm, [Pat' ty PVarName]) [Exp' nm ty] (Maybe [Eqn' nm ty])
 
 defName :: Def' nm ty -> nm
 defName (Stub f _) = f
@@ -145,10 +165,12 @@ instance IsCircuit a => IsCircuit [a] where
 instance IsCircuit a => IsCircuit (Maybe a) where
   type VarTy (Maybe a) = VarTy a
 
-instance a ~ String => IsCircuit (Pat' ty a) where
+instance a ~ PVarName => IsCircuit (Pat' ty a) where
   type VarTy (Pat' ty a) = ty
   allVars = \case
-    PVar ty s -> single (s, (First (Just ty), Sum 1))
+    PVar ty s -> case s of
+      CatchAll _ -> emptyArr
+      PVarName s -> single (s, (First (Just ty), Sum 1))
     PCab _ c -> allVars c
   allGates _ = emptyArr
   allHoles _ = emptyArr

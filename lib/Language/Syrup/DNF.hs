@@ -209,7 +209,7 @@ dnf env d = d
 toAssignment :: CoEnv -> [Eqn' Name ty] -> Maybe (String -> Maybe DNF)
 toAssignment env eqns = do
   kvs <- flip traverse eqns $ \case
-    ([PVar _ x] :=: [b]) -> pure (x, fmap snd $ runReader (toDNF b) env)
+    ([PVar _ (PVarName x)] :=: [b]) -> pure (x, fmap snd $ runReader (toDNF b) env)
     _ -> Nothing
   pure (join . flip lookup kvs)
 
@@ -282,4 +282,4 @@ ttToDef env f xs bs = do
   let bit = Bit Unit
   rmk <- allRemarkables env bit
   let exp = fromDNF rmk dnf
-  pure (Def (f, map (PVar bit) xs) [exp] Nothing)
+  pure (Def (f, map (PVar bit . PVarName) xs) [exp] Nothing)
