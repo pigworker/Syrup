@@ -24,7 +24,7 @@ import Data.Foldable (traverse_, fold)
 import Data.IMaybe (fromIJust)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust, fromJust, fromMaybe)
 import Data.Monoid (Last(Last), First(..))
 import qualified Data.Sequence as Seq
 import qualified Data.Set as Set
@@ -204,11 +204,11 @@ decPat :: TyMonad m
        -> Ty1         -- its current unfolding
        -> Pat         -- the pattern to typecheck
        -> m TypedPat
-decPat _ s (PVar () x) = do
+decPat mty s (PVar () x) = do
   void $ defineWire (Just (forget s)) (Physical x)
-  pure (PVar (forget s) x)
-decPat _ s@(Cable ss) (PCab () ps)
-  | length ss == length ps = PCab (forget s) <$> decPats ss ps
+  pure (PVar (forget (fromMaybe s mty)) x)
+decPat mty s@(Cable ss) (PCab () ps)
+  | length ss == length ps = PCab (forget (fromMaybe s mty)) <$> decPats ss ps
   | otherwise = tyErr CableWidth
 decPat _ (Bit _) (PCab _ _) = tyErr BitCable
 decPat _ (Meta x) _ = absurd x
@@ -751,7 +751,7 @@ emptyTyEnv :: TyEnv
 emptyTyEnv = emptyArr
 
 myTyEnv :: TyEnv
-myTyEnv = emptyTyEnv
+myTyEnv = single (TyName "7Segments", CABLE [BIT, BIT, BIT, BIT, BIT, BIT, BIT])
 
 env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
 env1 = execOnCoEnv myCoEnv $ mkComponent

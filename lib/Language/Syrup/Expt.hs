@@ -15,9 +15,10 @@ import Control.Monad.State (gets, StateT(StateT), execStateT, get, put, runState
 import Control.Monad.Writer (tell)
 
 import qualified Data.Bifunctor as Bi
+import Data.Foldable (fold)
 import Data.Forget (forget)
 import Data.Function (on)
-import Data.List (find, sortBy)
+import Data.List (find, intersperse, sortBy)
 import Data.Maybe (fromMaybe, fromJust, isJust)
 import Data.Monoid (Endo(Endo), appEndo)
 import qualified Data.Sequence as Seq
@@ -39,6 +40,7 @@ import Utilities.Lens
 import Utilities.Nat
 import Utilities.Vector
 
+import Unsafe.Coerce (unsafeCoerce)
 
 ------------------------------------------------------------------------------
 -- experiments
@@ -236,7 +238,7 @@ templatePVar v t = Meta (max (sizePVar v) (sizeTy t)) -- ?!
 template :: Pat' ty PVarName -> Ty a Void -> Template
 template _           (Meta x)   = absurd x
 template (PVar _ v)  t          = templatePVar v t
-template p           (TVar s t) = template p t
+template p           (TVar s t) = TVar s (unsafeCoerce $ template p t)
 template (PCab _ ps) (Cable ts) = Cable (zipWith template ps ts)
 template (PCab _ _) (Bit _) = impossible "ill typed pattern"
 
@@ -275,31 +277,31 @@ displayMPat t = maybe (displayEmpty t) (displayPat t)
 displayEmpty :: Template -> String
 displayEmpty t = replicate (sum t) ' '
 
-displayVa :: Template -> Va -> String
-displayVa (Meta s)   v       = let n = show v in padRight (s - length n) n
-displayVa (TVar _ t) v       = displayVa (forget t) v
-displayVa (Cable ts) (VC vs) = "[" ++ displayVas ts vs ++ "]"
+displayVa :: Template -> Va -> LineDoc
+displayVa (Meta s)    v = let n = show v in aString $ padRight (s - length n) n
+displayVa (TVar (TyName "7Segments") t) v@(VC vs) = a7Segments (displayVa (forget t) v) vs
+displayVa (TVar _ t) v = displayVa (forget t) v
+displayVa (Cable ts) (VC vs) = fold [ "[", displayVas ts vs, "]" ]
 displayVa (Cable _) _ = impossible "ill typed cable value"
 displayVa (Bit x) _ = absurd x
 
-displayVas :: [Template] -> [Va] -> String
-displayVas ts vs = unwords $ zipWith displayVa ts vs
-
+displayVas :: [Template] -> [Va] -> LineDoc
+displayVas ts vs = fold $ intersperse " " $ zipWith displayVa ts vs
 displayRow :: RowTemplate -> ([Va], [TabRow]) -> ROW LineDoc
 displayRow tmp (vs, [TabRow [] [] os]) =
-  SimpleRow . map (ATD . aString)
+  SimpleRow . map ATD
   $ zipWith displayVa (inputTemplates tmp) vs
   ++ "" : zipWith displayVa (outputTemplates tmp) os
 displayRow tmp (vs, trs) =
-  fmap aString $ MultiRow inputs transitions where
+  MultiRow inputs transitions where
 
   inputs      = map ATD $ zipWith displayVa (inputTemplates tmp) vs
   transitions = map (map ATD) $
-    [ concat
+    [ fold
        [ "{ " , displayVas (cellTemplates tmp) ccs
        , " -> ", displayVas (cellTemplates tmp) ncs
        , " }"
-       ] : "" : zipWith displayVa (outputTemplates tmp) os
+       ] : aString "" : zipWith displayVa (outputTemplates tmp) os
     | TabRow ccs ncs os <- trs
     ]
 

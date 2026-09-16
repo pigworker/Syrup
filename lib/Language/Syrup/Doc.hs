@@ -21,6 +21,7 @@ module Language.Syrup.Doc
   , aLine
   , aString
   , aTable
+  , a7Segments
   , highlight
   , isCode
   , structure
@@ -47,7 +48,7 @@ module Language.Syrup.Doc
 
 import Prelude hiding (unwords)
 
-import Data.Foldable (fold)
+import Data.Foldable (fold, for_)
 import Data.Kind (Type)
 import Data.List (intercalate, intersperse)
 import Data.String (IsString, fromString)
@@ -135,8 +136,12 @@ data AnnStructure
 
 data LineDoc
   = AString String
+  | A7Segments LineDoc [Va] -- pre-rendered cable + actual values
   | AnAnnot AnnLine LineDoc
   | AConcat [LineDoc]
+
+a7Segments :: LineDoc -> [Va] -> LineDoc
+a7Segments = A7Segments
 
 aString :: String -> LineDoc
 aString = AString
@@ -218,6 +223,7 @@ instance Render LineDoc where
 
     go :: LineDoc -> String
     go (AString str) = str
+    go (A7Segments ld _) = go ld
     go (AnAnnot IsCode d) = "`" ++ go d ++ "`"
     go (AnAnnot (HasStyle _) d) = go d
     go (AConcat ds) = foldMap go ds
@@ -226,9 +232,16 @@ instance Render LineDoc where
   renderToHtml = pure . go where
 
     go :: LineDoc -> Html
-    go (AConcat ds) = foldMap go ds
     go (AString str) = toHtml str
+    go (A7Segments _ vas)
+      = Html.div ! class_ "syrup-7segmentsdisplay"
+      $ for_ (zip "ABCDEFG" vas) $ \ (idn, va) -> Html.div
+        ! class_ (toValue ("syrup-segment" ++ [idn]))
+        ! class_ (toValue ("syrup-segment" ++ show va))
+        $ ""
+
     go (AnAnnot ann d) = applyHighlight ann (go d)
+    go (AConcat ds) = foldMap go ds
 
     applyHighlight :: AnnLine -> Html -> Html
     applyHighlight IsCode = Html.code

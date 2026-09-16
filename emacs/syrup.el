@@ -11,7 +11,7 @@
 (setq syrup-keywords-regexp  (regexp-opt syrup-keywords 'words))
 (setq syrup-operators-regexp (regexp-opt syrup-operators))
 (setq syrup-symbols-regexp   (regexp-opt syrup-symbols))
-(setq syrup-types-regexp "\<[[:alpha:]][[:alnum:]]*\>")
+(setq syrup-types-regexp "\<[[:alnum:]_][[:alnum:]]*\>")
 (setq syrup-functions-regexp "\\([[:alpha:]][[:alnum:]]*\\)\(")
 (setq syrup-experiments-regexp "\\(experiment\\|type\\|anf\\|simplify\\|print\\|display\\|dnf\\)[[:space:]]+\\([[:alpha:]][[:alnum:]]*\\)")
 (setq syrup-bisimulations-regexp "\\(experiment\\)[[:space:]]+\\([[:alpha:]][[:alnum:]]*\\)[[:space:]]+=[[:space:]]+\\([[:alpha:]][[:alnum:]]*\\)")
