@@ -45,6 +45,38 @@
   .syrup-keyword {
     font-weight: bold;
   }
+  .syrup-7segmentsdisplay {
+    width: 60px;
+    height: 100px;
+    padding: 10px;
+    background-color: #1E1E24;
+  }
+  [class*="segment"] {
+    position: relative;'
+  }
+  .syrup-segment1 {
+    background-color: #FF2C0F;
+  }
+  .syrup-segment0 {
+    background-color: #631605;
+  }
+  .syrup-segmentB, .syrup-segmentC, .syrup-segmentE, .syrup-segmentF {
+    display: inline-block;
+    width: 10px;
+    height: 35px;
+    clip-path: polygon(0 5px, 5px 0px, 10px 5px, 10px 30px, 5px 35px, 0px 30px, 0 5px);
+    margin: 0;
+    padding: 0;
+  }
+  .syrup-segmentA, .syrup-segmentD, .syrup-segmentG {
+    clip-path: polygon(0 5px, 5px 0px, 45px 0px, 50px 5px, 45px 10px, 5px 10px, 0 5px);
+    width: 50px;
+    height: 10px;
+    left: 5px;
+    margin: 0;
+  }
+  .syrup-segmentA, .syrup-segmentD, .syrup-segmentG { top: 0 }
+  .syrup-segmentC, .syrup-segmentF { left: 40px;  }
 
 </style>
 <div class="syrup-happy">When unit testing <code><span class="syrup-function">nand</span>(00) = 1</code>:

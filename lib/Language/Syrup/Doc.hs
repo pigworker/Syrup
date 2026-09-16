@@ -47,6 +47,7 @@ module Language.Syrup.Doc
   ) where
 
 import Prelude hiding (unwords)
+import qualified Prelude
 
 import Data.Foldable (fold, for_)
 import Data.Kind (Type)
@@ -236,8 +237,7 @@ instance Render LineDoc where
     go (A7Segments _ vas)
       = Html.div ! class_ "syrup-7segmentsdisplay"
       $ for_ (zip "ABCDEFG" vas) $ \ (idn, va) -> Html.div
-        ! class_ (toValue ("syrup-segment" ++ [idn]))
-        ! class_ (toValue ("syrup-segment" ++ show va))
+        ! class_ (toValue (Prelude.unwords ["syrup-segment" ++ [idn], "syrup-segment" ++ show va]))
         $ ""
 
     go (AnAnnot ann d) = applyHighlight ann (go d)
