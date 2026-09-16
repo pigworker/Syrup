@@ -82,7 +82,7 @@ Typing for `adc2`:
   adc2(<Two>, <Two>, <Bit>) -> <Bit>, <Two>
 
 Printing `adc2`:
-  adc2(<Two>, <Two>, <Bit>) -> <Bit>, [<Bit>, <Bit>]
+  adc2(<Two>, <Two>, <Bit>) -> <Bit>, <Two>
   adc2([X1, X0], [Y1, Y0], CI) = CO, [Z1, Z0] where
     C1, Z0 = fadd(X0, Y0, CI)
     CO, Z1 = fadd(X1, Y1, C1)
