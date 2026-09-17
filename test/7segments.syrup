@@ -1,6 +1,9 @@
 not(<Bit>) -> <Bit>
 !X = nand(X,X)
 
+experiment nand
+experiment not
+
 displayBit(<Bit>) -> <7Segments>
 displayBit(X) = [!X, !X, !0, 0, !X, !0, !X]
 
