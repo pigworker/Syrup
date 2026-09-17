@@ -287,7 +287,7 @@ displayEmpty t = replicate (sum t) ' '
 
 displayVa :: Template -> Va -> LineDoc
 displayVa (FSized s)    v = let n = show v in aString $ padRight (s - length n) n
-displayVa (FTVar (TyName "7Segments") t) v@(VC vs) = a7Segments (displayVa t v) vs
+displayVa (FTVar (TyName "7Segments") t) v@(VC vs) = a7Segments vs (displayVa t v)
 displayVa (FTVar s t) v = displayVa t v
 displayVa (FCable ts) (VC vs) = fold [ "[", displayVas ts vs, "]" ]
 displayVa (FCable _) _ = impossible "ill typed cable value"

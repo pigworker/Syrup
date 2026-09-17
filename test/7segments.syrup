@@ -28,3 +28,18 @@ type displayBits4
 print displayBits4
 
 experiment displayBits4
+
+displayCable4(<Bit>, <Bit>, <Bit>, <Bit>) -> [<7Segments>, <7Segments>, <7Segments>, <7Segments>]
+displayCable4(X, Y, Z, A) = [displayBits4(X,Y,Z,A)]
+
+type displayCable4
+print displayCable4
+
+experiment displayCable4
+
+type <Bits7> = [<Bit>, <Bit>, <Bit>, <Bit>, <Bit>, <Bit>, <Bit>]
+
+renderBits4(<Bit>, <Bit>, <Bit>, <Bit>) -> <Bits7>, <Bits7>, <Bits7>, <Bits7>
+renderBits4(X,Y,Z,A) = displayBits4(X,Y,Z,A)
+
+experiment renderBits4
