@@ -42,7 +42,7 @@ data PVarName
   deriving (Show, Eq, Ord)
 
 sizePVar :: PVarName -> Int
-sizePVar (CatchAll _) = 0
+sizePVar (CatchAll _) = 1
 sizePVar (PVarName x) = length x
 
 isPVarName :: PVarName -> Maybe String
