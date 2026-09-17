@@ -252,7 +252,6 @@ feedbackHtml = fmap (headerHtml <>) . renderToHtml . pretty
       , "    border: 1px solid;"
       , "    border-collapse: collapse;"
       , "    font-family: monospace;"
-      , "    white-space: pre;"
       , "    padding: 0 4px 0 4px;"
       , "  }"
       , "  .syrup-code {"
