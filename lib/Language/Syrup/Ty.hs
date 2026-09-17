@@ -101,7 +101,7 @@ mkOutputWire ms me ty = flip OutputWire ty $ do
 mkOutputWires :: [MemoryCell] -> [TypedExp] -> [Ty2] -> [OutputWire]
 mkOutputWires ms [] _ = []
 mkOutputWires ms (e:es) tys = case expTys e of
-  [ty] -> case tys of
+  [_] -> case tys of
     [] -> error "The IMPOSSIBLE has happened"
     (this : rest) -> mkOutputWire ms (Just e) this : mkOutputWires ms es rest
   many -> case splitAt (length many) tys of

@@ -3,7 +3,6 @@
     border: 1px solid;
     border-collapse: collapse;
     font-family: monospace;
-    white-space: pre;
     padding: 0 4px 0 4px;
   }
   .syrup-code {
@@ -45,6 +44,37 @@
   .syrup-keyword {
     font-weight: bold;
   }
+  .syrup-7segmentsdisplay {
+    width: 29px;
+    height: 46px;
+    padding: 5px;
+    background-color: #1E1E24;
+  }
+  [class*="segment"] {
+    position: relative;'
+  }
+  .syrup-segment1 {
+    background-color: #FF2C0F;
+  }
+  .syrup-segment0 {
+    background-color: #631605;
+  }
+  .syrup-segmentB, .syrup-segmentC, .syrup-segmentE, .syrup-segmentF {
+    display: inline-block;
+    width: 4px;
+    height: 17px;
+    clip-path: polygon(0 2px, 2px 0px, 4px 2px, 4px 15px, 2px 17px, 0px 15px, 0 2px);
+    margin: 0;
+    padding: 0;
+  }
+  .syrup-segmentA, .syrup-segmentD, .syrup-segmentG {
+    clip-path: polygon(0 2px, 2px 0px, 23px 0px, 25px 2px, 23px 4px, 2px 4px, 0 2px);
+    width: 25px;
+    height: 4px;
+    left: 2px;
+    margin: 0;
+  }
+  .syrup-segmentC, .syrup-segmentF { left: 21px;  }
 
 </style>
 <div class="syrup-comment">Circuit <code><span class="syrup-function">not</span></code> is defined.</div>

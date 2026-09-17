@@ -15,9 +15,9 @@ import Control.Monad.State (gets, StateT(StateT), execStateT, get, put, runState
 import Control.Monad.Writer (tell)
 
 import qualified Data.Bifunctor as Bi
-import Data.Forget (forget)
+import Data.Foldable (fold)
 import Data.Function (on)
-import Data.List (find, sortBy)
+import Data.List (find, intersperse, sortBy)
 import Data.Maybe (fromMaybe, fromJust, isJust)
 import Data.Monoid (Endo(Endo), appEndo)
 import qualified Data.Sequence as Seq
@@ -39,6 +39,7 @@ import Utilities.Lens
 import Utilities.Nat
 import Utilities.Vector
 
+import Debug.Trace (trace)
 
 ------------------------------------------------------------------------------
 -- experiments
@@ -221,7 +222,14 @@ data Tabulation = Tabulation
                       )]
   }
 
-type Template = Ty Void Int
+
+data FTy a -- Type-aware Format
+  = FSized a
+  | FTVar TyName (FTy a)
+  | FCable [FTy a]
+  deriving (Functor, Foldable)
+
+type Template = FTy Int
 
 data RowTemplate = RowTemplate
   { inputTemplates  :: [Template]
@@ -230,18 +238,21 @@ data RowTemplate = RowTemplate
   }
 
 templatePVar :: PVarName -> Ty a Void -> Template
-templatePVar v t = Meta (max (sizePVar v) (sizeTy t)) -- ?!
+templatePVar v (TVar s t) = FTVar s (templatePVar v t)
+templatePVar v t = FSized (max (sizePVar v) (sizeTy t)) -- ?!
 
 -- Generate a template from a pattern and its type
 template :: Pat' ty PVarName -> Ty a Void -> Template
 template _           (Meta x)   = absurd x
 template (PVar _ v)  t          = templatePVar v t
-template p           (TVar s t) = template p t
-template (PCab _ ps) (Cable ts) = Cable (zipWith template ps ts)
+template p           (TVar s t) = FTVar s (template p t)
+template (PCab _ ps) (Cable ts) = FCable (zipWith template ps ts)
 template (PCab _ _) (Bit _) = impossible "ill typed pattern"
 
 mTemplate :: Maybe (Pat' ty PVarName) -> Ty a Void -> Template
-mTemplate Nothing  t = Meta (sizeTy t)
+mTemplate mp      (TVar s t) = FTVar s (mTemplate mp t)
+mTemplate Nothing (Cable ts) = FCable $ map (mTemplate Nothing) ts
+mTemplate Nothing t = FSized (sizeTy t)
 mTemplate (Just p) t = template p t
 
 inputTemplate :: InputWire -> Template
@@ -262,12 +273,11 @@ displayPVarName (PVarName n) = n
 
 -- `displayPat ts ps` PRECONDITION: ts was generated using ps
 displayPat :: Template -> Pat' ty PVarName -> String
-displayPat (TVar _ t) p           = displayPat (forget t) p
-displayPat (Meta s)   (PVar _ n)  = padRight (s - sizePVar n) (displayPVarName n)
-displayPat (Cable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
-displayPat (Bit x) _ = absurd x
-displayPat (Meta _) (PCab _ _) = impossible "displaying a cable pattern at a meta type"
-displayPat (Cable _) (PVar _ _) = impossible "displaying a variable pattern at a cable type"
+displayPat (FTVar _ t) p           = displayPat t p
+displayPat (FSized s)  (PVar _ n)  = padRight (s - sizePVar n) (displayPVarName n)
+displayPat (FCable ts) (PCab _ ps) = "[" ++ unwords (zipWith displayPat ts ps) ++ "]"
+displayPat (FSized _)  (PCab _ _)  = impossible "displaying a cable pattern at a meta type"
+displayPat (FCable _)  (PVar _ _)  = impossible "displaying a variable pattern at a cable type"
 
 displayMPat :: Template -> Maybe (Pat' ty PVarName) -> String
 displayMPat t = maybe (displayEmpty t) (displayPat t)
@@ -275,31 +285,31 @@ displayMPat t = maybe (displayEmpty t) (displayPat t)
 displayEmpty :: Template -> String
 displayEmpty t = replicate (sum t) ' '
 
-displayVa :: Template -> Va -> String
-displayVa (Meta s)   v       = let n = show v in padRight (s - length n) n
-displayVa (TVar _ t) v       = displayVa (forget t) v
-displayVa (Cable ts) (VC vs) = "[" ++ displayVas ts vs ++ "]"
-displayVa (Cable _) _ = impossible "ill typed cable value"
-displayVa (Bit x) _ = absurd x
+displayVa :: Template -> Va -> LineDoc
+displayVa (FSized s)    v = let n = show v in aString $ padRight (s - length n) n
+displayVa (FTVar (TyName "7Segments") t) v@(VC vs) = a7Segments vs (displayVa t v)
+displayVa (FTVar s t) v = displayVa t v
+displayVa (FCable ts) (VC vs) = fold [ "[", displayVas ts vs, "]" ]
+displayVa (FCable _) _ = impossible "ill typed cable value"
 
-displayVas :: [Template] -> [Va] -> String
-displayVas ts vs = unwords $ zipWith displayVa ts vs
+displayVas :: [Template] -> [Va] -> LineDoc
+displayVas ts vs = fold $ intersperse " " $ zipWith displayVa ts vs
 
 displayRow :: RowTemplate -> ([Va], [TabRow]) -> ROW LineDoc
 displayRow tmp (vs, [TabRow [] [] os]) =
-  SimpleRow . map (ATD . aString)
+  SimpleRow . map ATD
   $ zipWith displayVa (inputTemplates tmp) vs
   ++ "" : zipWith displayVa (outputTemplates tmp) os
 displayRow tmp (vs, trs) =
-  fmap aString $ MultiRow inputs transitions where
+  MultiRow inputs transitions where
 
   inputs      = map ATD $ zipWith displayVa (inputTemplates tmp) vs
   transitions = map (map ATD) $
-    [ concat
+    [ fold
        [ "{ " , displayVas (cellTemplates tmp) ccs
        , " -> ", displayVas (cellTemplates tmp) ncs
        , " }"
-       ] : "" : zipWith displayVa (outputTemplates tmp) os
+       ] : aString "" : zipWith displayVa (outputTemplates tmp) os
     | TabRow ccs ncs os <- trs
     ]
 

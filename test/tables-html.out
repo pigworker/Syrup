@@ -3,7 +3,6 @@
     border: 1px solid;
     border-collapse: collapse;
     font-family: monospace;
-    white-space: pre;
     padding: 0 4px 0 4px;
   }
   .syrup-code {
@@ -45,49 +44,80 @@
   .syrup-keyword {
     font-weight: bold;
   }
+  .syrup-7segmentsdisplay {
+    width: 29px;
+    height: 46px;
+    padding: 5px;
+    background-color: #1E1E24;
+  }
+  [class*="segment"] {
+    position: relative;'
+  }
+  .syrup-segment1 {
+    background-color: #FF2C0F;
+  }
+  .syrup-segment0 {
+    background-color: #631605;
+  }
+  .syrup-segmentB, .syrup-segmentC, .syrup-segmentE, .syrup-segmentF {
+    display: inline-block;
+    width: 4px;
+    height: 17px;
+    clip-path: polygon(0 2px, 2px 0px, 4px 2px, 4px 15px, 2px 17px, 0px 15px, 0 2px);
+    margin: 0;
+    padding: 0;
+  }
+  .syrup-segmentA, .syrup-segmentD, .syrup-segmentG {
+    clip-path: polygon(0 2px, 2px 0px, 23px 0px, 25px 2px, 23px 4px, 2px 4px, 0 2px);
+    width: 25px;
+    height: 4px;
+    left: 2px;
+    margin: 0;
+  }
+  .syrup-segmentC, .syrup-segmentF { left: 21px;  }
 
 </style>
 <div class="syrup-happy">Truth table for <code><span class="syrup-function">dff</span></code>:
 <br>
-<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>D</th><th>{ Q -&gt; Q }</th><th></th><th>Q</th></tr></thead><tbody><tr><td rowspan="2">0</td><td>{ 0 -&gt; 0 }</td><td></td><td>0</td></tr><tr><td>{ 1 -&gt; 0 }</td><td></td><td>1</td></tr>
-<tr><td rowspan="2">1</td><td>{ 0 -&gt; 1 }</td><td></td><td>0</td></tr><tr><td>{ 1 -&gt; 1 }</td><td></td><td>1</td></tr></tbody></table></div></div></div>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th><code>D</code></th><th><code>{ Q -&gt; Q }</code></th><th><code></code></th><th><code>Q</code></th></tr></thead><tbody><tr><td rowspan="2"><code>0</code></td><td><code>{ 0 -&gt; 0 }</code></td><td><code></code></td><td><code>0</code></td></tr><tr><td><code>{ 1 -&gt; 0 }</code></td><td><code></code></td><td><code>1</code></td></tr>
+<tr><td rowspan="2"><code>1</code></td><td><code>{ 0 -&gt; 1 }</code></td><td><code></code></td><td><code>0</code></td></tr><tr><td><code>{ 1 -&gt; 1 }</code></td><td><code></code></td><td><code>1</code></td></tr></tbody></table></div></div></div>
 <br>
 <div class="syrup-happy">Typing for <code><span class="syrup-function">dff</span></code>:
 <br>
-<div style="padding-left: 2ch"><span class="syrup-function">dff</span>(<span class="syrup-type">&lt;Bit&gt;</span>) -&gt; @<span class="syrup-type">&lt;Bit&gt;</span></div></div>
+<div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">dff</span>(<span class="syrup-type">&lt;Bit&gt;</span>) -&gt; @<span class="syrup-type">&lt;Bit&gt;</span></div></div></div>
 <br>
 <div class="syrup-comment">Circuit <code><span class="syrup-function">not</span></code> is defined.</div>
 <br>
 <div class="syrup-happy">Simulation for <code><span class="syrup-function">dff</span></code>:
 <br>
-<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>Time</th><th>State</th><th>Input</th><th>Output</th></tr></thead><tbody><tr><th>0</th><td>{0}</td><td>0</td><td>0</td></tr>
-<tr><th>1</th><td>{0}</td><td>0</td><td>0</td></tr>
-<tr><th>2</th><td>{0}</td><td>1</td><td>0</td></tr>
-<tr><th>3</th><td>{1}</td><td>0</td><td>1</td></tr>
-<tr><th>4</th><td>{0}</td><td>1</td><td>0</td></tr>
-<tr><th>5</th><td>{1}</td><td></td><td></td></tr></tbody></table></div></div></div>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th><code>Time</code></th><th><code>State</code></th><th><code>Input</code></th><th><code>Output</code></th></tr></thead><tbody><tr><th><code>0</code></th><td><code>{0}</code></td><td><code>0</code></td><td><code>0</code></td></tr>
+<tr><th><code>1</code></th><td><code>{0}</code></td><td><code>0</code></td><td><code>0</code></td></tr>
+<tr><th><code>2</code></th><td><code>{0}</code></td><td><code>1</code></td><td><code>0</code></td></tr>
+<tr><th><code>3</code></th><td><code>{1}</code></td><td><code>0</code></td><td><code>1</code></td></tr>
+<tr><th><code>4</code></th><td><code>{0}</code></td><td><code>1</code></td><td><code>0</code></td></tr>
+<tr><th><code>5</code></th><td><code>{1}</code></td><td><code></code></td><td><code></code></td></tr></tbody></table></div></div></div>
 <br>
 <div class="syrup-comment">Circuits <code><span class="syrup-function">and</span></code>, <code><span class="syrup-function">or</span></code>, and <code><span class="syrup-function">alternator</span></code> are defined.</div>
 <br>
 <div class="syrup-happy">Truth table for <code><span class="syrup-function">alternator</span></code>:
 <br>
-<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>{ ALT -&gt; ALT }</th><th></th><th>ALT</th></tr></thead><tbody><tr><td>{ 0   -&gt; 1   }</td><td></td><td>0  </td></tr><tr><td>{ 1   -&gt; 0   }</td><td></td><td>1  </td></tr></tbody></table></div></div></div>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th><code>{ ALT -&gt; ALT }</code></th><th><code></code></th><th><code>ALT</code></th></tr></thead><tbody><tr><td><code>{ 0   -&gt; 1   }</code></td><td><code></code></td><td><code>0  </code></td></tr><tr><td><code>{ 1   -&gt; 0   }</code></td><td><code></code></td><td><code>1  </code></td></tr></tbody></table></div></div></div>
 <br>
 <div class="syrup-comment">Circuits <code><span class="syrup-function">xor</span></code> and <code><span class="syrup-function">tff</span></code> are defined.</div>
 <br>
 <div class="syrup-happy">Truth table for <code><span class="syrup-function">tff</span></code>:
 <br>
-<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>T</th><th>{ Q -&gt; Q }</th><th></th><th>Q</th></tr></thead><tbody><tr><td rowspan="2">0</td><td>{ 0 -&gt; 0 }</td><td></td><td>0</td></tr><tr><td>{ 1 -&gt; 1 }</td><td></td><td>1</td></tr>
-<tr><td rowspan="2">1</td><td>{ 0 -&gt; 1 }</td><td></td><td>0</td></tr><tr><td>{ 1 -&gt; 0 }</td><td></td><td>1</td></tr></tbody></table></div></div></div>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th><code>T</code></th><th><code>{ Q -&gt; Q }</code></th><th><code></code></th><th><code>Q</code></th></tr></thead><tbody><tr><td rowspan="2"><code>0</code></td><td><code>{ 0 -&gt; 0 }</code></td><td><code></code></td><td><code>0</code></td></tr><tr><td><code>{ 1 -&gt; 1 }</code></td><td><code></code></td><td><code>1</code></td></tr>
+<tr><td rowspan="2"><code>1</code></td><td><code>{ 0 -&gt; 1 }</code></td><td><code></code></td><td><code>0</code></td></tr><tr><td><code>{ 1 -&gt; 0 }</code></td><td><code></code></td><td><code>1</code></td></tr></tbody></table></div></div></div>
 <br>
 <div class="syrup-comment">Circuit <code><span class="syrup-function">count2</span></code> is defined.</div>
 <br>
 <div class="syrup-happy">Truth table for <code><span class="syrup-function">count2</span></code>:
 <br>
-<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>{ Q1 Q2 -&gt; Q1 Q2 }</th><th></th><th>Q2</th><th>Q1</th></tr></thead><tbody><tr><td>{ 0  0  -&gt; 1  0  }</td><td></td><td>0 </td><td>0 </td></tr><tr><td>{ 0  1  -&gt; 1  1  }</td><td></td><td>1 </td><td>0 </td></tr><tr><td>{ 1  0  -&gt; 0  1  }</td><td></td><td>0 </td><td>1 </td></tr><tr><td>{ 1  1  -&gt; 0  0  }</td><td></td><td>1 </td><td>1 </td></tr></tbody></table></div></div></div>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th><code>{ Q1 Q2 -&gt; Q1 Q2 }</code></th><th><code></code></th><th><code>Q2</code></th><th><code>Q1</code></th></tr></thead><tbody><tr><td><code>{ 0  0  -&gt; 1  0  }</code></td><td><code></code></td><td><code>0 </code></td><td><code>0 </code></td></tr><tr><td><code>{ 0  1  -&gt; 1  1  }</code></td><td><code></code></td><td><code>1 </code></td><td><code>0 </code></td></tr><tr><td><code>{ 1  0  -&gt; 0  1  }</code></td><td><code></code></td><td><code>0 </code></td><td><code>1 </code></td></tr><tr><td><code>{ 1  1  -&gt; 0  0  }</code></td><td><code></code></td><td><code>1 </code></td><td><code>1 </code></td></tr></tbody></table></div></div></div>
 <br>
 <div class="syrup-comment">Circuit <code><span class="syrup-function">count2tff</span></code> is defined.</div>
 <br>
 <div class="syrup-happy">Truth table for <code><span class="syrup-function">count2tff</span></code>:
 <br>
-<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>{ Q1 Q2 -&gt; Q1 Q2 }</th><th></th><th>[Q2 Q1]</th></tr></thead><tbody><tr><td>{ 0  0  -&gt; 1  0  }</td><td></td><td>[0  0 ]</td></tr><tr><td>{ 0  1  -&gt; 1  1  }</td><td></td><td>[1  0 ]</td></tr><tr><td>{ 1  0  -&gt; 0  1  }</td><td></td><td>[0  1 ]</td></tr><tr><td>{ 1  1  -&gt; 0  0  }</td><td></td><td>[1  1 ]</td></tr></tbody></table></div></div></div>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th><code>{ Q1 Q2 -&gt; Q1 Q2 }</code></th><th><code></code></th><th><code>[Q2 Q1]</code></th></tr></thead><tbody><tr><td><code>{ 0  0  -&gt; 1  0  }</code></td><td><code></code></td><td><code>[0  0 ]</code></td></tr><tr><td><code>{ 0  1  -&gt; 1  1  }</code></td><td><code></code></td><td><code>[1  0 ]</code></td></tr><tr><td><code>{ 1  0  -&gt; 0  1  }</code></td><td><code></code></td><td><code>[0  1 ]</code></td></tr><tr><td><code>{ 1  1  -&gt; 0  0  }</code></td><td><code></code></td><td><code>[1  1 ]</code></td></tr></tbody></table></div></div></div>

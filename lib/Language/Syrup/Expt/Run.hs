@@ -79,8 +79,8 @@ experiment (Print x) = withImplem x $ \ i -> do
     $ prettyUnelabed g i
 experiment (Typing x) = withCompo x $ \ c -> do
   g <- use hasLens
-  anExperiment "Typing for" [x] $
-    prettyBlock
+  tell $ Seq.singleton
+    $ ARawCode "Typing for" x $ prettyBlock
       $ runUnelab g
       $ TypeDecl x
           (getInputType <$> inpTys c)

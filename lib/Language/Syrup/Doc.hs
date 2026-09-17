@@ -21,6 +21,7 @@ module Language.Syrup.Doc
   , aLine
   , aString
   , aTable
+  , a7Segments
   , highlight
   , isCode
   , structure
@@ -46,8 +47,11 @@ module Language.Syrup.Doc
   ) where
 
 import Prelude hiding (unwords)
+import qualified Prelude
 
-import Data.Foldable (fold)
+import Control.Monad (guard)
+
+import Data.Foldable (fold, for_)
 import Data.Kind (Type)
 import Data.List (intercalate, intersperse)
 import Data.String (IsString, fromString)
@@ -123,7 +127,9 @@ data AnnHighlight
 
 data AnnLine
   = IsCode
+  | IsFlex
   | HasStyle AnnHighlight
+  | Is7Segments [Va]
 
 data AnnStructure
   = NestBlock Int
@@ -137,6 +143,17 @@ data LineDoc
   = AString String
   | AnAnnot AnnLine LineDoc
   | AConcat [LineDoc]
+
+isFlex :: LineDoc -> Bool
+isFlex (AString _) = False
+isFlex (AnAnnot IsCode _) = True
+isFlex (AnAnnot IsFlex _) = True
+isFlex (AnAnnot (HasStyle _) _) = True
+isFlex (AnAnnot (Is7Segments _) _) = True
+isFlex (AConcat ls) = any isFlex ls
+
+a7Segments :: [Va] -> LineDoc -> LineDoc
+a7Segments = AnAnnot . Is7Segments
 
 aString :: String -> LineDoc
 aString = AString
@@ -219,27 +236,33 @@ instance Render LineDoc where
     go :: LineDoc -> String
     go (AString str) = str
     go (AnAnnot IsCode d) = "`" ++ go d ++ "`"
+    go (AnAnnot IsFlex d) = go d
     go (AnAnnot (HasStyle _) d) = go d
+    go (AnAnnot (Is7Segments _) d) = go d
     go (AConcat ds) = foldMap go ds
 
 
   renderToHtml = pure . go where
 
     go :: LineDoc -> Html
-    go (AConcat ds) = foldMap go ds
     go (AString str) = toHtml str
     go (AnAnnot ann d) = applyHighlight ann (go d)
+    go (AConcat ds) = foldMap go ds
 
     applyHighlight :: AnnLine -> Html -> Html
     applyHighlight IsCode = Html.code
+    applyHighlight IsFlex = Html.div ! style "display: flex; align-items: center;"
     applyHighlight (HasStyle sty) = Html.span ! class_ (asAttribute sty)
+    applyHighlight (Is7Segments vas) = const $ Html.div ! class_ "syrup-7segmentsdisplay"
+      $ for_ (zip "ABCDEFG" vas) $ \ (idn, va) -> Html.div
+        ! class_ (toValue (Prelude.unwords ["syrup-segment" ++ [idn], "syrup-segment" ++ show va]))
+        $ ""
 
     asAttribute :: AnnHighlight -> AttributeValue
     asAttribute AFunction = "syrup-function"
     asAttribute AVariable = "syrup-variable"
     asAttribute AKeyword = "syrup-keyword"
     asAttribute AType = "syrup-type"
-
 
 instance Render Doc where
 
@@ -381,12 +404,16 @@ instance Render Doc where
           , Html.div ! Attr.id (toValue graphName) $ ""
           ]
     renderBlock _ (ATable tb) = do
-      TABLE mhd rs <- traverse renderToHtml tb
+      TABLE mhd rs <- traverse (renderToHtml . markFlex) tb
       pure $ pure $ Html.table $ do
         maybe "" mkHead mhd
         Html.tbody $$ intersperse "\n" (fmap mkRow rs)
 
       where
+        markFlex :: LineDoc -> LineDoc
+        markFlex l =
+          if isFlex l then AnAnnot IsFlex l else AnAnnot IsCode l
+
         mkHead :: [Html] -> Html
         mkHead ths = (Html.thead . Html.tr) $$ fmap Html.th ths
 
@@ -395,7 +422,8 @@ instance Render Doc where
         mkCell ma (ATD td) = foldl (!) Html.td ma td
 
         mkRow :: ROW Html -> Html
-        mkRow (SimpleRow tdhs) = Html.tr $$ fmap (mkCell Nothing) tdhs
+        mkRow (SimpleRow tdhs) =
+          Html.tr $$ fmap (mkCell Nothing) tdhs
         mkRow (MultiRow shs tdhss) = id $$
           let numrows = length tdhss in
           zipWith (\ l r -> Html.tr $$ (l ++ r))

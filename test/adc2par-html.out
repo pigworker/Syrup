@@ -3,7 +3,6 @@
     border: 1px solid;
     border-collapse: collapse;
     font-family: monospace;
-    white-space: pre;
     padding: 0 4px 0 4px;
   }
   .syrup-code {
@@ -45,6 +44,37 @@
   .syrup-keyword {
     font-weight: bold;
   }
+  .syrup-7segmentsdisplay {
+    width: 29px;
+    height: 46px;
+    padding: 5px;
+    background-color: #1E1E24;
+  }
+  [class*="segment"] {
+    position: relative;'
+  }
+  .syrup-segment1 {
+    background-color: #FF2C0F;
+  }
+  .syrup-segment0 {
+    background-color: #631605;
+  }
+  .syrup-segmentB, .syrup-segmentC, .syrup-segmentE, .syrup-segmentF {
+    display: inline-block;
+    width: 4px;
+    height: 17px;
+    clip-path: polygon(0 2px, 2px 0px, 4px 2px, 4px 15px, 2px 17px, 0px 15px, 0 2px);
+    margin: 0;
+    padding: 0;
+  }
+  .syrup-segmentA, .syrup-segmentD, .syrup-segmentG {
+    clip-path: polygon(0 2px, 2px 0px, 23px 0px, 25px 2px, 23px 4px, 2px 4px, 0 2px);
+    width: 25px;
+    height: 4px;
+    left: 2px;
+    margin: 0;
+  }
+  .syrup-segmentC, .syrup-segmentF { left: 21px;  }
 
 </style>
 <div class="syrup-error">You haven&#39;t defined the circuit <code><span class="syrup-function">undefined</span></code> just now.</div>
@@ -213,14 +243,14 @@
 <br>
 <div class="syrup-happy">Truth table for <code><span class="syrup-function">fadd</span></code>:
 <br>
-<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th>X1</th><th>Y1</th><th>C1</th><th></th><th>C2</th><th>Z1</th></tr></thead><tbody><tr><td>0 </td><td>0 </td><td>0 </td><td></td><td>0 </td><td>0 </td></tr>
-<tr><td>0 </td><td>0 </td><td>1 </td><td></td><td>0 </td><td>1 </td></tr>
-<tr><td>0 </td><td>1 </td><td>0 </td><td></td><td>0 </td><td>1 </td></tr>
-<tr><td>0 </td><td>1 </td><td>1 </td><td></td><td>1 </td><td>0 </td></tr>
-<tr><td>1 </td><td>0 </td><td>0 </td><td></td><td>0 </td><td>1 </td></tr>
-<tr><td>1 </td><td>0 </td><td>1 </td><td></td><td>1 </td><td>0 </td></tr>
-<tr><td>1 </td><td>1 </td><td>0 </td><td></td><td>1 </td><td>0 </td></tr>
-<tr><td>1 </td><td>1 </td><td>1 </td><td></td><td>1 </td><td>1 </td></tr></tbody></table></div></div></div>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th><code>X1</code></th><th><code>Y1</code></th><th><code>C1</code></th><th><code></code></th><th><code>C2</code></th><th><code>Z1</code></th></tr></thead><tbody><tr><td><code>0 </code></td><td><code>0 </code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>0 </code></td></tr>
+<tr><td><code>0 </code></td><td><code>0 </code></td><td><code>1 </code></td><td><code></code></td><td><code>0 </code></td><td><code>1 </code></td></tr>
+<tr><td><code>0 </code></td><td><code>1 </code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>1 </code></td></tr>
+<tr><td><code>0 </code></td><td><code>1 </code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>0 </code></td></tr>
+<tr><td><code>1 </code></td><td><code>0 </code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>1 </code></td></tr>
+<tr><td><code>1 </code></td><td><code>0 </code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>0 </code></td></tr>
+<tr><td><code>1 </code></td><td><code>1 </code></td><td><code>0 </code></td><td><code></code></td><td><code>1 </code></td><td><code>0 </code></td></tr>
+<tr><td><code>1 </code></td><td><code>1 </code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>1 </code></td></tr></tbody></table></div></div></div>
 <br>
 <div class="syrup-comment">Type <code><span class="syrup-type">&lt;Bit2&gt;</span></code> is defined.</div>
 <br>
@@ -228,7 +258,7 @@
 <br>
 <div class="syrup-happy">Printing <code><span class="syrup-function">adc2</span></code>:
 <br>
-<div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">adc2</span>([<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>], [<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>], <span class="syrup-type">&lt;Bit&gt;</span>) -&gt; <span class="syrup-type">&lt;Bit&gt;</span>, [<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>]
+<div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">adc2</span>(<span class="syrup-type">&lt;Bit2&gt;</span>, <span class="syrup-type">&lt;Bit2&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>) -&gt; <span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit2&gt;</span>
 <span class="syrup-function">adc2</span>([<span class="syrup-variable">X2</span>, <span class="syrup-variable">X1</span>], [<span class="syrup-variable">Y2</span>, <span class="syrup-variable">Y1</span>], <span class="syrup-variable">C1</span>) = <span class="syrup-variable">C4</span>, [<span class="syrup-variable">Z2</span>, <span class="syrup-variable">Z1</span>] <span class="syrup-keyword">where</span>
 <div style="padding-left: 2ch"><span class="syrup-variable">C2</span>, <span class="syrup-variable">Z1</span> = <span class="syrup-function">fadd</span>(<span class="syrup-variable">X1</span>, <span class="syrup-variable">Y1</span>, <span class="syrup-variable">C1</span>)
 <span class="syrup-variable">C4</span>, <span class="syrup-variable">Z2</span> = <span class="syrup-function">fadd</span>(<span class="syrup-variable">X2</span>, <span class="syrup-variable">Y2</span>, <span class="syrup-variable">C2</span>)</div></div></div></div>
@@ -293,7 +323,7 @@
 <br>
 <div class="syrup-happy">Printing <code><span class="syrup-function">adc2par</span></code>:
 <br>
-<div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">adc2par</span>([<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>], [<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>], <span class="syrup-type">&lt;Bit&gt;</span>) -&gt; <span class="syrup-type">&lt;Bit&gt;</span>, [<span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>]
+<div style="padding-left: 2ch"><div class="syrup-code"><span class="syrup-function">adc2par</span>(<span class="syrup-type">&lt;Bit2&gt;</span>, <span class="syrup-type">&lt;Bit2&gt;</span>, <span class="syrup-type">&lt;Bit&gt;</span>) -&gt; <span class="syrup-type">&lt;Bit&gt;</span>, <span class="syrup-type">&lt;Bit2&gt;</span>
 <span class="syrup-function">adc2par</span>([<span class="syrup-variable">X2</span>, <span class="syrup-variable">X1</span>], [<span class="syrup-variable">Y2</span>, <span class="syrup-variable">Y1</span>], <span class="syrup-variable">C1</span>) = <span class="syrup-variable">C4</span>, [<span class="syrup-variable">Z2</span>, <span class="syrup-variable">Z1</span>] <span class="syrup-keyword">where</span>
 <div style="padding-left: 2ch"><span class="syrup-variable">C2</span>, <span class="syrup-variable">Z1</span> = <span class="syrup-function">fadd</span>(<span class="syrup-variable">X1</span>, <span class="syrup-variable">Y1</span>, <span class="syrup-variable">C1</span>)
 <span class="syrup-variable">C40</span>, <span class="syrup-variable">Z20</span> = <span class="syrup-function">fadd</span>(<span class="syrup-variable">X2</span>, <span class="syrup-variable">Y2</span>, <span class="syrup-function">0</span>)
@@ -314,3 +344,38 @@
 </script>
 <br>
 <div id="GRAPH_10"></div></div>
+<br>
+<div class="syrup-happy">Truth table for <code><span class="syrup-function">adc2par</span></code>:
+<br>
+<div style="padding-left: 2ch"><div class="syrup-table"><table><thead><tr><th><code>[X2 X1]</code></th><th><code>[Y2 Y1]</code></th><th><code>C1</code></th><th><code></code></th><th><code>C4</code></th><th><code>[Z2 Z1]</code></th></tr></thead><tbody><tr><td><code>[0  0 ]</code></td><td><code>[0  0 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[0  0 ]</code></td></tr>
+<tr><td><code>[0  0 ]</code></td><td><code>[0  0 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[0  1 ]</code></td></tr>
+<tr><td><code>[0  0 ]</code></td><td><code>[0  1 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[0  1 ]</code></td></tr>
+<tr><td><code>[0  0 ]</code></td><td><code>[0  1 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[1  0 ]</code></td></tr>
+<tr><td><code>[0  0 ]</code></td><td><code>[1  0 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[1  0 ]</code></td></tr>
+<tr><td><code>[0  0 ]</code></td><td><code>[1  0 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[1  1 ]</code></td></tr>
+<tr><td><code>[0  0 ]</code></td><td><code>[1  1 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[1  1 ]</code></td></tr>
+<tr><td><code>[0  0 ]</code></td><td><code>[1  1 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[0  0 ]</code></td></tr>
+<tr><td><code>[0  1 ]</code></td><td><code>[0  0 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[0  1 ]</code></td></tr>
+<tr><td><code>[0  1 ]</code></td><td><code>[0  0 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[1  0 ]</code></td></tr>
+<tr><td><code>[0  1 ]</code></td><td><code>[0  1 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[1  0 ]</code></td></tr>
+<tr><td><code>[0  1 ]</code></td><td><code>[0  1 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[1  1 ]</code></td></tr>
+<tr><td><code>[0  1 ]</code></td><td><code>[1  0 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[1  1 ]</code></td></tr>
+<tr><td><code>[0  1 ]</code></td><td><code>[1  0 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[0  0 ]</code></td></tr>
+<tr><td><code>[0  1 ]</code></td><td><code>[1  1 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[0  0 ]</code></td></tr>
+<tr><td><code>[0  1 ]</code></td><td><code>[1  1 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[0  1 ]</code></td></tr>
+<tr><td><code>[1  0 ]</code></td><td><code>[0  0 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[1  0 ]</code></td></tr>
+<tr><td><code>[1  0 ]</code></td><td><code>[0  0 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[1  1 ]</code></td></tr>
+<tr><td><code>[1  0 ]</code></td><td><code>[0  1 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[1  1 ]</code></td></tr>
+<tr><td><code>[1  0 ]</code></td><td><code>[0  1 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[0  0 ]</code></td></tr>
+<tr><td><code>[1  0 ]</code></td><td><code>[1  0 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[0  0 ]</code></td></tr>
+<tr><td><code>[1  0 ]</code></td><td><code>[1  0 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[0  1 ]</code></td></tr>
+<tr><td><code>[1  0 ]</code></td><td><code>[1  1 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[0  1 ]</code></td></tr>
+<tr><td><code>[1  0 ]</code></td><td><code>[1  1 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[1  0 ]</code></td></tr>
+<tr><td><code>[1  1 ]</code></td><td><code>[0  0 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>0 </code></td><td><code>[1  1 ]</code></td></tr>
+<tr><td><code>[1  1 ]</code></td><td><code>[0  0 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[0  0 ]</code></td></tr>
+<tr><td><code>[1  1 ]</code></td><td><code>[0  1 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[0  0 ]</code></td></tr>
+<tr><td><code>[1  1 ]</code></td><td><code>[0  1 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[0  1 ]</code></td></tr>
+<tr><td><code>[1  1 ]</code></td><td><code>[1  0 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[0  1 ]</code></td></tr>
+<tr><td><code>[1  1 ]</code></td><td><code>[1  0 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[1  0 ]</code></td></tr>
+<tr><td><code>[1  1 ]</code></td><td><code>[1  1 ]</code></td><td><code>0 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[1  0 ]</code></td></tr>
+<tr><td><code>[1  1 ]</code></td><td><code>[1  1 ]</code></td><td><code>1 </code></td><td><code></code></td><td><code>1 </code></td><td><code>[1  1 ]</code></td></tr></tbody></table></div></div></div>

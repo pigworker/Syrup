@@ -16,7 +16,7 @@ import Control.Monad.State (StateT, execStateT, runStateT, get, gets, put, modif
 import qualified Control.Monad.State as State
 import Control.Monad.Writer (runWriterT, runWriter, tell)
 
-import Data.Bifunctor (bimap)
+import Data.Bifunctor (bimap, first)
 import Data.Char (isAlpha)
 import Data.Either (partitionEithers)
 import Data.Forget (forget)
@@ -24,7 +24,7 @@ import Data.Foldable (traverse_, fold)
 import Data.IMaybe (fromIJust)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust, fromJust, fromMaybe)
 import Data.Monoid (Last(Last), First(..))
 import qualified Data.Sequence as Seq
 import qualified Data.Set as Set
@@ -169,7 +169,7 @@ guts (Dec (g, ss) ts) (Def (f, ps) es eqs)
   let ss' = map fogTy ss
   let ts' = map fogTy ts
   typs <- local (:< TyINPUTS (forget ss') ps) $ decPats ss' ps
-  (qs, tyes) <- local (:< TyOUTPUTS ts' es) $ chkExps (map (, Nothing) ts') es
+  (qs, tyes) <- local (:< TyOUTPUTS ts' es) $ chkExps (map (, (Nothing, Nothing)) ts') es
   st <- get
   eqs <- traverse (traverse (\ eq -> local (:< TyEQN eq) $ chkEqn eq)) eqs
   (qs', (qs0, qs1)) <- fold <$> traverse stage ts
@@ -204,11 +204,11 @@ decPat :: TyMonad m
        -> Ty1         -- its current unfolding
        -> Pat         -- the pattern to typecheck
        -> m TypedPat
-decPat _ s (PVar () x) = do
+decPat mty s (PVar () x) = do
   void $ defineWire (Just (forget s)) (Physical x)
-  pure (PVar (forget s) x)
-decPat _ s@(Cable ss) (PCab () ps)
-  | length ss == length ps = PCab (forget s) <$> decPats ss ps
+  pure (PVar (forget (fromMaybe s mty)) x)
+decPat mty s@(Cable ss) (PCab () ps)
+  | length ss == length ps = PCab (forget (fromMaybe s mty)) <$> decPats ss ps
   | otherwise = tyErr CableWidth
 decPat _ (Bit _) (PCab _ _) = tyErr BitCable
 decPat _ (Meta x) _ = absurd x
@@ -221,7 +221,7 @@ decPat mty ty@(TVar _ t) p = decPat (mty <|> Just ty) t p
 chkEqn :: TyMonad m => Eqn -> m TypedEqn
 chkEqn eqn@(qs :=: es) = do
   tqs <- traverse defPat qs
-  (ps, es) <- chkExps (map (fmap Just) tqs) es
+  (ps, es) <- chkExps (map (fmap ((Nothing,) . Just)) tqs) es
   solders qs ps
   pure (map snd tqs :=: es)
 
@@ -234,7 +234,9 @@ defPat (PCab () ps) = do
   let ty = Cable tys
   pure (ty, PCab ty pats)
 
-chkExps :: TyMonad m => [(Typ, Maybe TypedPat)] -> [Exp] -> m ([Pat], [TypedExp])
+chkExps :: TyMonad m =>
+  [(Typ, (Maybe Typ, Maybe TypedPat))] -> -- typ, (maybe folded, maybe pat)
+  [Exp] -> m ([Pat], [TypedExp])
 chkExps []  []       = return ([], [])
 chkExps tqs []       = tyErr LongPats
 chkExps tqs (e : es) = do
@@ -271,17 +273,17 @@ renameMem :: [(CellName, String)] -> MemoryCell -> MemoryCell
 renameMem rho (MemoryCell mc t) = MemoryCell (fmap CellName $ mc >>= flip lookup rho) t
 
 chkExp :: TyMonad m
-       => [(Typ, Maybe TypedPat)]
+       => [(Typ, (Maybe Typ, Maybe TypedPat))] -- type, (maybe folded type, maybe pattern)
        -> Exp
-       -> m ([Pat], [(Typ, Maybe TypedPat)], TypedExp)
-chkExp ((t,_) : tqs) (Var () x) = do
+       -> m ([Pat], [(Typ, (Maybe Typ, Maybe TypedPat))], TypedExp)
+chkExp ((t, (mt, _)) : tqs) (Var () x) = do
   s <- useWire (Physical (PVarName x))
   local (:< TyWIRE x s t) $ tyEq (s, t)
-  return ([PVar () (PVarName x)], tqs, Var s x)
-chkExp ((t,_) : tqs) (Hol () x) = do
+  return ([PVar () (PVarName x)], tqs, Var (fromMaybe s mt) x)
+chkExp ((t, (mt, _)) : tqs) (Hol () x) = do
   s <- defineWire (Just t) (Holey x)
   tell YesHasHoles
-  return ([PVar () (PVarName ('?':x))], tqs, Hol s x) -- Is this the right thing?
+  return ([PVar () (PVarName ('?':x))], tqs, Hol (fromMaybe s mt) x) -- Is this the right thing?
 chkExp tqs e@(App _ fn es) = do
   env <- gets coEnv
   f <- case findArr fn env of
@@ -289,7 +291,7 @@ chkExp tqs e@(App _ fn es) = do
     Just f  -> return f
   -- rename the memory cells brought into scope by f
   let (ts, qs) = unzip tqs
-  let rho = memRenamings qs (oupTys f)
+  let rho = memRenamings (snd <$> qs) (oupTys f)
   memTys <- pure $ map (renameMem rho) (memTys f)
 
   let mTy = getCellType <$> memTys
@@ -307,35 +309,37 @@ chkExp tqs e@(App _ fn es) = do
            , memOu = memOu st ++ mOu
            }
   let iTy = getInputType <$> inpTys f
-  (ps, es) <- local (:< TyAPP f es) $ chkExps (map (\t -> (fogTy t, Nothing)) iTy) es
+  (ps, es) <- local (:< TyAPP f es) $ chkExps (map (\t -> (fogTy t, (Nothing, Nothing))) iTy) es
   let oTy = getOutputType <$> oupTys f
   (qs, (qs0, qs1)) <- fold <$> traverse stage oTy
   schedule (qs0 :<- (stage0 f, mIn))
   schedule ((mOu ++ qs1) :<- (stage1 f, mIn ++ ps))
-  let oTy' = map fogTy oTy
-  (qs,,App oTy' fn es) <$> yield oTy' tqs
-chkExp ((TVar s t, q) : tqs) (Cab () es) =
-  chkExp ((forget t, q) : tqs) (Cab () es)
-chkExp (tq : tqs) (Cab () es) = do
-  sqs <- case tq of
+  (oTy', tqs') <- yield (map fogTy oTy) tqs
+  pure (qs,tqs',App oTy' fn es)
+chkExp ((TVar s t, (mt, q)) : tqs) (Cab () es) =
+  chkExp ((forget t, ((mt <|> Just (TVar s t)), q)) : tqs) (Cab () es)
+chkExp ((t, (mt, q)) : tqs) (Cab () es) = do
+  sqs <- case (t, q) of
     (Cable ss, Just (PCab _ qs))
-      | length ss == length qs  -> return (zipWith (\ s q -> (s, Just q)) ss qs)
-      | otherwise               -> return (map (, Nothing) ss)
-    (Cable ss, Just (PVar _ _)) -> return (map (, Nothing) ss) -- TODO:?
-    (Cable ss, Nothing)         -> return (map (, Nothing) ss)
+      | length ss == length qs  -> return (zipWith (\ s q -> (s, (Nothing, Just q))) ss qs)
+      | otherwise               -> return (map (, (Nothing, Nothing)) ss)
+    (Cable ss, Just (PVar _ _)) -> return (map (, (Nothing, Nothing)) ss) -- TODO:?
+    (Cable ss, Nothing)         -> return (map (, (Nothing, Nothing)) ss)
     (Bit _, _) -> tyErr BitCable
     (Meta x, _) -> do
       ss <- traverse (const tyF) es
       tyEq (Cable ss, Meta x)
-      return (map (, Nothing) ss)
+      return (map (, (Nothing, Nothing)) ss)
   (ps, es) <- local (:< TyCAB es (fst <$> sqs)) $ chkExps sqs es
-  return ([PCab () ps], tqs, Cab (Cable (map fst sqs)) es)
+  return ([PCab () ps], tqs, Cab (flip fromMaybe mt $ Cable (map fst sqs)) es)
 chkExp [] _ = tyErr ShortPats
 
-yield :: TyMonad m => [Typ] -> [(Typ, a)] -> m [(Typ, a)]
-yield []       tqs = return tqs
+yield :: TyMonad m => [Typ] -> [(Typ, (Maybe Typ, a))] -> m ([Typ], [(Typ, (Maybe Typ, a))])
+yield []       tqs = return ([], tqs)
 yield (s : ss) []  = tyErr ShortPats
-yield (s : ss) ((t , q) : tqs) = tyEq (s, t) >> yield ss tqs
+yield (s : ss) ((t , (mt, q)) : tqs) = do
+  tyEq (s, t)
+  first (fromMaybe s mt :) <$> yield ss tqs
 
 stage :: TyMonad m => Ty2 -> m ([Pat], ([Pat], [Pat]))
 stage (Meta x) = absurd x
@@ -751,7 +755,7 @@ emptyTyEnv :: TyEnv
 emptyTyEnv = emptyArr
 
 myTyEnv :: TyEnv
-myTyEnv = emptyTyEnv
+myTyEnv = single (TyName "7Segments", CABLE [BIT, BIT, BIT, BIT, BIT, BIT, BIT])
 
 env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
 env1 = execOnCoEnv myCoEnv $ mkComponent
