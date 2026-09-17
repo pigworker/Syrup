@@ -22,6 +22,7 @@ module Language.Syrup.Doc
   , aString
   , aTable
   , a7Segments
+  , aBraille
   , highlight
   , isCode
   , structure
@@ -130,6 +131,7 @@ data AnnLine
   | IsFlex
   | HasStyle AnnHighlight
   | Is7Segments [Va]
+  | IsBraille [Va]
 
 data AnnStructure
   = NestBlock Int
@@ -150,10 +152,14 @@ isFlex (AnAnnot IsCode _) = True
 isFlex (AnAnnot IsFlex _) = True
 isFlex (AnAnnot (HasStyle _) _) = True
 isFlex (AnAnnot (Is7Segments _) _) = True
+isFlex (AnAnnot (IsBraille _) _) = True
 isFlex (AConcat ls) = any isFlex ls
 
 a7Segments :: [Va] -> LineDoc -> LineDoc
 a7Segments = AnAnnot . Is7Segments
+
+aBraille :: [Va] -> LineDoc -> LineDoc
+aBraille = AnAnnot . IsBraille
 
 aString :: String -> LineDoc
 aString = AString
@@ -239,6 +245,7 @@ instance Render LineDoc where
     go (AnAnnot IsFlex d) = go d
     go (AnAnnot (HasStyle _) d) = go d
     go (AnAnnot (Is7Segments _) d) = go d
+    go (AnAnnot (IsBraille _) d) = go d
     go (AConcat ds) = foldMap go ds
 
 
@@ -256,6 +263,10 @@ instance Render LineDoc where
     applyHighlight (Is7Segments vas) = const $ Html.div ! class_ "syrup-7segmentsdisplay"
       $ for_ (zip "ABCDEFG" vas) $ \ (idn, va) -> Html.div
         ! class_ (toValue (Prelude.unwords ["syrup-segment" ++ [idn], "syrup-segment" ++ show va]))
+        $ ""
+    applyHighlight (IsBraille vas) = const $ Html.div ! class_ "syrup-brailledisplay"
+      $ for_ (zip ((:) <$> "TMB" <*> (pure <$> "LR")) vas) $ \ (idn, va) -> Html.div
+        ! class_ (toValue (Prelude.unwords ["syrup-braille" ++ idn, "syrup-braille" ++ show va]))
         $ ""
 
     asAttribute :: AnnHighlight -> AttributeValue

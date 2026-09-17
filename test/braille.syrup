@@ -1,0 +1,23 @@
+not(<Bit>) -> <Bit>
+not(X) = nand(X,X)
+
+displayBit(<Bit>) -> <Braille>
+displayBit(X) = [X, !X, !X, !X, 0, 0]
+
+type displayBit
+print displayBit
+experiment displayBit
+
+displayBits2(<Bit>, <Bit>) -> <Braille>, <Braille>
+displayBits2(X,Y) = displayBit(X), displayBit(Y)
+
+type displayBits2
+print displayBits2
+experiment displayBits2
+
+displayCable2(<Bit>, <Bit>) -> [<Braille>, <Braille>]
+displayCable2(X,Y) = [displayBits2(X,Y)]
+
+type displayCable2
+print displayCable2
+experiment displayCable2

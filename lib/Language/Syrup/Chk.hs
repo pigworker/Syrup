@@ -755,7 +755,10 @@ emptyTyEnv :: TyEnv
 emptyTyEnv = emptyArr
 
 myTyEnv :: TyEnv
-myTyEnv = single (TyName "7Segments", CABLE [BIT, BIT, BIT, BIT, BIT, BIT, BIT])
+myTyEnv = toArr
+  [ (TyName "7Segments", CABLE [BIT, BIT, BIT, BIT, BIT, BIT, BIT])
+  , (TyName "Braille", CABLE [BIT, BIT, BIT, BIT, BIT, BIT])
+  ]
 
 env1, env2, env3, env4, env5, env6, env7, env8, env9 :: CoEnv
 env1 = execOnCoEnv myCoEnv $ mkComponent

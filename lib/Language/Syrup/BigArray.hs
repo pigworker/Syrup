@@ -167,6 +167,9 @@ deleteArr k (Arr lu) = case delete23 k lu of
 single :: Ord k => (k, v) -> Arr k v
 single x = insertArr x emptyArr
 
+toArr :: (Ord k, Foldable t) => t (k, v) -> Arr k v
+toArr = foldr insertArr emptyArr
+
 isEmptyArr :: Arr k v -> Bool
 isEmptyArr (Arr Leaf) = True
 isEmptyArr _ = False
