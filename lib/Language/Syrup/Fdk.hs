@@ -295,7 +295,7 @@ feedbackHtml = fmap (headerHtml <>) . renderToHtml . pretty
       , "    font-weight: bold;"
       , "  }"
       , "  .syrup-7segmentsdisplay {"
-      , "    width: 30px;"
+      , "    width: 29px;"
       , "    height: 46px;"
       , "    padding: 5px;"
       , "    background-color: #1E1E24;"
