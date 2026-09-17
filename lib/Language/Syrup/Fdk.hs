@@ -300,7 +300,7 @@ feedbackHtml = fmap (headerHtml <>) . renderToHtml . pretty
       , "    background-color: #1E1E24;"
       , "  }"
       , "  [class*=\"segment\"] {"
-      , "    position: relative;'"
+      , "    position: relative;"
       , "  }"
       , "  .syrup-segment1 {"
       , "    background-color: #FF2C0F;"
