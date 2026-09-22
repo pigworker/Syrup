@@ -38,7 +38,6 @@
 /* Syrup syntax */
 
 .syrup-editor {
-  background: #eee;
   height: 200px;
 }
 .syrup-function, .syrup-function2, .syrup-operator {
@@ -51,13 +50,13 @@
   color: light-dark(forestgreen, #a6e22e);
 }
 .syrup-keyword {
-  color: #8500ff;
+  color: light-dark(#8500ff, #cc66dd);
 }
 .syrup-symbol {
-  color: darkslateblue;
+  color: light-dark(darkslateblue, lightblue);
 }
 .syrup-commented {
-  color: firebrick;
+  color: light-dark(firebrick, gray);
 }
 
 /* Syrup outputs: 7 segments display */
