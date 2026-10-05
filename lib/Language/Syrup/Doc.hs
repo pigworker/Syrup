@@ -23,6 +23,7 @@ module Language.Syrup.Doc
   , aTable
   , a7Segments
   , aBraille
+  , aTrafficLight
   , highlight
   , isCode
   , structure
@@ -132,6 +133,7 @@ data AnnLine
   | HasStyle AnnHighlight
   | Is7Segments [Va]
   | IsBraille [Va]
+  | IsTrafficLight [Va]
 
 data AnnStructure
   = NestBlock Int
@@ -153,6 +155,7 @@ isFlex (AnAnnot IsFlex _) = True
 isFlex (AnAnnot (HasStyle _) _) = True
 isFlex (AnAnnot (Is7Segments _) _) = True
 isFlex (AnAnnot (IsBraille _) _) = True
+isFlex (AnAnnot (IsTrafficLight _) _) = True
 isFlex (AConcat ls) = any isFlex ls
 
 a7Segments :: [Va] -> LineDoc -> LineDoc
@@ -160,6 +163,9 @@ a7Segments = AnAnnot . Is7Segments
 
 aBraille :: [Va] -> LineDoc -> LineDoc
 aBraille = AnAnnot . IsBraille
+
+aTrafficLight :: [Va] -> LineDoc -> LineDoc
+aTrafficLight = AnAnnot . IsTrafficLight
 
 aString :: String -> LineDoc
 aString = AString
@@ -246,6 +252,7 @@ instance Render LineDoc where
     go (AnAnnot (HasStyle _) d) = go d
     go (AnAnnot (Is7Segments _) d) = go d
     go (AnAnnot (IsBraille _) d) = go d
+    go (AnAnnot (IsTrafficLight _) d) = go d
     go (AConcat ds) = foldMap go ds
 
 
@@ -267,6 +274,10 @@ instance Render LineDoc where
     applyHighlight (IsBraille vas) = const $ Html.div ! class_ "syrup-brailledisplay"
       $ for_ (zip ((:) <$> "TMB" <*> (pure <$> "LR")) vas) $ \ (idn, va) -> Html.div
         ! class_ (toValue (Prelude.unwords ["syrup-braille" ++ idn, "syrup-braille" ++ show va]))
+        $ ""
+    applyHighlight (IsTrafficLight vas) = const $ Html.div ! class_ "syrup-trafficlight"
+      $ for_ (zip "ROG" vas) $ \ (idn, va) -> Html.div
+        ! class_ (toValue (Prelude.unwords ["syrup-trafficlight" ++ [idn], "syrup-trafficlight" ++ show va]))
         $ ""
 
     asAttribute :: AnnHighlight -> AttributeValue

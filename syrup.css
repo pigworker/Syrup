@@ -121,3 +121,33 @@
 .syrup-braille1 {
   background-color: black;
 }
+
+.syrup-trafficlight {
+  width: 38px;
+  height: 115px;
+  line-height: 0px;
+  padding: 5px;
+  border: 1px solid #aaa;
+  background-color: black;
+  margin: 5px;
+}
+.syrup-trafficlight > div {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  margin: 3px;
+  border-radius: 50%;
+  border: 1px solid #aaa;
+}
+.syrup-trafficlightR {
+  background-color: red;
+}
+.syrup-trafficlightO {
+  background-color: orange;
+}
+.syrup-trafficlightG {
+  background-color: green;
+}
+.syrup-trafficlight0 {
+  background-color: black !important
+}
