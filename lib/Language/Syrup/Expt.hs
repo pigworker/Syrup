@@ -92,9 +92,9 @@ data TimeStep = TimeStep
   , currentOutputs :: [Va]
   }
 
-instance Pretty (Simulation n (Int, [Va]) TimeStep) where
-  type PrettyDoc (Simulation n (Int, [Va]) TimeStep) = Doc
-  prettyPrec _ (Simulation (z, mo) steps)
+instance Pretty (RowTemplate, Simulation n (Int, [Va]) TimeStep) where
+  type PrettyDoc (RowTemplate, Simulation n (Int, [Va]) TimeStep) = Doc
+  prettyPrec _ (RowTemplate ti tm to, Simulation (z, mo) steps)
     = structure (ClassBlock "syrup-table")
     $ aTable $ TABLE (Just headers) $ foldMap (pure . SimpleRow . row) steps <> lastrow
     where
@@ -106,9 +106,9 @@ instance Pretty (Simulation n (Int, [Va]) TimeStep) where
       row (TimeStep t mt is os) =
         ((ATH . aString) (show t) :)
         $ map ATD
-        $ (if null mt then [] else [ braces (foldMap pretty mt) ]) ++
-        [ foldMap pretty is
-        , foldMap pretty os
+        $ (if null mt then [] else [ braces (displayVas tm mt) ]) ++
+        [ displayVas ti is
+        , displayVas to os
         ]
       lastrow
         | null mo = []
@@ -116,7 +116,7 @@ instance Pretty (Simulation n (Int, [Va]) TimeStep) where
           $ SimpleRow
           $ ((ATH . aString) (show z) :)
           $ map ATD
-          [ braces (foldMap pretty mo)
+          [ braces (displayVas tm mo)
           , ""
           , ""
           ]
@@ -182,7 +182,12 @@ runCompo c m0 iss = case fromList iss of
   AList xs -> do
     checkMemory c m0
     checkInputs c iss
-    pure $ pretty $ simulate c (Simulation m0 xs)
+    let template = RowTemplate
+         { inputTemplates = map inputTemplate (inpTys c)
+         , cellTemplates = map cellTemplate (memTys c)
+         , outputTemplates = map outputTemplate (oupTys c)
+         }
+    pure $ pretty (template, simulate c (Simulation m0 xs))
 
 
 tyVaChks :: [Ty t Void] -> [Va] -> Bool
